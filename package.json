@@ -1,0 +1,44 @@
+{
+  "name": "agentledger",
+  "version": "0.1.0",
+  "description": "Local-first ledger for AI coding agents. Read what your Claude Code / Codex / Gemini / Cursor / DSH sessions really cost, in tokens and money. No cloud, no API keys.",
+  "keywords": [
+    "ai",
+    "agents",
+    "claude-code",
+    "codex",
+    "llm",
+    "cost",
+    "tokens",
+    "cli",
+    "developer-tools",
+    "observability"
+  ],
+  "license": "MIT",
+  "type": "module",
+  "engines": {
+    "node": ">=18"
+  },
+  "bin": {
+    "agentledger": "bin/agentledger.js",
+    "aledger": "bin/agentledger.js"
+  },
+  "files": [
+    "bin/",
+    "src/",
+    "README.md",
+    "LICENSE"
+  ],
+  "scripts": {
+    "test": "node --test tests/",
+    "lint": "node --check src/*.js"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/garyleelty/agentledger.git"
+  },
+  "homepage": "https://github.com/garyleelty/agentledger",
+  "bugs": {
+    "url": "https://github.com/garyleelty/agentledger/issues"
+  }
+}
