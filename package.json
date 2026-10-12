@@ -1,7 +1,7 @@
 {
-  "name": "agentledger",
+  "name": "agentledger-cli",
   "version": "0.1.0",
-  "description": "Local-first ledger for AI coding agents. Read what your Claude Code / Codex / Gemini / Cursor / DSH sessions really cost, in tokens and money. No cloud, no API keys.",
+  "description": "Local-first cost ledger for AI coding agents (Claude Code, Codex, Gemini CLI). Read what your sessions really cost in tokens and money. No cloud, no API keys.",
   "keywords": [
     "ai",
     "agents",

@@ -2,12 +2,12 @@
 
 **What did that agent actually cost you?**
 
-`agentledger` is a local-first ledger for AI coding agents. It reads the
+`agentledger-cli` is a local-first ledger for AI coding agents. It reads the
 session logs that Claude Code, Codex, and Gemini CLI already write to your
 machine and turns them into tokens and dollars.
 
 ```
-$ npx agentledger
+$ npx agentledger-cli
 
   agentledger — 73 session files scanned
 
@@ -30,14 +30,14 @@ $ npx agentledger
 ## Why
 
 If you pay per token for your agents, your bill is a lagging indicator. By the
-time you see it you have already spent it. `agentledger` gives you the number
+time you see it you have already spent it. `agentledger-cli` gives you the number
 while you are still working:
 
 - **Local only.** It reads `~/.claude/projects`, `~/.codex/sessions`, and
   `~/.gemini/tmp`. Nothing is uploaded, no account, no API key, no network
   call of any kind.
 - **Correct on cache tokens.** Cache reads and cache writes are billed at
-  different rates. Most dashboards lump them in with input. `agentledger`
+  different rates. Most dashboards lump them in with input. `agentledger-cli`
   prices each bucket separately.
 - **Fast.** A full scan of ~180M tokens of logs takes about a second.
 - **Boring dependencies.** Node 18+ and the standard library. That's it.
@@ -46,22 +46,22 @@ while you are still working:
 
 ```bash
 # run it once, no install
-npx agentledger
+npx agentledger-cli
 
 # or add it to a project
-npm install --save-dev agentledger
+npm install --save-dev agentledger-cli
 ```
 
 ## Usage
 
 ```bash
-agentledger                 # totals + per-agent breakdown
-agentledger by-model        # which model is eating your budget
-agentledger by-day -d 30    # daily spend curve
-agentledger sessions -n 20  # most expensive sessions
-agentledger watch           # live totals, refreshes every 5s
-agentledger prices          # the built-in pricing table
-agentledger json            # machine-readable dump
+agentledger-cli                 # totals + per-agent breakdown
+agentledger-cli by-model        # which model is eating your budget
+agentledger-cli by-day -d 30    # daily spend curve
+agentledger-cli sessions -n 20  # most expensive sessions
+agentledger-cli watch           # live totals, refreshes every 5s
+agentledger-cli prices          # the built-in pricing table
+agentledger-cli json            # machine-readable dump
 ```
 
 Useful flags:
@@ -78,13 +78,13 @@ Examples:
 
 ```bash
 # What did today's Claude Code session cost?
-agentledger -a claude-code --since "$(date +%F)" by-day
+agentledger-cli -a claude-code --since "$(date +%F)" by-day
 
 # Export everything for a spreadsheet
-agentledger json > ledger.json
+agentledger-cli json > ledger.json
 
 # Pipe into a status line / CI check
-agentledger json | jq '.totals.costUSD'
+agentledger-cli json | jq '.totals.costUSD'
 ```
 
 ## Supported agents
@@ -96,7 +96,7 @@ agentledger json | jq '.totals.costUSD'
 | Gemini CLI | `~/.gemini/tmp/**/logs.json` | ✅ |
 | Anything else | `--path` + format sniffing | partial |
 
-`agentledger sources` prints this table with links.
+`agentledger-cli sources` prints this table with links.
 
 ## How costs are calculated
 
@@ -121,7 +121,7 @@ they are normally within a few percent.
 
 ## Privacy
 
-`agentledger` opens your log files in read mode and writes nothing. There is no
+`agentledger-cli` opens your log files in read mode and writes nothing. There is no
 telemetry, no update check, and no code path that can reach the network. You
 can verify this in a few minutes — the whole tool is ~700 lines with zero
 dependencies.
