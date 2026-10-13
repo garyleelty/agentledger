@@ -52,6 +52,17 @@ npx agentledger-cli
 npm install --save-dev agentledger-cli
 ```
 
+Prefer not to wait for npm? One line, no npm account involved:
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/garyleelty/agentledger/main/install.sh | sh
+```
+
+That clones into `~/.agentledger` and symlinks `agentledger` (and the shorter
+`aledger`) into `~/.local/bin`, printing the `PATH` line to add if
+`~/.local/bin` is not already on yours. Upgrade with
+`git -C ~/.agentledger pull`, or just re-run the installer.
+
 ## Usage
 
 ```bash
@@ -141,3 +152,4 @@ Issues and PRs welcome, especially:
 - GitHub Sponsors: <https://github.com/sponsors/garyleelty>
 - Ko-fi: <https://ko-fi.com/garyleelty>
 - 爱发电: <https://afdian.com/a/garyleelty>
+
