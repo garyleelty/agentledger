@@ -145,11 +145,26 @@ Issues and PRs welcome, especially:
 - more accurate pricing tables
 - a statusline snippet for your shell of choice
 
+## Support
+
+agentledger is MIT-licensed and free forever. If it saved you a surprise bill,
+you can send something directly — no account, no signup, no intermediary:
+
+```
+ETH  0xB30a208B84814D3F7091Bb779f2b0225288349aE
+BTC  1EKTrfpKc7fQwNYUv4oHLa2cna6NqDq3sM
+```
+
+Check whether anything has arrived (queries public endpoints, read-only):
+
+```bash
+python3 tools/tip.py
+```
+
+There is no paid tier, no license key and no ads. Tipping is the only way this
+project makes money, and it is entirely optional.
+
 ## License
 
-[MIT](LICENSE). Free forever. If it saves you money, a tip keeps it alive:
-
-- GitHub Sponsors: <https://github.com/sponsors/garyleelty>
-- Ko-fi: <https://ko-fi.com/garyleelty>
-- 爱发电: <https://afdian.com/a/garyleelty>
+[MIT](LICENSE).
 

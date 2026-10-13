@@ -118,13 +118,16 @@
   </table>
 
   <h2 id="support">Support</h2>
-  <p>agentledger is MIT-licensed and free forever. If it saved you a surprise bill,
-  a coffee keeps it maintained:</p>
-  <div class="cta">
-    <a class="btn tip" href="https://github.com/sponsors/garyleelty">GitHub Sponsors</a>
-    <a class="btn tip" href="https://ko-fi.com/garyleelty">Ko-fi</a>
-    <a class="btn tip" href="https://afdian.com/a/garyleelty">爱发电</a>
+  <p>agentledger is MIT-licensed and free forever. If it saved you a surprise
+  bill, you can send something directly — no account, no signup, no intermediary:</p>
+  <div class="panel">
+<pre>ETH  <span class="ok">0xB30a208B84814D3F7091Bb779f2b0225288349aE</span>
+BTC  <span class="ok">1EKTrfpKc7fQwNYUv4oHLa2cna6NqDq3sM</span></pre>
   </div>
+  <p class="dim" style="font-size:13px">Verify these before sending — the BTC address carries a
+  base58 checksum and the ETH address an EIP-55 checksum, so a typo will not silently
+  send funds somewhere else. You can also run <code>python3 tools/tip.py</code> from the
+  repo to confirm the balance from public endpoints.</p>
   <p class="dim" style="font-size:13px">No ads, no paid tier, no license keys. Tipping is the only
   way this project makes money, and it is entirely optional.</p>
 
