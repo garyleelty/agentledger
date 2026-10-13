@@ -92,7 +92,7 @@
   <h2>What it does</h2>
   <ul>
     <li><strong>Reads local logs only</strong> — <code>~/.claude/projects</code>, <code>~/.codex/sessions</code>, <code>~/.gemini/tmp</code></li>
-    <li><strong>Prices cache tokens correctly</strong> — cache reads and cache writes are billed at different rates from fresh input</li>
+    <li><strong>Cache buckets priced separately</strong> — 418M of my 438M tokens were cache reads, billed at ~10% of input</li>
     <li><strong>Never touches the network</strong> — no account, no key, no telemetry, ~700 lines you can audit in one sitting</li>
     <li><strong>Fast</strong> — a full scan of 400M+ tokens takes about a second</li>
   </ul>
@@ -116,6 +116,15 @@
     <tr><td>Gemini CLI</td><td><code>~/.gemini/tmp</code></td><td class="ok">supported</td></tr>
     <tr><td>Cursor, Aider, Amp…</td><td><code>--path</code> + sniffing</td><td class="dim">partial</td></tr>
   </table>
+
+  <h2>Compared to ccusage</h2>
+  <p><a href="https://github.com/ccusage/ccusage">ccusage</a> is the incumbent and it is
+  <strong>more capable</strong>: more agents, prefers Claude Code's own
+  <code>costUSD</code>, models 5-minute vs 1-hour cache creation, prices reasoning tokens.
+  If you want the most complete tool, use it.</p>
+  <p>agentledger's pitch is narrower and honest: ~700 lines, zero dependencies, no
+  network, no build step. You can read the whole thing before you trust it with logs
+  that are effectively your entire coding history.</p>
 
   <h2 id="support">Support</h2>
   <p>agentledger is MIT-licensed and free forever. If it saved you a surprise

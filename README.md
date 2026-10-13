@@ -36,11 +36,23 @@ while you are still working:
 - **Local only.** It reads `~/.claude/projects`, `~/.codex/sessions`, and
   `~/.gemini/tmp`. Nothing is uploaded, no account, no API key, no network
   call of any kind.
-- **Correct on cache tokens.** Cache reads and cache writes are billed at
-  different rates. Most dashboards lump them in with input. `agentledger-cli`
-  prices each bucket separately.
+- **Cache buckets are priced separately.** Cache reads and cache writes bill at
+  different rates from fresh input, and they are the majority of real traffic —
+  418M of the 438M tokens in my own logs were cache reads.
 - **Fast.** A full scan of ~180M tokens of logs takes about a second.
 - **Boring dependencies.** Node 18+ and the standard library. That's it.
+
+### Honest comparison
+
+[ccusage](https://github.com/ccusage/ccusage) is the incumbent and it is more
+capable than this: it covers far more agents, prefers Claude Code's own
+`costUSD` field when present, models 5-minute vs 1-hour cache creation
+separately, and prices reasoning tokens. If you want the most complete tool,
+use that one.
+
+agentledger exists because I wanted something I could read end to end: ~700
+lines, zero dependencies, no network, no build step. Whether that trade is
+worth it is your call, not mine.
 
 ## Install
 

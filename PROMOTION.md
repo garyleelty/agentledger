@@ -41,10 +41,15 @@ already leave on disk.
 
 One Codex session had quietly burned $34. I had no idea.
 
-The part that surprised me: cache reads are 418M of those 438M tokens. Most
-cost dashboards count cache-read and cache-write tokens as ordinary input,
-which wildly misreports the bill. agentledger prices each bucket at its own
-rate (cache read is 10% of input on Claude, 12.5% on GPT-5.x).
+The part that surprised me: cache reads are 418M of those 438M tokens, and
+they bill at ~10% of input on Claude. If you are not separating that bucket
+you will misread your own spend, so agentledger prices cache read / cache
+write / fresh input / output separately.
+
+To be fair up front: ccusage (19k stars) already does this, covers more
+agents, and prefers Claude's own costUSD field. I am not claiming to beat it.
+I wanted ~700 lines with zero dependencies that I could read end to end, and
+that makes no network calls at all.
 
 It reads ~/.claude/projects, ~/.codex/sessions and ~/.gemini/tmp read-only,
 has zero dependencies (Node 18+ stdlib only), and makes no network calls at
