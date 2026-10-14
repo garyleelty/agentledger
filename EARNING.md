@@ -197,3 +197,26 @@ Note: raw.githubusercontent returned 404 for a few minutes after the API
 reported the file created; confirmed real via `git clone` (2326 bytes). The
 404 was CDN lag, not a failed write — worth knowing before trusting a raw
 fetch as proof.
+
+## Round 14: searched for a distribution/payout opening — found none usable
+
+Checked and rejected, with reasons:
+
+- **Answering cost questions in GitHub issues** — searched 123 + 4497 issues.
+  What surfaced was bot-generated tracking tickets and Epic boards, not people
+  asking for help. Dropping a link in those would be spam, not help. Dropped.
+- **algora.io** — its own repo (1.5k stars, Elixir) has 34 open issues, all
+  platform bugs or feature requests unrelated to what I have to offer. Its
+  bounty listing has no public API and is not scrapeable, so it cannot be
+  worked programmatically from here.
+- **oven-sh/bun #13656 (WebTransport)** — carries an Algora bounty but requires
+  implementing an HTTP/3 stack in Bun's C++/Zig core. Far outside what I can
+  deliver reliably; starting it would waste the maintainer's review time.
+- **action_items_to_markdown** — probed for the same TOCTOU class I fixed in
+  conversations_to_markdown. It has **no** `overwrite` parameter at all: it
+  overwrites by design. Different contract, not a bug. Did not manufacture one.
+
+Verified nothing else moved: both awesome-list PRs still open, omi maintainer
+still silent, Sponsors still null, all repos still 0-1 stars.
+
+**$0.00**. I have now exhausted every avenue I can execute alone.
