@@ -15,13 +15,39 @@ import { collect, withCost, totals, groupBy, SOURCES } from '../src/ledger.js';
 import { PRICING, DEFAULT_PRICING, resolvePricing } from '../src/pricing.js';
 
 const argv = process.argv.slice(2);
-const command = argv[0] && !argv[0].startsWith('-') ? argv.shift() : 'summary';
-const flags = parseFlags(argv);
+
+// Parsing runs before `main()`, so a bad flag has to be caught here too —
+// otherwise a typo escapes as an unhandled exception with a stack trace
+// instead of the one-line message every other failure gets.
+let command;
+let flags;
+try {
+  command = argv[0] && !argv[0].startsWith('-') ? argv.shift() : 'summary';
+  flags = parseFlags(argv);
+} catch (err) {
+  console.error(`agentledger: ${err.message}`);
+  process.exit(1);
+}
 
 main().catch((err) => {
   console.error(`agentledger: ${err.message}`);
   process.exitCode = 1;
 });
+
+/**
+ * Flags whose value must be a positive integer. `-n abc` and `-n -5` used to
+ * flow straight into `Array.slice`, where NaN silently became 0 (no rows) and a
+ * negative count silently dropped rows off the *end* of a ranked list — both
+ * wrong answers with no error. A cost report that quietly lies is worse than
+ * one that refuses to run, so bad input now stops the run.
+ */
+function positiveInt(raw, flag) {
+  const n = Number(raw);
+  if (!Number.isInteger(n) || n < 1) {
+    throw new Error(`${flag} expects a positive integer, got ${JSON.stringify(raw)}`);
+  }
+  return n;
+}
 
 function parseFlags(args) {
   const out = { agent: [], path: [], json: false, top: 10, days: 30, since: null };
@@ -30,11 +56,27 @@ function parseFlags(args) {
     if (a === '--agent' || a === '-a') out.agent.push(args[++i]);
     else if (a === '--path' || a === '-p') out.path.push(args[++i]);
     else if (a === '--json') out.json = true;
-    else if (a === '--top' || a === '-n') out.top = Number(args[++i]);
-    else if (a === '--days' || a === '-d') out.days = Number(args[++i]);
-    else if (a === '--since') out.since = Date.parse(args[++i]);
+    else if (a === '--top' || a === '-n') out.top = positiveInt(args[++i], a);
+    else if (a === '--days' || a === '-d') out.days = positiveInt(args[++i], a);
+    else if (a === '--since') {
+      const raw = args[++i];
+      const parsed = Date.parse(raw);
+      // Date.parse returns NaN for junk. `if (NaN)` is falsy, so the old code
+      // skipped filtering entirely and printed the full ledger as if the user
+      // had asked for it — the single most misleading failure this tool had.
+      if (Number.isNaN(parsed)) {
+        throw new Error(`--since could not parse ${JSON.stringify(raw)} as a date (try 2026-06-01)`);
+      }
+      out.since = parsed;
+    }
     else if (a === '--help' || a === '-h') { out.help = true; }
     else if (a === '--version' || a === '-v') { out.version = true; }
+    else if (a.startsWith('-')) {
+      throw new Error(`unknown option ${a} (try --help)`);
+    }
+    else {
+      throw new Error(`unexpected argument ${JSON.stringify(a)} (try --help)`);
+    }
   }
   return out;
 }
@@ -42,6 +84,18 @@ function parseFlags(args) {
 async function main() {
   if (flags.help) return printHelp();
   if (flags.version) return console.log(version());
+
+  // A mistyped agent name used to fall through to "No agent sessions found
+  // yet." — indistinguishable from having no logs, and it hid the typo.
+  if (flags.agent.length) {
+    const known = SOURCES.map((s) => s.agent);
+    const unknown = flags.agent.filter((a) => !known.includes(a));
+    if (unknown.length) {
+      throw new Error(
+        `unknown agent ${unknown.map((a) => JSON.stringify(a)).join(', ')}; known agents: ${known.join(', ')}`,
+      );
+    }
+  }
 
   const { records, filesScanned, skipped } = await collect({
     agents: flags.agent.length ? flags.agent : null,
@@ -74,7 +128,6 @@ async function main() {
 function reportSummary(records, meta, flags) {
   if (flags.json) return reportJson(records);
   const t = totals(records);
-  const grand = totals(records.map((r) => r));
   if (records.length === 0) {
     console.log('No agent sessions found yet.');
     console.log(`Looked in: ${SOURCES.map((s) => s.root).join(', ')}`);
@@ -186,15 +239,12 @@ function reportJson(records) {
 }
 
 async function watch(flags) {
-  const seen = new Set();
   console.log('agentledger watch — Ctrl-C to stop');
   const tick = async () => {
     const { records } = await collect({ agents: flags.agent.length ? flags.agent : null, paths: flags.path });
     const priced = records.map(withCost);
-    const fresh = priced.filter((r) => !seen.has(keyOf(r)));
-    for (const r of fresh) seen.add(keyOf(r));
-    const t = totals(seen.size ? priced : fresh);
-    process.stdout.write(`\r  ${money(totals(priced).cost)}  ${fmtTok(sum(priced, 'input') + sum(priced, 'cacheRead') + sum(priced, 'output'))} tokens  ${priced.length} records   `);
+    const t = totals(priced);
+    process.stdout.write(`\r  ${money(t.cost)}  ${fmtTok(t.input + t.cacheRead + t.cacheWrite + t.output)} tokens  ${priced.length} records   `);
   };
   await tick();
   const timer = setInterval(tick, 5000);
@@ -204,7 +254,6 @@ async function watch(flags) {
 
 /* ------------------------------ helpers ------------------------------ */
 
-const keyOf = (r) => `${r.agent}/${r.session}/${r.timestamp}/${r.input}/${r.output}`;
 const sum = (rs, k) => rs.reduce((a, r) => a + (r[k] || 0), 0);
 const num = (s) => Number(String(s).replace(/[^0-9.]/g, '')) || 0;
 const dayKey = (ts) => (ts ? new Date(ts).toISOString().slice(0, 10) : 'unknown');
