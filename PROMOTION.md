@@ -41,10 +41,17 @@ already leave on disk.
 
 One Codex session had quietly burned $34. I had no idea.
 
-The part that surprised me: cache reads are 418M of those 438M tokens, and
-they bill at ~10% of input on Claude. If you are not separating that bucket
-you will misread your own spend, so agentledger prices cache read / cache
-write / fresh input / output separately.
+Two things surprised me. First, cache reads dominate everything: 631M of 678M
+total tokens. Second, they are badly concentrated — the top 10 sessions out of
+262 hold 74.5% of all cache reads. That is not "I used it a lot", that is
+context churn: one long session kept re-sending its prefix, and a single Codex
+session cost $34.67 by itself.
+
+    agentledger waste        # where the cache-read spend actually went
+    agentledger by-branch    # what one branch cost
+    agentledger by-project   # what one repo cost
+
+The `web` branch alone was $64.53.
 
 To be fair up front: ccusage (19k stars) already does this, covers more
 agents, and prefers Claude's own costUSD field. I am not claiming to beat it.

@@ -111,6 +111,7 @@ async function main() {
   }
 
   switch (command) {
+    case 'waste': return reportWaste(filtered, flags);
     case 'by-project': return reportByProject(filtered, flags);
     case 'by-branch': return reportByBranch(filtered, flags);
     case 'by-model': return reportByModel(filtered, flags);
@@ -166,6 +167,42 @@ function reportByModel(records, flags) {
   });
   groups.sort((a, b) => num(b[2]) - num(a[2]));
   printTable(['Model', 'Tokens', 'Est. cost', 'Records'], groups.slice(0, flags.top || 50));
+}
+
+function reportWaste(records, flags) {
+  if (flags.json) return reportJson(records);
+  const t = totals(records);
+  const totalCacheRead = t.cacheRead;
+  if (totalCacheRead === 0) {
+    console.log('No cache reads in these logs; nothing to diagnose.');
+    return;
+  }
+
+  // Context re-reads are the dominant cost in agent traffic: a turn that
+  // re-reads a large prefix bills at the cache-read rate, so the sessions
+  // holding most of those tokens are where the money actually went.
+  const perSession = [...groupBy(records, (r) => `${r.agent}/${r.session}`).entries()]
+    .map(([key, rs]) => {
+      const st = totals(rs);
+      return { key, cacheRead: st.cacheRead, cost: st.cost, records: rs.length, project: rs.find((r) => r.project)?.project || null };
+    })
+    .sort((a, b) => b.cacheRead - a.cacheRead);
+
+  const top10 = perSession.slice(0, 10);
+  const share = top10.reduce((a, x) => a + x.cacheRead, 0) / totalCacheRead;
+
+  console.log('');
+  console.log(`  cache reads are the story: ${fmtTok(totalCacheRead)} of ${fmtTok(t.input + t.cacheRead + t.output)} total tokens`);
+  console.log('');
+  printTable(
+    ['Session', 'Cache read', 'Est. cost', 'Project'],
+    top10.map((x) => [x.key.slice(0, 40), fmtTok(x.cacheRead), money(x.cost), (x.project || '-').split('/').slice(-2).join('/')]),
+  );
+  console.log('');
+  console.log(`  These ${top10.length} of ${perSession.length} sessions hold ${(share * 100).toFixed(1)}% of all cache reads.`);
+  console.log('  Concentrated re-reads are usually a sign of context churn: a long session');
+  console.log('  that keeps re-sending its prefix, or a tool returning large output every turn.');
+  console.log('');
 }
 
 function reportByProject(records, flags) {
@@ -327,6 +364,7 @@ Usage
 
 Commands
   summary     Totals, cost, and per-agent breakdown (default)
+  waste       Where the cache-read spend is concentrated
   by-project  Cost per working directory / repository
   by-branch   Cost per git branch
   by-model    Per-model token and cost breakdown

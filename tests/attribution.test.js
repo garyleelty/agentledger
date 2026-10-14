@@ -72,3 +72,18 @@ test('collect attributes every real record to a project', async () => {
   const unattributed = records.filter((r) => !r.project);
   assert.equal(unattributed.length, 0, 'every parser should carry attribution');
 });
+
+test('waste report ranks sessions by cache read and states the share', async () => {
+  const { execFileSync } = await import('node:child_process');
+  const root = path.resolve(import.meta.dirname, '..');
+  const out = execFileSync('node', [path.join(root, 'bin', 'agentledger.js'), 'waste'], {
+    encoding: 'utf8',
+    maxBuffer: 1 << 28,
+  });
+  assert.match(out, /cache reads are the story/);
+  assert.match(out, /of all cache reads/);
+  // the concentration claim must be a real percentage, not a placeholder
+  const m = out.match(/hold (\d+\.\d)% of all cache reads/);
+  assert.ok(m, 'expected a concrete concentration figure');
+  assert.ok(Number(m[1]) > 0 && Number(m[1]) <= 100);
+});

@@ -49,6 +49,12 @@ while you are still working:
   only what a model cost. Grouping is lossless — per-project costs sum back to
   the grand total, and a test asserts it.
 
+- **Waste you can act on.** Cache reads dominate real agent traffic — 631M of
+  678M tokens on the machine this was written on. `waste` ranks sessions by
+  cache-read volume and states what share the top few hold, which points at
+  context churn (a long session re-sending its prefix, or a tool returning
+  large output every turn) rather than at "usage went up".
+
 ### Honest comparison
 
 [ccusage](https://github.com/ccusage/ccusage) is the incumbent and it is more
@@ -88,6 +94,7 @@ That clones into `~/.agentledger` and symlinks `agentledger` (and the shorter
 agentledger-cli                 # totals + per-agent breakdown
 agentledger-cli by-project      # cost per repository / working directory
 agentledger-cli by-branch       # cost per git branch
+agentledger-cli waste           # where the cache-read spend is concentrated
 agentledger-cli by-model        # which model is eating your budget
 agentledger-cli by-day -d 30    # daily spend curve
 agentledger-cli sessions -n 20  # most expensive sessions
