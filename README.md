@@ -182,6 +182,11 @@ python3 tools/tip.py
 There is no paid tier, no license key and no ads. Tipping is the only way this
 project makes money, and it is entirely optional.
 
+These addresses are not just pasted here — `python3 tools/prove_control.py`
+re-derives both from the private key and produces an ECDSA signature that
+verifies against the derived public key, so you can confirm they really are
+the project's before sending anything.
+
 ## License
 
 [MIT](LICENSE).

@@ -137,6 +137,9 @@ BTC  <span class="ok">1EKTrfpKc7fQwNYUv4oHLa2cna6NqDq3sM</span></pre>
   base58 checksum and the ETH address an EIP-55 checksum, so a typo will not silently
   send funds somewhere else. You can also run <code>python3 tools/tip.py</code> from the
   repo to confirm the balance from public endpoints.</p>
+  <p class="dim" style="font-size:13px">These are not just pasted in —
+  <code>python3 tools/prove_control.py</code> re-derives both from the private key and
+  signs with it, so you can confirm the addresses are really the project's before sending.</p>
   <p class="dim" style="font-size:13px">No ads, no paid tier, no license keys. Tipping is the only
   way this project makes money, and it is entirely optional.</p>
 

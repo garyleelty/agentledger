@@ -38,3 +38,15 @@ test('vendored keccak passes its test vectors', () => {
   ).trim();
   assert.equal(out, 'c5d2460186f7233c927e7db2dcc703c0e500b653ca82273b7bfad8045d85a470');
 });
+
+test('prove_control.py proves we hold the keys to both addresses', () => {
+  const out = execFileSync('python3', [path.join(root, 'tools', 'prove_control.py')], {
+    encoding: 'utf8',
+  });
+  assert.match(out, /ETH matches\s+YES/);
+  assert.match(out, /ETH signature verifies against derived key:\s+YES/);
+  assert.match(out, /BTC matches\s+YES/);
+  assert.match(out, /KEY CONTROL PROVEN/);
+  // the private key must never leak into normal output
+  assert.doesNotMatch(out, /private key:/);
+});
