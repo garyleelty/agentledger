@@ -100,7 +100,25 @@ agentledger-cli by-day -d 30    # daily spend curve
 agentledger-cli sessions -n 20  # most expensive sessions
 agentledger-cli watch           # live totals, refreshes every 5s
 agentledger-cli prices          # the built-in pricing table
+agentledger-cli aggregate       # shareable totals + groupings, no session ids
 agentledger-cli json            # machine-readable dump
+```
+
+Two JSON shapes, deliberately:
+
+| Command | Use it for | Contents |
+| --- | --- | --- |
+| `aggregate` | sharing, CI, a digest | totals + per-agent and per-model groupings |
+| `json` | debugging, spreadsheets | one row per usage record, **including session ids** |
+
+`json` is the debugging shape. On Claude Code and Codex the session id is a
+UUID that names a real log file under the agent's own directory, so a report
+built from it publishes a map of your projects. Use `aggregate` for anything
+that leaves your machine:
+
+```bash
+agentledger-cli aggregate > spend.json     # ~3 kB
+agentledger-cli json        > records.json  # one row per record, much larger
 ```
 
 Useful flags:

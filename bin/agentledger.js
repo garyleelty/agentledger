@@ -119,11 +119,53 @@ async function main() {
     case 'sessions': return reportSessions(filtered, flags);
     case 'sources': return reportSources();
     case 'prices': return reportPrices();
+    case 'aggregate': return reportAggregate(filtered);
     case 'json': return reportJson(filtered);
     case 'watch': return watch(flags);
     case 'summary':
     default: return reportSummary(filtered, { filesScanned, skipped }, flags);
   }
+}
+
+/**
+ * Aggregate-only JSON: totals, plus cost and token sums grouped by agent and
+ * by model.
+ *
+ * This is the shareable shape. `json` is the debugging shape and carries one
+ * row per usage record including the session id, which on Claude Code and
+ * Codex is a UUID that names a real project directory. `aggregate` is what a
+ * digest, a README badge or a CI step should read — it answers "what did the
+ * spend look like" without publishing whose spend it was.
+ */
+function reportAggregate(records) {
+  const t = totals(records);
+  const by = (keyFn) => Object.fromEntries(
+    [...groupBy(records, keyFn).entries()]
+      .map(([key, rs]) => {
+        const s = totals(rs);
+        return [key, {
+          input: s.input,
+          cacheRead: s.cacheRead,
+          cacheWrite: s.cacheWrite,
+          output: s.output,
+          records: rs.length,
+          costUSD: round(s.cost),
+        }];
+      })
+      .sort((a, b) => b[1].costUSD - a[1].costUSD),
+  );
+  console.log(JSON.stringify({
+    tool: 'agentledger',
+    version: version(),
+    generatedAt: new Date().toISOString(),
+    totals: {
+      tokens: { input: t.input, cacheRead: t.cacheRead, cacheWrite: t.cacheWrite, output: t.output },
+      costUSD: round(t.cost),
+      records: records.length,
+    },
+    byAgent: by((r) => r.agent),
+    byModel: by((r) => r.model),
+  }, null, 2));
 }
 
 /* ------------------------------ reports ------------------------------ */
@@ -372,6 +414,7 @@ Commands
   sessions    Most expensive sessions
   sources     Which agents are supported and where logs are read from
   prices      The built-in pricing table
+  aggregate   Shareable totals + groupings (no session ids)
   json        Machine-readable dump of every record
   watch       Live-refreshing totals
 

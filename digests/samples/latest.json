@@ -1,0 +1,147 @@
+{
+  "tool": "agentledger",
+  "version": "0.1.0",
+  "generatedAt": "2026-10-14T16:45:23.497Z",
+  "totals": {
+    "tokens": {
+      "input": 43212821,
+      "cacheRead": 631636424,
+      "cacheWrite": 85801,
+      "output": 3748168
+    },
+    "costUSD": 87.20999,
+    "records": 10356
+  },
+  "byAgent": {
+    "codex": {
+      "input": 15768773,
+      "cacheRead": 202858944,
+      "cacheWrite": 0,
+      "output": 951773,
+      "records": 3053,
+      "costUSD": 59.30533
+    },
+    "claude-code": {
+      "input": 2526333,
+      "cacheRead": 215146496,
+      "cacheWrite": 0,
+      "output": 518640,
+      "records": 3531,
+      "costUSD": 15.674293
+    },
+    "opencode": {
+      "input": 24917715,
+      "cacheRead": 213630984,
+      "cacheWrite": 85801,
+      "output": 2277755,
+      "records": 3772,
+      "costUSD": 12.230368
+    }
+  },
+  "byModel": {
+    "gpt-5.5": {
+      "input": 15018509,
+      "cacheRead": 192190592,
+      "cacheWrite": 0,
+      "output": 938535,
+      "records": 3009,
+      "costUSD": 58.188266
+    },
+    "mimo-v2.5-pro": {
+      "input": 3276597,
+      "cacheRead": 225814848,
+      "cacheWrite": 0,
+      "output": 531878,
+      "records": 3540,
+      "costUSD": 16.791356
+    },
+    "Cherry-New-API/gpt-5.5": {
+      "input": 2459269,
+      "cacheRead": 10479616,
+      "cacheWrite": 0,
+      "output": 75953,
+      "records": 145,
+      "costUSD": 5.471056
+    },
+    "Cherry-httpsnew-api.abrdns.comconso/mimo-v2.5-pro": {
+      "input": 1632517,
+      "cacheRead": 35148544,
+      "cacheWrite": 0,
+      "output": 188294,
+      "records": 538,
+      "costUSD": 3.540328
+    },
+    "Cherry-New-API/kimi-k2.7-code": {
+      "input": 777215,
+      "cacheRead": 9212928,
+      "cacheWrite": 0,
+      "output": 35073,
+      "records": 57,
+      "costUSD": 1.106787
+    },
+    "Cherry-Xiaomi-MiMo/mimo-v2.5-pro": {
+      "input": 583207,
+      "cacheRead": 8569024,
+      "cacheWrite": 0,
+      "output": 66762,
+      "records": 171,
+      "costUSD": 1.024294
+    },
+    "Cherry-New-API/deepseek-v4-flash": {
+      "input": 2669176,
+      "cacheRead": 2415872,
+      "cacheWrite": 0,
+      "output": 42545,
+      "records": 72,
+      "costUSD": 0.813137
+    },
+    "Cherry-New-API/glm-5.2": {
+      "input": 74865,
+      "cacheRead": 1725440,
+      "cacheWrite": 0,
+      "output": 4737,
+      "records": 78,
+      "costUSD": 0.158867
+    },
+    "Cherry-New-API/moonshotai/kimi-k2.7-code": {
+      "input": 167902,
+      "cacheRead": 105152,
+      "cacheWrite": 0,
+      "output": 3539,
+      "records": 7,
+      "costUSD": 0.115898
+    },
+    "<synthetic>": {
+      "input": 0,
+      "cacheRead": 0,
+      "cacheWrite": 0,
+      "output": 0,
+      "records": 35,
+      "costUSD": 0
+    },
+    "opencode/big-pickle": {
+      "input": 845,
+      "cacheRead": 37832,
+      "cacheWrite": 85801,
+      "output": 249,
+      "records": 7,
+      "costUSD": 0
+    },
+    "opencode/deepseek-v4-flash-free": {
+      "input": 15778094,
+      "cacheRead": 135193344,
+      "cacheWrite": 0,
+      "output": 1695212,
+      "records": 2456,
+      "costUSD": 0
+    },
+    "opencode/hy3-free": {
+      "input": 774625,
+      "cacheRead": 10743232,
+      "cacheWrite": 0,
+      "output": 165391,
+      "records": 241,
+      "costUSD": 0
+    }
+  }
+}

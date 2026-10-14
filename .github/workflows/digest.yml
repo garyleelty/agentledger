@@ -1,16 +1,37 @@
-# Publishes a dated cost digest built from real agent session data.
+# Publishes a periodic cost digest to the repo's Pages site.
 #
-# IMPORTANT: a GitHub runner has no ~/.claude, ~/.codex or opencode.db, so this
-# reads 0 records there by construction. It is meant to run on a self-hosted
-# runner (or a machine that actually ran the agents), and it fails loudly when
-# it finds nothing rather than publishing an all-zero table that would look
-# like a real reading.
+# This is exposure work: a live, dated page of real agent-spend data is
+# something people can link to and argue with, which a README is not.
 #
-# Publishes aggregates only -- no session ids, paths or per-record rows.
+# The numbers come from `digests/samples/latest.json`, committed by the
+# maintainer with:
+#
+#     agentledger aggregate > digests/samples/latest.json
+#
+# Two earlier designs were wrong and are worth reading before changing this.
+# The first ran `agentledger` on the GitHub runner, which has no ~/.claude,
+# ~/.codex or opencode.db, so every scheduled publish wrote all-zero totals and
+# an empty table — and the cron made it look like a real reading. The second
+# kept reading the runner's own logs but refused to publish when it found
+# nothing, which only converts a silent wrong answer into a loud one: the page
+# still has no data, because the runner is not the machine whose spend is being
+# published.
+#
+# So the page is built from a committed sample, refreshed by hand.
+#
+# Runs weekly and on demand. Publishes aggregates only — no session ids, no
+# file paths, no per-record rows. See `aggregate` vs `json` in the README.
 name: digest
 
 on:
+  schedule:
+    - cron: '17 3 * * 1'
   workflow_dispatch:
+    inputs:
+      source:
+        description: 'Ledger JSON to render (path in the repo)'
+        required: false
+        default: 'digests/samples/latest.json'
 
 permissions:
   contents: write
@@ -24,58 +45,31 @@ jobs:
         with:
           node-version: 20
 
-      - name: Extract aggregates
+      - name: Render the digest
         run: |
-          node bin/agentledger.js json > digest.json
-          node -e '
-            const fs = require("fs");
-            const d = JSON.parse(fs.readFileSync("digest.json", "utf8"));
-            const t = d.totals.tokens;
-            const byAgent = Object.entries(
-              d.records.reduce((a, r) => { a[r.agent] = (a[r.agent] || 0) + r.costUSD; return a; }, {})
-            ).sort((a, b) => b[1] - a[1]);
-            const lines = byAgent.length
-              ? byAgent.map(([k, v]) => `| ${k} | $${v.toFixed(2)} |`).join("\n")
-              : "| (none) | — |";
-            const md = [
-              "---",
-              "---",
-              "# agentledger digest",
-              "",
-              `Generated ${new Date().toISOString().slice(0, 10)}.`,
-              "",
-              "| Metric | Value |",
-              "| --- | --- |",
-              `| Input tokens | ${t.input.toLocaleString("en-US")} |`,
-              `| Cache read | ${t.cacheRead.toLocaleString("en-US")} |`,
-              `| Cache write | ${t.cacheWrite.toLocaleString("en-US")} |`,
-              `| Output tokens | ${t.output.toLocaleString("en-US")} |`,
-              `| **Estimated total** | **$${d.totals.costUSD.toFixed(2)}** |`,
-              "",
-              "## By agent",
-              "",
-              "| Agent | Est. cost |",
-              "| --- | --- |",
-              lines,
-              "",
-              `Records: ${d.records.length}.`,
-              "",
-              "Produced by [agentledger](https://github.com/garyleelty/agentledger) —",
-              "a local-first ledger for AI coding agents.",
-              ""
-            ].join("\n");
-            fs.writeFileSync("digest.md", md);
-          '
+          node bin/digest.js "${SOURCE}" digest.md
+          echo "---- digest.md ----"
           cat digest.md
+        env:
+          SOURCE: ${{ inputs.source || 'digests/samples/latest.json' }}
 
+      # A digest of zeros or of a missing file is worse than no digest: it
+      # looks like an authoritative reading and it is not one.
       - name: Refuse to publish an empty digest
         run: |
-          n=$(node -e 'const d=require("./digest.json");process.stdout.write(String(d.records.length))')
-          if [ "$n" = "0" ]; then
-            echo "::error::0 agent records found. A GitHub runner has no ~/.claude, ~/.codex or opencode.db. Run this on a self-hosted runner or a machine that actually ran the agents."
-            exit 1
-          fi
-          echo "publishing $n records"
+          node -e '
+            const fs = require("fs");
+            const d = JSON.parse(fs.readFileSync(process.env.SOURCE, "utf8"));
+            const n = d?.totals?.records ?? (Array.isArray(d?.records) ? d.records.length : 0);
+            if (!n) { console.error("0 records in " + process.env.SOURCE); process.exit(1); }
+            if (!(d?.totals?.costUSD > 0)) { console.error("total cost is $0 — refusing to publish"); process.exit(1); }
+            console.log("publishing " + n + " records");
+          '
+          grep -q "no records in this dump" digest.md && {
+            echo "::error::digest rendered with no records"; exit 1;
+          }
+        env:
+          SOURCE: ${{ inputs.source || 'digests/samples/latest.json' }}
 
       - name: Publish to gh-pages
         run: |
@@ -84,10 +78,10 @@ jobs:
           # Build a branch holding index.md only. Keeping the checked-out tree
           # would publish the whole repo -- private notes included -- to the web.
           git checkout --orphan gh-pages
-          git rm -rf --cached . >/dev/null 2>&1 || true
-          # digest.md is moved out before the tree is cleared, or the cleanup
-          # deletes the file we came to publish.
+          # digest.md is moved out of the tree before it is cleared, or the
+          # cleanup deletes the very file we came to publish.
           mv digest.md /tmp/digest.md
+          git rm -rf --cached . >/dev/null 2>&1 || true
           git read-tree --empty
           git clean -fdx >/dev/null 2>&1 || true
           mv /tmp/digest.md index.md
