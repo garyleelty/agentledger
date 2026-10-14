@@ -277,3 +277,25 @@ without running it once. It had never executed. Three of the four defects were
 only findable by running it — shipping unrun automation and calling it
 progress is the same category of error as the false cache-pricing claim I
 corrected earlier. An unrun workflow is a claim, not an asset.
+
+## Round 22: added waste detection; broke the landing page doing it
+
+**Feature shipped.** `agentledger waste` ranks sessions by cache-read volume and
+states the concentration. Real finding on this machine: 631.64M of 678.60M
+total tokens are cache reads (93%), and the top **10 of 262 sessions hold
+74.5%** of them. That is context churn, not usage volume. It immediately
+surfaces the single Codex session that cost $34.67. 36 tests green.
+
+**Mistake: I took the landing page offline.** While wiring Pages for the digest
+I switched the Pages source to `gh-pages` — which contains only the digest —
+so the real landing page disappeared from the web for ~2 minutes. My own
+`docs/index.html` was intact the whole time; the site was simply pointed
+somewhere else. Reverted Pages to `main/docs` and verified the live page serves
+the new content again.
+
+This is the second time in two rounds that I broke something outside the code I
+was editing. Both were catchable by checking the live URL afterwards, which I
+had been treating as optional. Recording the rule: **a change is not done until
+the deployed artifact has been fetched and read.**
+
+**$0.00 received.**
