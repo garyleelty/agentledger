@@ -32,6 +32,13 @@ export const SOURCES = [
     docs: 'https://github.com/openai/codex',
   },
   {
+    agent: 'opencode',
+    root: '~/.local/share/opencode',
+    match: (rel) => /(^|\/)opencode\.db$/.test(rel),
+    parser: PARSERS.opencode,
+    docs: 'https://opencode.ai/docs',
+  },
+  {
     agent: 'gemini-cli',
     root: '~/.gemini/tmp',
     match: (rel) => /(^|\/)logs\.json$/.test(rel),

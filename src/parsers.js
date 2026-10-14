@@ -88,6 +88,65 @@ export async function* parseClaudeCode(file) {
 }
 
 /* ------------------------------------------------------------------ *
+ * OpenCode: ~/.local/share/opencode/opencode.db — SQLite, one row per
+ * message in `message`, token counts nested under `data`->`tokens`.
+ *
+ * OpenCode is the only supported agent whose store is a database rather
+ * than append-only text, so it gets its own reader instead of the jsonl
+ * helper. Read-only throughout: the tool never takes a write lock on a
+ * file a running agent holds open.
+ * ------------------------------------------------------------------ */
+export async function* parseOpenCode(file) {
+  const { DatabaseSync } = await import('node:sqlite');
+  let db;
+  try {
+    db = new DatabaseSync(file, { readOnly: true });
+  } catch {
+    return; // not a readable database (or not SQLite at all) — skip, never throw
+  }
+  try {
+    // `open` on a non-database succeeds; the failure surfaces on first use,
+    // so the query itself is the sniff. Guarded the same way as a bad line.
+    const rows = db
+      .prepare(
+        `SELECT session_id AS session,
+                json_extract(data, '$.providerID') AS provider,
+                json_extract(data, '$.modelID')    AS model,
+                json_extract(data, '$.time.created') AS created,
+                json_extract(data, '$.tokens.input')     AS input,
+                json_extract(data, '$.tokens.output')    AS output,
+                json_extract(data, '$.tokens.reasoning') AS reasoning,
+                json_extract(data, '$.tokens.cache.read')  AS cacheRead,
+                json_extract(data, '$.tokens.cache.write') AS cacheWrite
+           FROM message
+          WHERE json_extract(data, '$.role') = 'assistant'`,
+      )
+      .all();
+    for (const row of rows) {
+      // Reasoning tokens bill as output on every provider that separates
+      // them, so they are folded in rather than dropped: OpenCode records
+      // them in their own field and the price is the output price.
+      const output = num(row.output) + num(row.reasoning);
+      if (num(row.input) === 0 && num(row.cacheRead) === 0 && num(row.cacheWrite) === 0 && output === 0) continue;
+      yield {
+        agent: 'opencode',
+        model: row.model ? `${row.provider ? `${row.provider}/` : ''}${row.model}` : 'opencode',
+        session: row.session || path.basename(file, path.extname(file)),
+        timestamp: num(row.created) || null,
+        input: num(row.input),
+        cacheRead: num(row.cacheRead),
+        cacheWrite: num(row.cacheWrite),
+        output,
+      };
+    }
+  } catch {
+    // A locked or foreign database is skipped like a truncated log line.
+  } finally {
+    try { db.close(); } catch { /* already closed */ }
+  }
+}
+
+/* ------------------------------------------------------------------ *
  * Gemini CLI: ~/.gemini/tmp/<hash>/logs.json — JSON array of events.
  * ------------------------------------------------------------------ */
 export async function* parseGemini(file) {
@@ -142,5 +201,6 @@ async function readJsonSafe(file) {
 export const PARSERS = {
   'claude-code': parseClaudeCode,
   codex: parseCodex,
+  opencode: parseOpenCode,
   'gemini-cli': parseGemini,
 };

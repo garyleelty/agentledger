@@ -3,8 +3,8 @@
 **What did that agent actually cost you?**
 
 `agentledger-cli` is a local-first ledger for AI coding agents. It reads the
-session logs that Claude Code, Codex, and Gemini CLI already write to your
-machine and turns them into tokens and dollars.
+session logs that Claude Code, Codex, OpenCode, and Gemini CLI already write
+to your machine and turns them into tokens and dollars.
 
 ```
 $ npx agentledger-cli
@@ -33,9 +33,9 @@ If you pay per token for your agents, your bill is a lagging indicator. By the
 time you see it you have already spent it. `agentledger-cli` gives you the number
 while you are still working:
 
-- **Local only.** It reads `~/.claude/projects`, `~/.codex/sessions`, and
-  `~/.gemini/tmp`. Nothing is uploaded, no account, no API key, no network
-  call of any kind.
+- **Local only.** It reads `~/.claude/projects`, `~/.codex/sessions`,
+  `~/.local/share/opencode`, and `~/.gemini/tmp`. Nothing is uploaded, no
+  account, no API key, no network call of any kind.
 - **Cache buckets are priced separately.** Cache reads and cache writes bill at
   different rates from fresh input, and they are the majority of real traffic —
   418M of the 438M tokens in my own logs were cache reads.
@@ -91,7 +91,7 @@ Useful flags:
 
 | Flag | Meaning |
 | --- | --- |
-| `-a, --agent <name>` | only one agent (`claude-code`, `codex`, `gemini-cli`) |
+| `-a, --agent <name>` | only one agent (`claude-code`, `codex`, `opencode`, `gemini-cli`) |
 | `-p, --path <dir>` | also scan a directory or single file |
 | `--since <date>` | only records at/after a date |
 | `-n, --top <n>` | rows in ranked reports |
@@ -116,10 +116,16 @@ agentledger-cli json | jq '.totals.costUSD'
 | --- | --- | --- |
 | Claude Code | `~/.claude/projects/**/*.jsonl` | ✅ |
 | Codex CLI | `~/.codex/sessions/**/rollout-*.jsonl` | ✅ |
+| OpenCode | `~/.local/share/opencode/opencode.db` | ✅ |
 | Gemini CLI | `~/.gemini/tmp/**/logs.json` | ✅ |
 | Anything else | `--path` + format sniffing | partial |
 
 `agentledger-cli sources` prints this table with links.
+
+OpenCode is the one supported agent whose store is a SQLite database rather
+than append-only text. It is opened read-only — a running OpenCode is never
+blocked — and a locked or foreign database is skipped exactly the way a
+truncated log line is.
 
 ## How costs are calculated
 

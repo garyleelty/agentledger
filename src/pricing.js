@@ -46,11 +46,34 @@ export const PRICING = {
   'mimo-v2.5-pro': { input: 0.6, output: 2.4, cacheReadMultiplier: 0.1, cacheWriteMultiplier: 1.0 },
   'deepseek-chat': { input: 0.27, output: 1.1, cacheReadMultiplier: 0.07, cacheWriteMultiplier: 1.0 },
   'deepseek-reasoner': { input: 0.55, output: 2.19, cacheReadMultiplier: 0.14, cacheWriteMultiplier: 1.0 },
+
+  // ---- OpenCode's own lane --------------------------------------------
+  // Promotional models bill $0. Leaving them out let them fall through to
+  // DEFAULT_PRICING ($3 in / $15 out), which overstated one machine's
+  // 240M-token free lane by hundreds of dollars.
+  'big-pickle': { input: 0, output: 0, cacheReadMultiplier: 0, cacheWriteMultiplier: 0 },
+  'deepseek-v4-flash-free': { input: 0, output: 0, cacheReadMultiplier: 0, cacheWriteMultiplier: 0 },
+  'hy3-free': { input: 0, output: 0, cacheReadMultiplier: 0, cacheWriteMultiplier: 0 },
+  'deepseek-v4-flash': { input: 0.27, output: 1.1, cacheReadMultiplier: 0.07, cacheWriteMultiplier: 1.0 },
+
+  // ---- Chinese labs (OpenCode / Cherry lanes) -------------------------
+  'glm-5.2': { input: 0.6, output: 2.2, cacheReadMultiplier: 0.1, cacheWriteMultiplier: 1.0 },
+  'glm-5': { input: 0.6, output: 2.2, cacheReadMultiplier: 0.1, cacheWriteMultiplier: 1.0 },
+  'kimi-k2.7-code': { input: 0.6, output: 2.5, cacheReadMultiplier: 0.1, cacheWriteMultiplier: 1.0 },
+  'kimi-k2.5': { input: 0.6, output: 2.5, cacheReadMultiplier: 0.1, cacheWriteMultiplier: 1.0 },
 };
 
 /**
  * Resolve the pricing entry for a model id, tolerating dated suffixes and
  * unknown providers.
+ *
+ * The prefix pass is deliberately last and deliberately one-directional. A
+ * longer unknown name may match a shorter known one (`gpt-5.5-codex` ->
+ * `gpt-5.5`), never the other way round: `deepseek-v4-flash-free` must not
+ * be priced as `deepseek-v4-flash` just because the paid id is a prefix of
+ * the free one, and the free lanes are exactly where the mistake costs the
+ * most. Anything that still misses is priced by DEFAULT_PRICING and shows up
+ * under `by-model` as its own row, so the gap is visible instead of silent.
  */
 export function resolvePricing(model) {
   if (!model) return DEFAULT_PRICING;
@@ -59,8 +82,15 @@ export function resolvePricing(model) {
   // Strip a trailing dated snapshot, e.g. claude-sonnet-4-5-20250929
   const stripped = key.replace(/-\d{8}$/, '');
   if (PRICING[stripped]) return PRICING[stripped];
+  // Provider-qualified ids ("opencode/deepseek-v4-flash-free", "moonshotai/
+  // kimi-k2.7-code") are stored by the bare model name, so try the tail too.
+  const slash = stripped.lastIndexOf('/');
+  if (slash !== -1) {
+    const tail = stripped.slice(slash + 1);
+    if (PRICING[tail]) return PRICING[tail];
+  }
   for (const name of Object.keys(PRICING)) {
-    if (stripped.startsWith(name) || name.startsWith(stripped)) return PRICING[name];
+    if (stripped.startsWith(name)) return PRICING[name];
   }
   return DEFAULT_PRICING;
 }
