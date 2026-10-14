@@ -101,6 +101,9 @@
   <table>
     <tr><th>Command</th><th>What you get</th></tr>
     <tr><td><code>agentledger</code></td><td>totals + per-agent breakdown</td></tr>
+    <tr><td><code>agentledger waste</code></td><td>where the cache-read spend is concentrated</td></tr>
+    <tr><td><code>agentledger by-project</code></td><td>cost per repository</td></tr>
+    <tr><td><code>agentledger by-branch</code></td><td>cost per git branch</td></tr>
     <tr><td><code>agentledger by-model</code></td><td>which model is eating the budget</td></tr>
     <tr><td><code>agentledger by-day -d 30</code></td><td>daily spend curve</td></tr>
     <tr><td><code>agentledger sessions -n 20</code></td><td>most expensive sessions</td></tr>
@@ -116,6 +119,17 @@
     <tr><td>Gemini CLI</td><td><code>~/.gemini/tmp</code></td><td class="ok">supported</td></tr>
     <tr><td>Cursor, Aider, Amp…</td><td><code>--path</code> + sniffing</td><td class="dim">partial</td></tr>
   </table>
+
+  <h2>What it found on the machine it was written on</h2>
+  <div class="panel">
+<pre>cache reads   <span class="hi">631.64M</span> of 678.60M total tokens   <span class="dim">(93%)</span>
+concentration  top 10 of 262 sessions = <span class="hi">74.5%</span> of all cache reads
+priciest      <span class="hi">$34.67</span>  one Codex session
+branch        <span class="hi">$64.53</span>  <span class="dim">web</span></pre>
+  </div>
+  <p class="dim">Concentration that high is not ordinary usage — it is context churn. A long
+  session that keeps re-sending its prefix, or a tool returning large output
+  every turn. <code>agentledger waste</code> points at which one.</p>
 
   <h2>Compared to ccusage</h2>
   <p><a href="https://github.com/ccusage/ccusage">ccusage</a> is the incumbent and it is
