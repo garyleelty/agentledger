@@ -66,13 +66,17 @@ jobs:
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
-          # Build a clean, standalone branch: checking out the source branch and
-          # committing on top of it would publish the whole repo (including
-          # private notes) to the web. Start from an orphaned history instead.
+          # Publish only index.md. Keeping the checked-out working tree would
+          # push the whole repo -- private notes included -- to the web, so the
+          # branch is built from an empty index and one file is added to it.
           git checkout --orphan gh-pages
           git rm -rf --cached . >/dev/null 2>&1 || true
-          rm -rf ./* ./.??* 2>/dev/null || true
-          mv digest.md index.md
+          # digest.md is outside the tree: move it aside before the index is
+          # cleared, or the cleanup deletes the file we came for.
+          mv digest.md /tmp/digest.md
+          git read-tree --empty
+          git clean -fdx >/dev/null 2>&1 || true
+          mv /tmp/digest.md index.md
           printf -- '---\n---\n' | cat - index.md > _index.md && mv _index.md index.md
           git add index.md
           git commit -m "digest: $(date -u +%F)" || echo "no change"
