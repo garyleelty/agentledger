@@ -128,3 +128,34 @@ Remaining blockers are all outside this session's control:
 1. maintainer reply on bounty eligibility (asked, no answer)
 2. `npm login` for the package (needs the user's credentials)
 3. posting to HN/Reddit/V2EX (all network-blocked here)
+
+## Round 10b: pivoted to operating the GitHub account itself (user's call)
+
+The user's judgment: a well-run GitHub account is a better earner than bounty
+hunting. Agreed — it compounds, and it is the asset everything else plugs into.
+
+### Audit found
+29 public repos. Nearly all had **no description, no topics, no homepage**.
+Top repo: 2 stars. Profile README was the untouched 2017 template
+("I'm currently learning vue3"). To a recruiter or a potential user the account
+read as abandoned.
+
+Also found: `ai-native-markdown` is a real product — Tauri + Vue 3 + CodeMirror
+6 AI-native Markdown editor, 5.4 MB of code, full Chinese README — sitting at
+1 star with no description. Most undervalued asset on the account.
+
+### Fixed (verified live)
+- **Profile README rewritten** — now leads with the work, not a 2017 template
+- **ai-native-markdown**: real English description + 10 topics
+- **agentledger**: 12 topics
+- **opencode-plugin-goal**: description added (was blank)
+
+### Could NOT do (needs the user)
+- **GitHub Sponsors**: still `sponsorsListing: null`. Requires the user's own
+  bank/tax onboarding in a browser. This is THE payout rail — everything else
+  is preparation for it.
+- **Profile bio / website link / "available for hire"**: token scopes are
+  `read:user, repo, user:email, workflow` — no `user` scope, so PATCH /user
+  returns 404. Needs the user, or a re-authorized token.
+- **Pinning repos**: `updatePinnedItems` mutation not available with these
+  scopes.
