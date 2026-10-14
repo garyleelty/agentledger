@@ -108,7 +108,8 @@
     <tr><td><code>agentledger by-day -d 30</code></td><td>daily spend curve</td></tr>
     <tr><td><code>agentledger sessions -n 20</code></td><td>most expensive sessions</td></tr>
     <tr><td><code>agentledger watch</code></td><td>live totals</td></tr>
-    <tr><td><code>agentledger json</code></td><td>machine-readable dump</td></tr>
+    <tr><td><code>agentledger aggregate</code></td><td>shareable totals — no session ids, no paths</td></tr>
+    <tr><td><code>agentledger json</code></td><td>every record, including session ids</td></tr>
   </table>
 
   <h2>Supported agents</h2>
@@ -116,9 +117,18 @@
     <tr><th>Agent</th><th>Logs read</th><th>Status</th></tr>
     <tr><td>Claude Code</td><td><code>~/.claude/projects</code></td><td class="ok">supported</td></tr>
     <tr><td>Codex CLI</td><td><code>~/.codex/sessions</code></td><td class="ok">supported</td></tr>
+    <tr><td>OpenCode</td><td><code>~/.local/share/opencode/opencode.db</code></td><td class="ok">supported</td></tr>
     <tr><td>Gemini CLI</td><td><code>~/.gemini/tmp</code></td><td class="ok">supported</td></tr>
     <tr><td>Cursor, Aider, Amp…</td><td><code>--path</code> + sniffing</td><td class="dim">partial</td></tr>
   </table>
+
+  <h2>Two JSON shapes, on purpose</h2>
+  <p><code>json</code> is the debugging shape: one row per record, with the
+  session id in it. On Claude Code and Codex that id names a real log file under
+  the agent's own directory, so a report built from it maps your projects and
+  timestamps. <code>aggregate</code> is the shareable one — totals plus
+  per-agent and per-model groupings, about 3&nbsp;kB, and it is what the
+  <a href="/agentledger/">weekly digest</a> is built from.</p>
 
   <h2>What it found on the machine it was written on</h2>
   <div class="panel">
