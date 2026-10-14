@@ -97,3 +97,34 @@ something to submit.
   hardware I do not own, plus `bounty-plaza`/scanner mirrors of the same
 - Algora: site reachable but no public bounty API and no scrapeable listing,
   so it cannot be worked programmatically from here
+
+## Round 10 (2026-10-14): key control proven; traffic is not real
+
+**Tip addresses are now provably ours.** `tools/prove_control.py` re-derives
+both from the private key and produces an ECDSA signature that verifies against
+the derived public key. A test asserts this and also asserts the key never
+leaks into normal output. This closes the "anyone can paste an address"
+objection — the payment rail is real and spendable, not decorative.
+
+**Traffic numbers are misleading.** Repo shows 126 clones / 60 unique cloners
+against 2 views and 0 stars. That ratio is not human — it is automated
+scanning. Not counted as traction.
+
+**Still not on npm** (`ENEEDAUTH`; `agentledger-cli` returns 404). This keeps
+`npx agentledger-cli` — the easiest install path — unavailable. One `npm login`
+away; workflow `.github/workflows/publish.yml` is ready and tested in dry-run.
+
+No reply yet to the bounty-eligibility question on PR #21447.
+
+## Where this actually stands
+
+Done and verified: product (22 tests green, parses claude-code/codex/opencode),
+landing page, install.sh, npm publish workflow, on-chain payment rail with
+proven key control, one PR merged into a 13.7k-star repo.
+
+Received: **$0.00**. Nothing has been earned at any point.
+
+Remaining blockers are all outside this session's control:
+1. maintainer reply on bounty eligibility (asked, no answer)
+2. `npm login` for the package (needs the user's credentials)
+3. posting to HN/Reddit/V2EX (all network-blocked here)
