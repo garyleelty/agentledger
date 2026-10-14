@@ -13,10 +13,17 @@ import { collect, SOURCES } from '../src/ledger.js';
  * Build a real SQLite file in the shape OpenCode writes it, so the parser is
  * exercised against the thing it will actually open rather than a mock.
  */
-async function makeDb(dir, rows) {
+async function makeDb(dir, rows, opts = {}) {
   const file = path.join(dir, 'opencode.db');
   const db = new DatabaseSync(file);
   db.exec('CREATE TABLE message (id TEXT PRIMARY KEY, session_id TEXT, time_created INTEGER, data TEXT)');
+  // The real store joins message -> session for the working directory, so the
+  // fixture needs a session table too or the LEFT JOIN yields no attribution.
+  db.exec('CREATE TABLE session (id TEXT PRIMARY KEY, directory TEXT)');
+  const dirs = opts.directories ?? { 'ses-1': '/tmp/fixture-project' };
+  for (const [id, directory] of Object.entries(dirs)) {
+    db.exec(`INSERT INTO session (id, directory) VALUES ('${id}', '${directory}')`);
+  }
   const insert = db.prepare('INSERT INTO message (id, session_id, time_created, data) VALUES (?, ?, ?, ?)');
   for (const [i, row] of rows.entries()) {
     insert.run(`msg_${i}`, row.session ?? 'ses-1', row.created ?? 1776004330476, JSON.stringify(row));

@@ -27,7 +27,13 @@ const num = (v) => (Number.isFinite(v) ? v : 0);
  * ------------------------------------------------------------------ */
 export async function* parseClaudeCode(file) {
   let session = path.basename(file, '.jsonl');
+  let project = null;
+  let branch = null;
   for await (const rec of jsonl(file)) {
+    // Attribution is carried on the first record that has it; later turns keep
+    // the same working directory but do not repeat these fields.
+    if (!project && rec.cwd) project = rec.cwd;
+    if (!branch && rec.gitBranch) branch = rec.gitBranch;
     const msg = rec.message;
     if (!msg || typeof msg !== 'object') continue;
     const usage = msg.usage;
@@ -41,6 +47,8 @@ export async function* parseClaudeCode(file) {
       cacheRead: num(usage.cache_read_input_tokens),
       cacheWrite: num(usage.cache_creation_input_tokens),
       output: num(usage.output_tokens),
+      project,
+      branch,
     };
   }
 }
@@ -50,10 +58,17 @@ export async function* parseClaudeCode(file) {
  * Cumulative `token_count` events carrying `total_token_usage`; we emit the
  * delta between consecutive events so the records can be summed directly.
  * ------------------------------------------------------------------ */export async function* parseCodex(file) {
-  const state = { session: null, prev: null, model: null };
+  const state = { session: null, prev: null, model: null, project: null, branch: null };
   for await (const rec of jsonl(file)) {
-    if (rec.type === 'session_meta' && rec.payload && rec.payload.id) {
-      state.session = rec.payload.id;
+    if (rec.type === 'session_meta' && rec.payload) {
+      if (rec.payload.id) state.session = rec.payload.id;
+      // Attribution: where the session ran and which branch it was on.
+      if (rec.payload.cwd) state.project = rec.payload.cwd;
+      const git = rec.payload.git;
+      if (git && typeof git === 'object') {
+        if (git.branch) state.branch = git.branch;
+        if (!state.project && git.repository_url) state.project = git.repository_url;
+      }
     }
     if (rec.type === 'turn_context' && rec.payload && rec.payload.model) {
       state.model = rec.payload.model;
@@ -81,6 +96,8 @@ export async function* parseClaudeCode(file) {
         cacheRead: Math.max(0, cum.cacheRead - state.prev.cacheRead),
         cacheWrite: 0,
         output: Math.max(0, cum.output - state.prev.output),
+        project: state.project,
+        branch: state.branch,
       };
     }
     state.prev = cum;
@@ -109,17 +126,19 @@ export async function* parseOpenCode(file) {
     // so the query itself is the sniff. Guarded the same way as a bad line.
     const rows = db
       .prepare(
-        `SELECT session_id AS session,
-                json_extract(data, '$.providerID') AS provider,
-                json_extract(data, '$.modelID')    AS model,
-                json_extract(data, '$.time.created') AS created,
-                json_extract(data, '$.tokens.input')     AS input,
-                json_extract(data, '$.tokens.output')    AS output,
-                json_extract(data, '$.tokens.reasoning') AS reasoning,
-                json_extract(data, '$.tokens.cache.read')  AS cacheRead,
-                json_extract(data, '$.tokens.cache.write') AS cacheWrite
-           FROM message
-          WHERE json_extract(data, '$.role') = 'assistant'`,
+        `SELECT m.session_id AS session,
+                json_extract(m.data, '$.providerID') AS provider,
+                json_extract(m.data, '$.modelID')    AS model,
+                json_extract(m.data, '$.time.created') AS created,
+                json_extract(m.data, '$.tokens.input')     AS input,
+                json_extract(m.data, '$.tokens.output')    AS output,
+                json_extract(m.data, '$.tokens.reasoning') AS reasoning,
+                json_extract(m.data, '$.tokens.cache.read')  AS cacheRead,
+                json_extract(m.data, '$.tokens.cache.write') AS cacheWrite,
+                s.directory AS project
+           FROM message m
+           LEFT JOIN session s ON s.id = m.session_id
+          WHERE json_extract(m.data, '$.role') = 'assistant'`,
       )
       .all();
     for (const row of rows) {
@@ -137,6 +156,8 @@ export async function* parseOpenCode(file) {
         cacheRead: num(row.cacheRead),
         cacheWrite: num(row.cacheWrite),
         output,
+        project: row.project || null,
+        branch: null, // opencode records no branch in these rows
       };
     }
   } catch {

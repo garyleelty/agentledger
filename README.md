@@ -42,6 +42,13 @@ while you are still working:
 - **Fast.** A full scan of ~180M tokens of logs takes about a second.
 - **Boring dependencies.** Node 18+ and the standard library. That's it.
 
+- **Cost attribution.** Codex records the working directory and branch in
+  `session_meta`; Claude Code records `cwd` and `gitBranch`; OpenCode's store
+  joins messages to sessions. `by-project` and `by-branch` price each of those
+  separately, so you can see what a feature branch actually cost rather than
+  only what a model cost. Grouping is lossless — per-project costs sum back to
+  the grand total, and a test asserts it.
+
 ### Honest comparison
 
 [ccusage](https://github.com/ccusage/ccusage) is the incumbent and it is more
@@ -79,6 +86,8 @@ That clones into `~/.agentledger` and symlinks `agentledger` (and the shorter
 
 ```bash
 agentledger-cli                 # totals + per-agent breakdown
+agentledger-cli by-project      # cost per repository / working directory
+agentledger-cli by-branch       # cost per git branch
 agentledger-cli by-model        # which model is eating your budget
 agentledger-cli by-day -d 30    # daily spend curve
 agentledger-cli sessions -n 20  # most expensive sessions

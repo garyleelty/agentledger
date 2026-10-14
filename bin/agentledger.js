@@ -111,6 +111,8 @@ async function main() {
   }
 
   switch (command) {
+    case 'by-project': return reportByProject(filtered, flags);
+    case 'by-branch': return reportByBranch(filtered, flags);
     case 'by-model': return reportByModel(filtered, flags);
     case 'by-day': return reportByDay(filtered, flags);
     case 'sessions': return reportSessions(filtered, flags);
@@ -164,6 +166,41 @@ function reportByModel(records, flags) {
   });
   groups.sort((a, b) => num(b[2]) - num(a[2]));
   printTable(['Model', 'Tokens', 'Est. cost', 'Records'], groups.slice(0, flags.top || 50));
+}
+
+function reportByProject(records, flags) {
+  const groups = [...groupBy(records, (r) => r.project || '(unknown)').entries()]
+    .map(([project, rs]) => {
+      const t = totals(rs);
+      return [project, fmtTok(t.input + t.cacheRead + t.output), money(t.cost), String(rs.length)];
+    })
+    .sort((a, b) => num(b[2]) - num(a[2]));
+  if (flags.json) return reportJson(records);
+  if (groups.length === 0) {
+    console.log('No project attribution found. Codex and Claude Code record the working');
+    console.log('directory; older sessions may predate that field.');
+    return;
+  }
+  printTable(['Project', 'Tokens', 'Est. cost', 'Records'], groups.slice(0, flags.top || 30));
+  console.log('');
+  console.log('  Which working directory each session ran in, priced separately.');
+}
+
+function reportByBranch(records, flags) {
+  const groups = [...groupBy(records, (r) => (r.branch ? `${r.branch}` : '(no branch)')).entries()]
+    .map(([branch, rs]) => {
+      const t = totals(rs);
+      return [branch, fmtTok(t.input + t.cacheRead + t.output), money(t.cost), String(rs.length)];
+    })
+    .sort((a, b) => num(b[2]) - num(a[2]));
+  if (flags.json) return reportJson(records);
+  if (groups.length === 0) {
+    console.log('No branch attribution found in these logs.');
+    return;
+  }
+  printTable(['Branch', 'Tokens', 'Est. cost', 'Records'], groups.slice(0, flags.top || 30));
+  console.log('');
+  console.log('  What each git branch cost you in agent time.');
 }
 
 function reportByDay(records, flags) {
@@ -227,6 +264,8 @@ function reportJson(records) {
           agent: r.agent,
           model: r.model,
           session: r.session,
+          project: r.project ?? null,
+          branch: r.branch ?? null,
           timestamp: r.timestamp ? new Date(r.timestamp).toISOString() : null,
           tokens: { input: r.input, cacheRead: r.cacheRead, cacheWrite: r.cacheWrite, output: r.output },
           costUSD: round(r.cost?.total ?? 0),
@@ -288,6 +327,8 @@ Usage
 
 Commands
   summary     Totals, cost, and per-agent breakdown (default)
+  by-project  Cost per working directory / repository
+  by-branch   Cost per git branch
   by-model    Per-model token and cost breakdown
   by-day      Daily spend for the last N days
   sessions    Most expensive sessions

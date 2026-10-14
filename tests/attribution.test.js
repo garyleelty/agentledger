@@ -1,0 +1,74 @@
+import test from 'node:test';
+import assert from 'node:assert/strict';
+import { mkdtemp, writeFile, mkdir } from 'node:fs/promises';
+import { tmpdir } from 'node:os';
+import path from 'node:path';
+
+import { parseClaudeCode, parseCodex } from '../src/parsers.js';
+import { collect, totals, groupBy } from '../src/ledger.js';
+
+test('claude-code records carry the project and branch', async () => {
+  const dir = await mkdtemp(path.join(tmpdir(), 'aledger-attr-'));
+  const file = path.join(dir, 's.jsonl');
+  await writeFile(
+    file,
+    [
+      JSON.stringify({ cwd: '/work/alpha', gitBranch: 'feature/x', type: 'user' }),
+      JSON.stringify({
+        type: 'assistant',
+        timestamp: '2026-01-01T00:00:00Z',
+        message: { model: 'claude-sonnet-4-5', usage: { input_tokens: 10, cache_read_input_tokens: 0, cache_creation_input_tokens: 0, output_tokens: 5 } },
+      }),
+      JSON.stringify({
+        type: 'assistant',
+        timestamp: '2026-01-01T00:01:00Z',
+        message: { model: 'claude-sonnet-4-5', usage: { input_tokens: 20, cache_read_input_tokens: 0, cache_creation_input_tokens: 0, output_tokens: 5 } },
+      }),
+    ].join('\n') + '\n',
+  );
+  const records = [];
+  for await (const r of parseClaudeCode(file)) records.push(r);
+  assert.equal(records.length, 2);
+  for (const r of records) {
+    assert.equal(r.project, '/work/alpha', 'attribution survives later turns that omit it');
+    assert.equal(r.branch, 'feature/x');
+  }
+});
+
+test('codex records carry the project and branch from session_meta', async () => {
+  const dir = await mkdtemp(path.join(tmpdir(), 'aledger-attr-'));
+  const file = path.join(dir, 'rollout-x.jsonl');
+  await writeFile(
+    file,
+    [
+      JSON.stringify({ type: 'session_meta', payload: { id: 's1', cwd: '/work/beta', git: { branch: 'main', commit_hash: 'abc' } } }),
+      JSON.stringify({ type: 'turn_context', payload: { model: 'gpt-5.5' } }),
+      JSON.stringify({ timestamp: '2026-01-01T00:00:00Z', type: 'event_msg', payload: { type: 'token_count', info: { total_token_usage: { input_tokens: 100, cached_input_tokens: 0, output_tokens: 10, reasoning_output_tokens: 0 } } } }),
+      JSON.stringify({ timestamp: '2026-01-01T00:01:00Z', type: 'event_msg', payload: { type: 'token_count', info: { total_token_usage: { input_tokens: 300, cached_input_tokens: 0, output_tokens: 30, reasoning_output_tokens: 0 } } } }),
+    ].join('\n') + '\n',
+  );
+  const records = [];
+  for await (const r of parseCodex(file)) records.push(r);
+  assert.equal(records.length, 1);
+  assert.equal(records[0].project, '/work/beta');
+  assert.equal(records[0].branch, 'main');
+});
+
+test('per-project costs sum back to the overall total', async () => {
+  const records = [
+    { input: 10, cacheRead: 0, cacheWrite: 0, output: 5, project: '/a', model: 'claude-sonnet-4-5' },
+    { input: 20, cacheRead: 0, cacheWrite: 0, output: 5, project: '/b', model: 'claude-sonnet-4-5' },
+    { input: 1, cacheRead: 0, cacheWrite: 0, output: 0, project: null, model: 'claude-sonnet-4-5' },
+  ];
+  const grand = totals(records).cost;
+  let perProject = 0;
+  for (const g of groupBy(records, (r) => r.project || '(unknown)').values()) perProject += totals(g).cost;
+  assert.ok(Math.abs(grand - perProject) < 1e-9, 'grouping must not lose or double-count cost');
+});
+
+test('collect attributes every real record to a project', async () => {
+  const { records } = await collect();
+  assert.ok(records.length > 0, 'expected local agent logs to exist on this machine');
+  const unattributed = records.filter((r) => !r.project);
+  assert.equal(unattributed.length, 0, 'every parser should carry attribution');
+});
