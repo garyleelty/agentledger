@@ -89,11 +89,59 @@ export function renderDigest(ledger) {
   ].join('\n');
 }
 
+/**
+ * Decide whether a rendered digest is fit to publish.
+ *
+ * An all-zero or empty digest is worse than no digest: it looks like an
+ * authoritative reading and it is not one. The original workflow published
+ * exactly that every week.
+ *
+ * Exported (rather than living in the workflow's `run:` block) so the same
+ * check runs locally and in tests — a guard only CI executes is a guard nobody
+ * notices is broken.
+ *
+ * @param {object} ledger a parsed `agentledger aggregate` dump
+ * @param {string} page the rendered Markdown
+ * @returns {{ok: boolean, reason: string}}
+ */
+export function checkDigest(ledger, page) {
+  const records = ledger?.totals?.records
+    ?? (Array.isArray(ledger?.records) ? ledger.records.length : 0);
+  if (!(records > 0)) return { ok: false, reason: 'no usage records in the source dump' };
+  const cost = ledger?.totals?.costUSD;
+  if (!(Number(cost) > 0)) {
+    return { ok: false, reason: `estimated total is ${Number(cost || 0).toFixed(2)} USD` };
+  }
+  if (page.includes('no records in this dump')) {
+    return { ok: false, reason: 'the page rendered its empty-state row' };
+  }
+  return { ok: true, reason: `publishing ${records} records` };
+}
+
 /** Only invoked when run directly, not when imported by the tests. */
 if (process.argv[1] && process.argv[1].endsWith('digest.js')) {
-  const [input, output] = process.argv.slice(2);
+  const args = process.argv.slice(2);
+  // `--check <source.json> <page.md>` validates instead of rendering.
+  if (args[0] === '--check') {
+    const [source, page] = args.slice(1);
+    if (!source || !page) {
+      console.error('usage: node bin/digest.js --check <source.json> <page.md>');
+      process.exit(1);
+    }
+    const ledger = JSON.parse(readFileSync(source, 'utf8'));
+    const verdict = checkDigest(ledger, readFileSync(page, 'utf8'));
+    if (!verdict.ok) {
+      console.error(`digest refusal: ${verdict.reason}`);
+      process.exit(1);
+    }
+    console.log(`digest ${verdict.reason}`);
+    process.exit(0);
+  }
+
+  const [input, output] = args;
   if (!input) {
     console.error('usage: node bin/digest.js <ledger.json> [out.md]');
+    console.error('       node bin/digest.js --check <source.json> <page.md>');
     process.exit(1);
   }
   const md = renderDigest(JSON.parse(readFileSync(input, 'utf8')));

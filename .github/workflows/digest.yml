@@ -8,7 +8,7 @@
 #
 #     agentledger aggregate > digests/samples/latest.json
 #
-# Two earlier designs were wrong and are worth reading before changing this.
+# Three earlier designs were wrong and are worth reading before changing this.
 # The first ran `agentledger` on the GitHub runner, which has no ~/.claude,
 # ~/.codex or opencode.db, so every scheduled publish wrote all-zero totals and
 # an empty table — and the cron made it look like a real reading. The second
@@ -45,31 +45,29 @@ jobs:
         with:
           node-version: 20
 
+      # SOURCE is resolved in the shell, not through a `${{ }}` expression:
+      # `inputs.source || default` collapses to an *empty string* when the
+      # dispatch carries no input, and readFileSync(undefined) then fails the
+      # run. A defaulted shell variable cannot be empty.
+      - name: Resolve the digest source
+        run: |
+          echo "SOURCE=${SOURCE_DEFAULT}" >> "$GITHUB_ENV"
+        env:
+          SOURCE_DEFAULT: ${{ inputs.source || 'digests/samples/latest.json' }}
+
       - name: Render the digest
         run: |
-          node bin/digest.js "${SOURCE}" digest.md
+          test -f "$SOURCE" || { echo "::error::no such digest source: $SOURCE"; exit 1; }
+          node bin/digest.js "$SOURCE" digest.md
           echo "---- digest.md ----"
           cat digest.md
-        env:
-          SOURCE: ${{ inputs.source || 'digests/samples/latest.json' }}
 
       # A digest of zeros or of a missing file is worse than no digest: it
-      # looks like an authoritative reading and it is not one.
+      # looks like an authoritative reading and it is not one. The check lives
+      # in bin/digest.js so it runs locally too, rather than in a shell-quoted
+      # `node -e` body that only CI executes.
       - name: Refuse to publish an empty digest
-        run: |
-          node -e '
-            const fs = require("fs");
-            const d = JSON.parse(fs.readFileSync(process.env.SOURCE, "utf8"));
-            const n = d?.totals?.records ?? (Array.isArray(d?.records) ? d.records.length : 0);
-            if (!n) { console.error("0 records in " + process.env.SOURCE); process.exit(1); }
-            if (!(d?.totals?.costUSD > 0)) { console.error("total cost is $0 — refusing to publish"); process.exit(1); }
-            console.log("publishing " + n + " records");
-          '
-          grep -q "no records in this dump" digest.md && {
-            echo "::error::digest rendered with no records"; exit 1;
-          }
-        env:
-          SOURCE: ${{ inputs.source || 'digests/samples/latest.json' }}
+        run: node bin/digest.js --check "$SOURCE" digest.md
 
       - name: Publish to gh-pages
         run: |

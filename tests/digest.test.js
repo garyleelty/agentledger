@@ -26,6 +26,19 @@ const agentledger = (args) =>
     maxBuffer: 256 * 1024 * 1024,
   });
 
+/** Run bin/digest.js, capturing the exit status instead of throwing. */
+function runDigest(args) {
+  try {
+    const stdout = execFileSync(process.execPath, [path.join(root, 'bin', 'digest.js'), ...args], {
+      encoding: 'utf8',
+      maxBuffer: 64 * 1024 * 1024,
+    });
+    return { status: 0, stdout, stderr: '' };
+  } catch (err) {
+    return { status: err.status ?? 1, stdout: err.stdout ?? '', stderr: err.stderr ?? '' };
+  }
+}
+
 test('aggregate reports totals and groupings without per-record rows', () => {
   const dump = JSON.parse(agentledger(['aggregate']));
   assert.ok(dump.totals.costUSD > 0, 'the machine under test should have some spend');
@@ -73,6 +86,55 @@ test('aggregate never groups by project, even though by-project exists', () => {
   for (const forbidden of ['byProject', 'by-project', 'projects']) {
     assert.equal(dump[forbidden], undefined, `aggregate must not expose ${forbidden}`);
   }
+});
+
+test('checkDigest refuses an all-zero page and accepts a real one', async () => {
+  const { checkDigest } = await import('../bin/digest.js');
+
+  const good = checkDigest(
+    { totals: { records: 10356, costUSD: 87.21, tokens: { input: 1 } } },
+    '# agentledger digest\n| stuff |\n',
+  );
+  assert.equal(good.ok, true, good.reason);
+  assert.match(good.reason, /10356 records/);
+
+  const zeroRecords = { totals: { records: 0, costUSD: 0, tokens: {} } };
+  const zeroCost = { totals: { records: 10, costUSD: 0, tokens: {} } };
+  const emptyStateRow = '| _(no records in this dump)_ | — | — | — |';
+  const realCostButEmptyPage = { totals: { records: 10, costUSD: 5, tokens: {} } };
+
+  const refusals = [
+    [zeroRecords, 'page'],
+    [zeroCost, 'page'],
+    [realCostButEmptyPage, emptyStateRow],
+    [{}, 'page'],
+  ];
+  for (const [dump, page] of refusals) {
+    const verdict = checkDigest(dump, page);
+    assert.equal(verdict.ok, false, `should have refused ${JSON.stringify(dump)}`);
+    assert.ok(verdict.reason.length > 0, 'a refusal must say why');
+  }
+});
+
+test('the CLI --check flag exits non-zero on an empty digest', async () => {
+  const fs = await import('node:fs/promises');
+  const source = path.join(root, 'tests', 'fixtures', 'empty-aggregate.json');
+  const page = path.join(root, 'tests', 'fixtures', 'empty-page.md');
+  await fs.mkdir(path.dirname(source), { recursive: true });
+  await fs.writeFile(source, JSON.stringify({ totals: { records: 0, costUSD: 0, tokens: {} } }));
+  await fs.writeFile(page, '# agentledger digest\n| _(no records in this dump)_ | — | — | — |\n');
+
+  const bad = runDigest(['--check', source, page]);
+  assert.notEqual(bad.status, 0);
+  assert.match(bad.stderr, /digest refusal/);
+
+  // And the real committed sample passes the same gate.
+  const good = runDigest([
+    '--check',
+    path.join(root, 'digests', 'samples', 'latest.json'),
+    path.join(root, 'digests', 'samples', 'latest.json'),
+  ]);
+  assert.equal(good.status, 0, `committed sample must pass: ${good.stderr}`);
 });
 
 test('the digest renders zero-record input without crashing', async () => {
