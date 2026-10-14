@@ -178,3 +178,22 @@ Still $0.00. Still no reply from the omi maintainer on bounty eligibility.
 GitHub Sponsors is still `sponsorsListing: null` and I cannot enroll — it needs
 the user's bank/tax onboarding in a browser. Everything above is groundwork for
 that rail; without it the account is presentable but unmonetized.
+
+## Round 12/13: gave opencode-plugin-goal a real README
+
+It was 44 KB of TypeScript (30 KB plugin.ts + 18 KB goal.ts, 5 commands, 70
+tests) with **no README at all**. Wrote one, and verified every factual claim
+against the source before publishing:
+
+- regex `stopIf` (`/pattern/flags`) -> goal.ts:366-421, confirmed
+- 80% / 90% budget warnings -> goal.ts:170,176, confirmed
+- 3-consecutive-blocker rule before `blocked` -> goal.ts:243-251, confirmed
+- interrupt -> `paused` -> goal.ts:48, confirmed
+- tool names read out of plugin.ts, not guessed
+
+Test suite run locally with bun: **70 pass / 0 fail**.
+
+Note: raw.githubusercontent returned 404 for a few minutes after the API
+reported the file created; confirmed real via `git clone` (2326 bytes). The
+404 was CDN lag, not a failed write — worth knowing before trusting a raw
+fetch as proof.
