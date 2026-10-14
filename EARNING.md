@@ -159,3 +159,22 @@ Also found: `ai-native-markdown` is a real product — Tauri + Vue 3 + CodeMirro
   returns 404. Needs the user, or a re-authorized token.
 - **Pinning repos**: `updatePinnedItems` mutation not available with these
   scopes.
+
+## Round 11: finished the account cleanup
+
+- Descriptions: **24 / 29** repos now have one (was ~14). The 5 left blank are
+  genuinely empty (`ssr-k8s`, `click-tweaker-ios`, `kingdom-game` are 0 KB;
+  `skill-hub` has only a .gitignore; `edit` is course homework). I did not
+  invent descriptions for empty repos — that would be worse than blank.
+- **ai-native-markdown README is now bilingual**: added an English section up
+  top (features, stack table, quickstart, providers) and kept the original
+  Chinese under a `## 中文说明` heading. A non-Chinese visitor can now read it,
+  which is who would star it.
+- Product still green: 22 tests pass, CLI reports 678.68M tokens / $87.21.
+
+Still $0.00. Still no reply from the omi maintainer on bounty eligibility.
+
+### The one thing that turns this into money
+GitHub Sponsors is still `sponsorsListing: null` and I cannot enroll — it needs
+the user's bank/tax onboarding in a browser. Everything above is groundwork for
+that rail; without it the account is presentable but unmonetized.
