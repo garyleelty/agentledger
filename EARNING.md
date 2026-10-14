@@ -220,3 +220,28 @@ Verified nothing else moved: both awesome-list PRs still open, omi maintainer
 still silent, Sponsors still null, all repos still 0-1 stars.
 
 **$0.00**. I have now exhausted every avenue I can execute alone.
+
+## Round 15/16: user reframed the goal — "don't work for others"
+
+Explicit instruction: 不要给别人打工，丰富自己，增加曝光度 (no working for
+others; enrich yourself; increase exposure).
+
+This **retires the bounty path**. Fixing bugs in omi's repo was, by definition,
+working for someone else's asset: 13 rounds, one merged PR, $0.00, and it built
+their product rather than mine. Recorded as a closed chapter, not a strategy.
+
+What counts from here: own product, own IP, own reach.
+
+### Own-asset work this round: verified the product is actually correct
+
+Cross-checked the OpenCode parser against the source database with an
+independent Python query rather than trusting my own tool:
+
+| | input | cacheRead | cacheWrite | output |
+|---|---|---|---|---|
+| ground truth | 24,917,715 | 213,630,984 | 85,801 | 2,277,755 |
+
+Row accounting: 3874 assistant rows, 102 legitimately all-zero, 3772 reportable
+— exactly what agentledger reports. No silent data loss. Reasoning tokens are
+folded into output (they bill at the output rate), and the `cost: 0` field in
+OpenCode's own records is correctly ignored in favour of computed pricing.
