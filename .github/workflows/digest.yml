@@ -1,15 +1,15 @@
-# Publishes a periodic cost digest to the repo's Pages site.
+# Publishes a dated cost digest built from real agent session data.
 #
-# This is exposure work: a live, dated page of real agent-spend data is
-# something people can link to and argue with, which a README is not.
+# IMPORTANT: a GitHub runner has no ~/.claude, ~/.codex or opencode.db, so this
+# reads 0 records there by construction. It is meant to run on a self-hosted
+# runner (or a machine that actually ran the agents), and it fails loudly when
+# it finds nothing rather than publishing an all-zero table that would look
+# like a real reading.
 #
-# Runs weekly and on demand. Publishes aggregates only -- no session ids,
-# no file paths, no per-record rows.
+# Publishes aggregates only -- no session ids, paths or per-record rows.
 name: digest
 
 on:
-  schedule:
-    - cron: '17 3 * * 1'
   workflow_dispatch:
 
 permissions:
@@ -26,17 +26,20 @@ jobs:
 
       - name: Extract aggregates
         run: |
+          node bin/agentledger.js json > digest.json
           node -e '
             const fs = require("fs");
-            const { execFileSync } = require("child_process");
-            const out = execFileSync("node", ["bin/agentledger.js", "json"], { maxBuffer: 1 << 28 });
-            const d = JSON.parse(out.toString());
+            const d = JSON.parse(fs.readFileSync("digest.json", "utf8"));
             const t = d.totals.tokens;
             const byAgent = Object.entries(
               d.records.reduce((a, r) => { a[r.agent] = (a[r.agent] || 0) + r.costUSD; return a; }, {})
             ).sort((a, b) => b[1] - a[1]);
-            const lines = byAgent.map(([k, v]) => `| ${k} | $${v.toFixed(2)} |`).join("\n");
+            const lines = byAgent.length
+              ? byAgent.map(([k, v]) => `| ${k} | $${v.toFixed(2)} |`).join("\n")
+              : "| (none) | — |";
             const md = [
+              "---",
+              "---",
               "# agentledger digest",
               "",
               `Generated ${new Date().toISOString().slice(0, 10)}.`,
@@ -55,29 +58,39 @@ jobs:
               "| --- | --- |",
               lines,
               "",
+              `Records: ${d.records.length}.`,
+              "",
               "Produced by [agentledger](https://github.com/garyleelty/agentledger) —",
               "a local-first ledger for AI coding agents.",
               ""
             ].join("\n");
             fs.writeFileSync("digest.md", md);
           '
+          cat digest.md
+
+      - name: Refuse to publish an empty digest
+        run: |
+          n=$(node -e 'const d=require("./digest.json");process.stdout.write(String(d.records.length))')
+          if [ "$n" = "0" ]; then
+            echo "::error::0 agent records found. A GitHub runner has no ~/.claude, ~/.codex or opencode.db. Run this on a self-hosted runner or a machine that actually ran the agents."
+            exit 1
+          fi
+          echo "publishing $n records"
 
       - name: Publish to gh-pages
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
-          # Publish only index.md. Keeping the checked-out working tree would
-          # push the whole repo -- private notes included -- to the web, so the
-          # branch is built from an empty index and one file is added to it.
+          # Build a branch holding index.md only. Keeping the checked-out tree
+          # would publish the whole repo -- private notes included -- to the web.
           git checkout --orphan gh-pages
           git rm -rf --cached . >/dev/null 2>&1 || true
-          # digest.md is outside the tree: move it aside before the index is
-          # cleared, or the cleanup deletes the file we came for.
+          # digest.md is moved out before the tree is cleared, or the cleanup
+          # deletes the file we came to publish.
           mv digest.md /tmp/digest.md
           git read-tree --empty
           git clean -fdx >/dev/null 2>&1 || true
           mv /tmp/digest.md index.md
-          printf -- '---\n---\n' | cat - index.md > _index.md && mv _index.md index.md
           git add index.md
-          git commit -m "digest: $(date -u +%F)" || echo "no change"
+          git commit -m "digest: $(date -u +%F)"
           git push -f origin gh-pages
