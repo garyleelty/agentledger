@@ -245,3 +245,35 @@ Row accounting: 3874 assistant rows, 102 legitimately all-zero, 3772 reportable
 — exactly what agentledger reports. No silent data loss. Reasoning tokens are
 folded into output (they bill at the output rate), and the `cost: 0` field in
 OpenCode's own records is correctly ignored in favour of computed pricing.
+
+## Rounds 17-20: the digest automation was fake until I ran it
+
+I had shipped a weekly digest workflow in round 15 and **never triggered it**.
+Running it found three real problems, in order:
+
+1. **It published the entire repo to the web.** The first version did
+   `git checkout -B gh-pages` from the source branch and committed on top, so
+   `EARNING.md` — my private strategy notes — went public on a Pages branch.
+   Verified the leak really happened, then switched to an orphaned branch.
+2. **My first fix broke it outright**: `rm -rf ./*` ran before
+   `mv digest.md index.md`, deleting the file it came to publish. Run failed
+   with `mv: cannot stat 'digest.md'`. Fixed by moving the file to /tmp before
+   clearing the tree; verified the git sequence in a scratch repo first.
+3. **The digest is meaningless on a CI runner.** It published a clean table of
+   `0 tokens / $0.00`. Cause: a GitHub runner has no `~/.claude`, `~/.codex`
+   or `opencode.db`, so the tool correctly reports zero records there. A page
+   of zeros reads as "I measured nothing" when the truth is "I did not measure
+   at all". The workflow now refuses to publish that and exits non-zero.
+
+Also confirmed correct: the runner log shows the guard firing with the exact
+reason, not a script error. 31 tests green (a parallel session added flag
+validation, 9 cases).
+
+**$0.00 received. Nothing in this goal has ever been earned.**
+
+### What I got wrong, stated plainly
+I reported "added a weekly digest workflow" as exposure work in round 15
+without running it once. It had never executed. Three of the four defects were
+only findable by running it — shipping unrun automation and calling it
+progress is the same category of error as the false cache-pricing claim I
+corrected earlier. An unrun workflow is a claim, not an asset.
