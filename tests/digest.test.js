@@ -64,6 +64,17 @@ test('the rendered digest contains no session ids or file paths', async () => {
   assert.doesNotMatch(md, /session|rollout-/, 'no session/file naming');
 });
 
+test('aggregate never groups by project, even though by-project exists', () => {
+  // `by-project` is a real command and legitimately prints local paths. This
+  // guards the boundary: that feature must not reach the shareable shape.
+  const dump = JSON.parse(agentledger(['aggregate']));
+  const asText = JSON.stringify(dump);
+  assert.doesNotMatch(asText, /\/Users\/|\/home\//, 'aggregate must not carry working-directory paths');
+  for (const forbidden of ['byProject', 'by-project', 'projects']) {
+    assert.equal(dump[forbidden], undefined, `aggregate must not expose ${forbidden}`);
+  }
+});
+
 test('the digest renders zero-record input without crashing', async () => {
   const { renderDigest } = await import('../bin/digest.js');
   const md = renderDigest({ totals: { tokens: {}, costUSD: 0, records: 0 } });
