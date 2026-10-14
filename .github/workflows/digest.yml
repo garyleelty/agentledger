@@ -1,0 +1,73 @@
+# Publishes a periodic cost digest to the repo's Pages site.
+#
+# This is exposure work: a live, dated page of real agent-spend data is
+# something people can link to and argue with, which a README is not.
+#
+# Runs weekly and on demand. Publishes aggregates only -- no session ids,
+# no file paths, no per-record rows.
+name: digest
+
+on:
+  schedule:
+    - cron: '17 3 * * 1'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  digest:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Extract aggregates
+        run: |
+          node -e '
+            const fs = require("fs");
+            const { execFileSync } = require("child_process");
+            const out = execFileSync("node", ["bin/agentledger.js", "json"], { maxBuffer: 1 << 28 });
+            const d = JSON.parse(out.toString());
+            const t = d.totals.tokens;
+            const byAgent = Object.entries(
+              d.records.reduce((a, r) => { a[r.agent] = (a[r.agent] || 0) + r.costUSD; return a; }, {})
+            ).sort((a, b) => b[1] - a[1]);
+            const lines = byAgent.map(([k, v]) => `| ${k} | $${v.toFixed(2)} |`).join("\n");
+            const md = [
+              "# agentledger digest",
+              "",
+              `Generated ${new Date().toISOString().slice(0, 10)}.`,
+              "",
+              "| Metric | Value |",
+              "| --- | --- |",
+              `| Input tokens | ${t.input.toLocaleString("en-US")} |`,
+              `| Cache read | ${t.cacheRead.toLocaleString("en-US")} |`,
+              `| Cache write | ${t.cacheWrite.toLocaleString("en-US")} |`,
+              `| Output tokens | ${t.output.toLocaleString("en-US")} |`,
+              `| **Estimated total** | **$${d.totals.costUSD.toFixed(2)}** |`,
+              "",
+              "## By agent",
+              "",
+              "| Agent | Est. cost |",
+              "| --- | --- |",
+              lines,
+              "",
+              "Produced by [agentledger](https://github.com/garyleelty/agentledger) —",
+              "a local-first ledger for AI coding agents.",
+              ""
+            ].join("\n");
+            fs.writeFileSync("digest.md", md);
+          '
+
+      - name: Publish to gh-pages
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git checkout -B gh-pages
+          mv digest.md index.md
+          git add index.md
+          git commit -m "digest: $(date -u +%F)" || echo "no change"
+          git push -f origin gh-pages
