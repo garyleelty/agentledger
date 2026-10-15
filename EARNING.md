@@ -443,3 +443,14 @@ https://github.com/awesome-opencode/awesome-opencode/pull/872
 Checked the other list too: awesome-ai-coding-tools #946 edits README.md, and
 that repo *does* merge README-line PRs (75/100 recent closes were merges), so
 its format is already correct. Left as is.
+
+## Round 29: two reachable publishing channels (first ones ever)
+
+Re-probed every distribution domain. **dev.to and juejin.cn are reachable and
+serve real content** — dev.to's public API answers live article JSON. HN,
+Reddit, V2EX, x.com, medium are still blocked. So for the first time this goal
+has a channel I can actually operate from here rather than hand to the user.
+
+Plan: publish on dev.to under a real account (API key needs the user's browser
+login), and make juejin self-serve for the user with a verified draft.
+Posting under a throwaway account is astroturfing: real value, real identity.
