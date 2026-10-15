@@ -116,6 +116,7 @@
     <tr><th>Command</th><th>What you get</th></tr>
     <tr><td><code>agentledger</code></td><td>totals + per-agent breakdown</td></tr>
     <tr><td><code>agentledger waste</code></td><td>where the cache-read spend is concentrated</td></tr>
+    <tr><td><code>agentledger savings</code></td><td>what prompt caching saved, against no cache</td></tr>
     <tr><td><code>agentledger by-project</code></td><td>cost per repository</td></tr>
     <tr><td><code>agentledger by-branch</code></td><td>cost per git branch</td></tr>
     <tr><td><code>agentledger by-model</code></td><td>which model is eating the budget</td></tr>
@@ -147,14 +148,21 @@
 
   <h2>What it found on the machine it was written on</h2>
   <div class="panel">
-<pre>cache reads   <span class="hi">631.64M</span> of 678.68M total tokens   <span class="dim">(93%)</span>
+<pre>paid          <span class="hi">$243</span>
+without cache <span class="hi">$1307</span>
+saved         <span class="ok">$1064   81.4% cheaper</span>
+cache reads   <span class="hi">631.64M</span> of 678.68M total tokens   <span class="dim">(93%)</span>
 concentration  top 10 of 262 sessions = <span class="hi">74.5%</span> of all cache reads
 priciest      <span class="hi">$118</span>  one Codex session in one repo
 branch        <span class="hi">$206</span>  <span class="dim">the web branch alone</span></pre>
   </div>
-  <p class="dim">Concentration that high is not ordinary usage — it is context churn. A long
-  session that keeps re-sending its prefix, or a tool returning large output
-  every turn. <code>agentledger waste</code> points at which one.</p>
+  <p class="dim">Priced the same ledger with every cache-read token billed at its model's
+  fresh-input rate and caching is worth <strong>$1,064</strong> — the tool does not
+  just report spend, it prices what prompt caching is worth.
+  <code>agentledger savings</code> prints it. Concentration that high is not
+  ordinary usage — it is context churn: a long session that keeps re-sending its
+  prefix, or a tool returning large output every turn. <code>agentledger waste</code>
+  points at which one.</p>
 
   <h2>Compared to ccusage</h2>
   <p><a href="https://github.com/ccusage/ccusage">ccusage</a> is the incumbent and it is
