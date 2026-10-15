@@ -82,6 +82,27 @@ test('the rendered digest contains no session ids or file paths', async () => {
   assert.doesNotMatch(md, /session|rollout-/, 'no session/file naming');
 });
 
+test('the HTML digest carries the same totals and the same privacy invariants', async () => {
+  // The workflow publishes docs/digest.html because Pages serves main/docs and
+  // a Markdown file there renders as plaintext or 404. Whatever the format,
+  // the privacy boundary is identical: aggregates in, identifiers out.
+  const { renderDigestHtml, checkDigest } = await import('../bin/digest.js');
+  const dump = JSON.parse(agentledger(['aggregate']));
+  const html = renderDigestHtml(dump);
+
+  assert.match(html, /^<!DOCTYPE html>/);
+  assert.match(html, /<title>agentledger digest<\/title>/);
+  assert.match(html, /Estimated total/);
+  // the fixture ledger has one agent, and it must show through
+  assert.match(html, /<td>claude-code<\/td>/);
+  assert.doesNotMatch(html, /[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}/i, 'no UUIDs');
+  assert.doesNotMatch(html, /\/Users\/|\/home\//, 'no absolute home paths');
+  assert.doesNotMatch(html, /rollout-/, 'no session/file naming');
+  // and the publish gate accepts the HTML format, not just Markdown
+  const verdict = checkDigest(dump, html);
+  assert.equal(verdict.ok, true, verdict.reason);
+});
+
 test('aggregate never groups by project, even though by-project exists', () => {
   // `by-project` is a real command and legitimately prints local paths. This
   // guards the boundary: that feature must not reach the shareable shape.

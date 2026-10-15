@@ -21,6 +21,14 @@
 #
 # Runs weekly and on demand. Publishes aggregates only — no session ids, no
 # file paths, no per-record rows. See `aggregate` vs `json` in the README.
+#
+# It writes docs/digest.html on main — inside the served Pages directory
+# (source: main/docs). The earlier design force-pushed a `gh-pages` branch
+# that was *never served*: when Pages was switched back to main/docs (the
+# landing page had gone offline), every weekly run silently published into a
+# dead branch. Publishing into the directory the site actually reads is the
+# fix; the render is checked in as an ordinary commit so the page is auditable
+# from the repo itself.
 name: digest
 
 on:
@@ -59,6 +67,7 @@ jobs:
         run: |
           test -f "$SOURCE" || { echo "::error::no such digest source: $SOURCE"; exit 1; }
           node bin/digest.js "$SOURCE" digest.md
+          node bin/digest.js "$SOURCE" docs/digest.html
           echo "---- digest.md ----"
           cat digest.md
 
@@ -69,20 +78,18 @@ jobs:
       - name: Refuse to publish an empty digest
         run: node bin/digest.js --check "$SOURCE" digest.md
 
-      - name: Publish to gh-pages
+      - name: Commit the rendered page to main
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
-          # Build a branch holding index.md only. Keeping the checked-out tree
-          # would publish the whole repo -- private notes included -- to the web.
-          git checkout --orphan gh-pages
-          # digest.md is moved out of the tree before it is cleared, or the
-          # cleanup deletes the very file we came to publish.
-          mv digest.md /tmp/digest.md
-          git rm -rf --cached . >/dev/null 2>&1 || true
-          git read-tree --empty
-          git clean -fdx >/dev/null 2>&1 || true
-          mv /tmp/digest.md index.md
-          git add index.md
-          git commit -m "digest: $(date -u +%F)"
-          git push -f origin gh-pages
+          # Only the rendered page is committed -- never the working tree at
+          # large. EARNING.md going public through a whole-tree publish is the
+          # original sin of this workflow (round 17); a path-scoped add is
+          # what keeps that class of mistake impossible here.
+          if git diff --quiet -- docs/digest.html; then
+            echo "docs/digest.html unchanged; nothing to publish"
+            exit 0
+          fi
+          git add docs/digest.html
+          git commit -m "digest: publish $(date -u +%F)"
+          git push origin HEAD:main
