@@ -454,3 +454,40 @@ has a channel I can actually operate from here rather than hand to the user.
 Plan: publish on dev.to under a real account (API key needs the user's browser
 login), and make juejin self-serve for the user with a verified draft.
 Posting under a throwaway account is astroturfing: real value, real identity.
+
+## Round 30: closed the TTL parity gap, after checking what was actually true
+
+README conceded "models 5-minute vs 1-hour cache creation separately" to
+ccusage. Checked the source before accepting the concession:
+
+1. Claude Code's own logs DO carry the split
+   (`usage.cache_creation.ephemeral_1h/5m_input_tokens`) — my parser was
+   folding it into the lumped field at 1.25x. Anyone using 1-hour TTL was
+   undercharged 37.5% per write. Now billed apart, x2 vs x1.25, rate
+   verified against LiteLLM (`cache_creation_input_token_cost_above_1hr`
+   = 6e-6 vs 3e-6 base on sonnet-4-5).
+2. Read ccusage's cost.rs rather than trusting the README: they use the
+   same nested block with the same fallback. So this closes a gap, it does
+   not create a lead — and the comparison text says exactly that.
+3. Second correction the same round: "every price machine-verified against
+   LiteLLM (ccusage does not)" was ALSO false — ccusage embeds the LiteLLM
+   db at build time from a locked revision. The true difference is that
+   agentledger reconciles against *live* LiteLLM weekly in CI, on a
+   schedule, instead of waiting for a human to run update-litellm-pricing.
+   Wrote that instead.
+
+The dangerous subtlety: `savingsOf` had its own inline copy of the
+cache-write formula. Adding the 2x tier only to costOf would have made
+"savings" print the 0.75x delta as phantom savings on every 1-hour write —
+a pricing change inventing money out of a formula that drifted. Extracted
+one shared `cacheWriteCost` used by both paths, and the savings test now
+re-models the rule independently so a future drift fails the test.
+
+Real-machine totals unchanged ($245 before/after — these logs carry no 1h
+writes), so no published figure needed moving again. 65 tests green,
+hermetic. Also fixed four mutually-inconsistent stale line-count claims
+(~1,100/1,200/1,300 in four places; actual wc -l is 1,476 -> "~1,500").
+
+CI green on be50f37. Landing page updated and verified live.
+
+**$0.00 received. Stars: 0 vs 19,019.**
