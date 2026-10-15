@@ -351,3 +351,44 @@ This is the payoff the whole exercise was for: claims ("55 tests green")
 become verified statements only when a machine nobody's sitting at runs them.
 
 **$0.00 received.** Star gap unchanged: agentledger 0 vs ccusage 19,017.
+
+## Round 26: an automated pricing audit found 7 wrong entries in my own table
+
+Built `tools/audit_pricing.py`: pulls LiteLLM's model database (4,162 models,
+fetched through the GitHub blob API — the contents API refuses 2.8 MB files,
+the raw host is blocked on this network) and diffs every PRICING entry against
+it, exiting non-zero on disagreement. Wired into CI as a weekly scheduled job.
+
+It immediately caught errors on **my** side — 24 of 28 entries now reconcile:
+
+- gpt-5 / gpt-5-mini: `cacheReadMultiplier: 0.125` was the *absolute* cached
+  price ($0.125/M) pasted into a multiplier field. Correct multiplier is 0.1.
+- gemini-2.5-pro: 0.25 — that's the >200k-context tier's cache rate; standard
+  cached input is 0.1x. Was overcharging cache reads 2.5x.
+- gemini-2.0-flash: $0.1/$0.4 was the flash-*lite* rate; standard is $0.15/$0.6.
+- deepseek-chat/reasoner: previous-generation $1.10/$2.19 output — overstated
+  ~2.6x against the current $0.42 line.
+- glm-5/glm-5.2/kimi-*: guessed proxy rates replaced with LiteLLM's
+  official-provider entries (zai/*, moonshot/*).
+
+The 4 remaining unchecked entries are free lanes and a proxy-only model with
+no authoritative reference — reported as unchecked, not silently trusted.
+
+This machine's headline moved $243 -> $245; every published figure in README,
+landing page, PROMOTION.md and the digest sample was regenerated from the
+tool's own output rather than retyped.
+
+**Structural point for the objective:** ccusage caches prices and supports
+user overrides, but nothing in either project *re-derives* the table against
+an upstream authority on a schedule. A cost tool whose numbers silently rot
+is worse than useless; now CI says so weekly. That is a correctness property
+the 19k-star incumbent does not have.
+
+Also: the parallel session's new `savings` tests had the same machine-dependent
+defect CI flagged in round 25 (passes locally, dies on a runner with no logs).
+Fixed the same way — fixture HOME — plus a guard so its hand-recompute test
+cannot pass vacuously on an empty ledger. CI: 3f0f1ed green on 22.5/24/26.
+
+**$0.00 received.** Stars: 0 vs 19,017. The product is getting harder to
+fault; the distribution gap is still the whole story, and every channel that
+closes it (npm token, HN/Reddit/V2EX posting) needs the user.
