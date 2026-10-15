@@ -99,11 +99,40 @@ agentledger-cli waste           # where the cache-read spend is concentrated
 agentledger-cli by-model        # which model is eating your budget
 agentledger-cli by-day -d 30    # daily spend curve
 agentledger-cli sessions -n 20  # most expensive sessions
+agentledger-cli budget -b 100   # spend against a limit
 agentledger-cli watch           # live totals, refreshes every 5s
 agentledger-cli prices          # the built-in pricing table
 agentledger-cli aggregate       # shareable totals + groupings, no session ids
 agentledger-cli json            # machine-readable dump
 ```
+
+### Budget
+
+Every other command reports what already happened. `budget` is the one that
+answers the question you actually have while working — am I about to go over:
+
+```
+$ agentledger budget -b 100
+
+  budget    $100
+  spent     $243   ████████████████████████  242.7%
+  remaining $0.0000   OVER by $143
+
+  run rate  $1.86/day  over 130.3 days of activity
+            already $143 over.
+```
+
+The run rate is measured over the span of data you actually have, not a
+calendar period: a ledger that covers three months but was only used for two
+days should not report a three-month run rate. `--json` emits the same numbers
+plus the window, which is the shape a statusline or a CI gate wants:
+
+```bash
+agentledger budget -b 100 --json | jq '{spent: .spentUSD, over: .over, perDay: .runRateUSDPerDay}'
+```
+
+An overrun is reported as `over: true` with `daysUntilRunOut: null`, rather
+than a misleading projection.
 
 Two JSON shapes, deliberately:
 

@@ -49,13 +49,23 @@ function positiveInt(raw, flag) {
   return n;
 }
 
+/** A budget in USD, or a bare `--budget` meaning "print usage and exit". */
+function money0(raw, flag) {
+  const n = Number(raw);
+  if (!Number.isFinite(n) || n <= 0) {
+    throw new Error(`${flag} expects a positive number of dollars, got ${JSON.stringify(raw)}`);
+  }
+  return n;
+}
+
 function parseFlags(args) {
-  const out = { agent: [], path: [], json: false, top: 10, days: 30, since: null };
+  const out = { agent: [], path: [], json: false, top: 10, days: 30, since: null, budget: null };
   for (let i = 0; i < args.length; i++) {
     const a = args[i];
     if (a === '--agent' || a === '-a') out.agent.push(args[++i]);
     else if (a === '--path' || a === '-p') out.path.push(args[++i]);
     else if (a === '--json') out.json = true;
+    else if (a === '--budget' || a === '-b') out.budget = money0(args[++i], a);
     else if (a === '--top' || a === '-n') out.top = positiveInt(args[++i], a);
     else if (a === '--days' || a === '-d') out.days = positiveInt(args[++i], a);
     else if (a === '--since') {
@@ -117,6 +127,11 @@ async function main() {
     case 'by-model': return reportByModel(filtered, flags);
     case 'by-day': return reportByDay(filtered, flags);
     case 'sessions': return reportSessions(filtered, flags);
+    case 'budget':
+      if (flags.budget === null) {
+        throw new Error('budget needs a limit, e.g. `agentledger budget --budget 100` (or -b 100)');
+      }
+      return reportBudget(filtered, flags);
     case 'sources': return reportSources();
     case 'prices': return reportPrices();
     case 'aggregate': return reportAggregate(filtered);
@@ -125,6 +140,83 @@ async function main() {
     case 'summary':
     default: return reportSummary(filtered, { filesScanned, skipped }, flags);
   }
+}
+
+/**
+ * Spend against a budget: how much is used, how fast it is being used, and
+ * when it runs out at that rate.
+ *
+ * Every other command here reports history. This one is the only one that
+ * answers the question people actually have while working — "am I about to
+ * blow through this?" — and it is the natural thing to call from a statusline
+ * or a CI gate, which is why `--json` is honoured here too.
+ */
+function reportBudget(records, flags) {
+  const limit = flags.budget;
+  const t = totals(records);
+  const spent = t.cost;
+
+  // The window is the span of data we actually have, not a calendar period:
+  // a ledger that covers three months but was only used for two days should
+  // not report a three-month run rate.
+  const stamps = records.map((r) => r.timestamp).filter((n) => typeof n === 'number' && Number.isFinite(n));
+  const first = stamps.length ? Math.min(...stamps) : null;
+  const last = stamps.length ? Math.max(...stamps) : null;
+  const spanDays = first !== null && last !== null && last > first
+    ? (last - first) / 86_400_000
+    : 0;
+  const perDay = spanDays > 0 ? spent / spanDays : 0;
+
+  const remaining = limit - spent;
+  const pct = limit > 0 ? (spent / limit) * 100 : 0;
+  const daysLeft = perDay > 0 && remaining > 0 ? remaining / perDay : null;
+
+  if (flags.json) {
+    console.log(JSON.stringify({
+      tool: 'agentledger',
+      version: version(),
+      budgetUSD: round(limit),
+      spentUSD: round(spent),
+      remainingUSD: round(remaining),
+      usedPct: round(pct),
+      over: remaining < 0,
+      runRateUSDPerDay: round(perDay),
+      daysUntilRunOut: daysLeft === null ? null : round(daysLeft),
+      window: {
+        from: first ? new Date(first).toISOString() : null,
+        to: last ? new Date(last).toISOString() : null,
+        days: round(spanDays),
+      },
+      records: records.length,
+    }, null, 2));
+    return;
+  }
+
+  const bar = (used) => {
+    const width = 24;
+    const filled = Math.max(0, Math.min(width, Math.round((used / 100) * width)));
+    return '█'.repeat(filled) + '░'.repeat(width - filled);
+  };
+
+  console.log('');
+  console.log(`  budget    ${money(limit)}`);
+  console.log(`  spent     ${money(spent)}   ${bar(pct)}  ${pct.toFixed(1)}%`);
+  const overNote = remaining < 0 ? '   OVER by ' + money(-remaining) : '';
+  console.log(`  remaining ${money(Math.max(0, remaining))}${overNote}`);
+  console.log('');
+  if (spanDays > 0) {
+    console.log(`  run rate  ${money(perDay)}/day  over ${spanDays.toFixed(1)} days of activity`);
+    if (remaining < 0) {
+      console.log(`            already ${money(-remaining)} over.`);
+    } else if (daysLeft !== null) {
+      console.log(`            about ${daysLeft.toFixed(1)} days left at this rate.`);
+    } else {
+      console.log('            nothing spent yet, so no run rate to project.');
+    }
+  } else {
+    console.log('  run rate  not enough dated records to project one.');
+  }
+  console.log('');
 }
 
 /**
@@ -415,6 +507,7 @@ Commands
   sources     Which agents are supported and where logs are read from
   prices      The built-in pricing table
   aggregate   Shareable totals + groupings (no session ids)
+  budget      Spend against a limit (e.g. budget -b 100)
   json        Machine-readable dump of every record
   watch       Live-refreshing totals
 
