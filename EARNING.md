@@ -424,3 +424,22 @@ now go over HTTPS with the keychain token. The weekly `pricing-audit` job ran
 green via workflow_dispatch against the live LiteLLM db.
 
 **$0.00 received. Stars: agentledger 0 vs ccusage 19,017.**
+
+## Round 28: the awesome-opencode PR was rejected-by-format before review
+
+PR #856 (opened round 15) edited **README.md directly** — but that list
+auto-generates its README from YAML files under `data/`. contributing.md says
+so in the first line. A maintainer would have closed it on sight; the repo's
+recent history shows 54/100 closed PRs merged — wrong-format entries are most
+of the other 46.
+
+Redid it properly: `data/projects/agentledger.yaml` with the four required
+fields (tagline 81 chars, under the schema's 120 limit), PR #872 with a body
+that says what it does for OpenCode specifically (own SQLite reader, free-lane
+pricing at $0, provider-qualified id resolution), and closed #856 with the
+reason in the new PR's body rather than silently abandoning it.
+https://github.com/awesome-opencode/awesome-opencode/pull/872
+
+Checked the other list too: awesome-ai-coding-tools #946 edits README.md, and
+that repo *does* merge README-line PRs (75/100 recent closes were merges), so
+its format is already correct. Left as is.
