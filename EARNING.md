@@ -392,3 +392,35 @@ cannot pass vacuously on an empty ledger. CI: 3f0f1ed green on 22.5/24/26.
 **$0.00 received.** Stars: 0 vs 19,017. The product is getting harder to
 fault; the distribution gap is still the whole story, and every channel that
 closes it (npm token, HN/Reddit/V2EX posting) needs the user.
+
+## Round 27: the weekly digest had been publishing to a branch nobody serves
+
+`digest.yml` force-pushed its page to `gh-pages` every week and reported
+`success` every week. But Pages source is `main/docs` — reverted there in
+round 22 to bring the landing page back — so since then every "successful"
+publish wrote into a dead branch. The live URL returned 404. A green check
+mark on automation that produces nothing is the most dangerous kind of
+failure, and it is the third time in this project I found it (after the
+never-triggered workflow and the runner with no logs).
+
+Verified all of it before and after touching anything:
+- `gh-pages` exists, one file, never served (Pages API: source main/docs)
+- after the fix: `https://garyleelty.github.io/agentledger/digest.html`
+  returns 200 with the corrected $244.78 total and no identifiers in it
+
+Fix design: render HTML (the site is static HTML; a .md there is plaintext or
+404) into `docs/digest.html` and commit it to main as an ordinary, auditable
+commit. `git add` is path-scoped — a whole-tree publish is what leaked
+EARNING.md in round 17 and this keeps that class of mistake impossible.
+checkDigest now guards the HTML format too, and a test pins the privacy
+invariants on both formats (61 green, hermetic under empty HOME).
+
+The no-op guard fired as designed on the first dispatch: file unchanged,
+nothing pushed, exit 0 — "nothing to publish" is a correct outcome, not a
+failure. Landing-page link (`weekly digest`) pointed at the site root; fixed.
+
+Also this round: SSH to GitHub broke mid-session (key auth denied), so pushes
+now go over HTTPS with the keychain token. The weekly `pricing-audit` job ran
+green via workflow_dispatch against the live LiteLLM db.
+
+**$0.00 received. Stars: agentledger 0 vs ccusage 19,017.**
