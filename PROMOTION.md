@@ -173,7 +173,7 @@ Title:
 What your coding agents actually cost — reading their local logs, no cloud
 ```
 
-Tags: `ai`, `clawdbot` no — use `ai`, `development`, `coding`, `opensource`.
+Tags: `ai`, `development`, `coding`, `opensource`.
 Body = the Show HN text from section 1, with this closer added:
 
 ```
