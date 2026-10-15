@@ -21,8 +21,12 @@ jobs:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with:
-          node-version: 20
+          # package.json 的 engines 要求 >=22.5（OpenCode 通道依赖 node:sqlite
+          # 的 DatabaseSync，它在 22.5 才落地）。这里必须一致，否则发布环境
+          # 比运行要求还旧，装出来的包在用的时候才会炸。
+          node-version: '22.5'
           registry-url: https://registry.npmjs.org
+      - run: npm test
       - run: npm publish --access public
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}

@@ -1,0 +1,31 @@
+# 每次 push / PR 都跑测试与 lint。
+#
+# 之前仓库只有 publish.yml 和 digest.yml，而 publish 只在发版时触发 ——
+# 也就是说日常改动根本没有 CI 把关。结果是 `npm test` 悄悄坏掉了都没人发现
+# （脚本写的是 `node --test tests/`，在 Node 22+ 上会把 tests 当成模块路径，
+# 报 MODULE_NOT_FOUND，0 通过 1 失败，而实际有 55 个测试是好的）。
+name: ci
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          # 必须 >=22.5：OpenCode 通道用 node:sqlite 的 DatabaseSync。
+          # 用更旧的 Node 跑测试，那条通道会直接起不来。
+          node-version: '22.5'
+
+      - name: Lint (syntax check)
+        run: npm run lint
+
+      - name: Test
+        run: npm test
