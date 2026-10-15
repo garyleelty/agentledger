@@ -647,3 +647,29 @@ Lessons, filed where I'll re-read them:
   with a full 40-char sha works.
 
 **$0.00 received. Stars: 0 vs 19,019.**
+
+## Round 34: statusline — the last headline ccusage feature this tool lacked
+
+`agentledger statusline` plugs into Claude Code's `statusLine` hook. Contract
+is unlike every other command because a host calls it on every render: exit 0
+always, one line, no stack traces in a prompt bar.
+
+Two paths, both tested (82 green, 6 pinning the contract):
+- Current payloads carry `cost.total_cost_usd` + `context_window` totals:
+  echo the host's own number, zero file I/O. When Claude Code hands you the
+  real figure, re-deriving an estimate is worse, not more rigorous.
+- Older payloads: price ONLY the session's transcript. First version scanned
+  the whole ledger — showed $15.70 (machine-wide claude total) where the
+  session cost $2.18. Caught by testing against a real transcript; payload
+  shape verified against ccusage's own test fixtures fetched from their repo.
+
+Git transport recovered mid-round: aligned local to remote with
+fetch + reset --hard after proving the trees identical (the round-33 API
+pushes left local history diverged but content-correct). Lesson bank keeps
+rhyming: "tested against a mock" is not "tested against the real payload".
+
+Honest comparison rewritten against ccusage's current docs: they still lead
+on source count (17 vs 5) and 5-hour billing blocks; shared now: TTL-split
+cache writes, host-cost-first statusline, per-model overrides.
+
+**$0.00 received. Stars: 0 vs 19,019.**
