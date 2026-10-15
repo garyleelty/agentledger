@@ -1,5 +1,7 @@
 # agentledger
 
+![agentledger — what your coding agents actually cost](docs/social-preview.png)
+
 **What did that agent actually cost you?**
 
 `agentledger-cli` is a local-first ledger for AI coding agents. It reads the

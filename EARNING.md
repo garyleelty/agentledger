@@ -491,3 +491,14 @@ hermetic. Also fixed four mutually-inconsistent stale line-count claims
 CI green on be50f37. Landing page updated and verified live.
 
 **$0.00 received. Stars: 0 vs 19,019.**
+
+## Round 31: social preview + README header image
+
+GitHub's `social_preview` API endpoint 404s for OAuth tokens (browser-only
+route), so the 1280x640 card can't be uploaded programmatically — left at
+`docs/social-preview.png` for a 10-second manual upload (Settings →
+Social preview). The same image now sits in the README header, which every
+visitor sees anyway.
+
+Content is all tool-verified output from this machine ($245 total, $1,067
+savings, 74.5% concentration) — no invented numbers in the marketing art.
