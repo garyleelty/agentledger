@@ -299,3 +299,18 @@ had been treating as optional. Recording the rule: **a change is not done until
 the deployed artifact has been fetched and read.**
 
 **$0.00 received.**
+## Round 24: pricing audit corrected a real bug
+
+I assumed my `gpt-5.5` pricing entry was right because I had written it once and
+never challenged it. Cross-checking against the authoritative LiteLLM model db
+(4,161 models) revealed the truth: **$5/$30 per M tokens**, not $1.25/$10. The
+bug inflated spend by ~4x: my tool reported $87 for that dataset; corrected is
+$243. Independent ccusage check shows $228 (same data, similar pricing).
+
+This also meant every published number — README, landing page, promotion copy —
+carried the wrong figures. Found and replaced all instances. Also updated line
+counts from "~700 lines" to the actual 1,100 lines, which remain auditable in
+one sitting but shouldn't be misrepresented as smaller than they are.
+
+The product is now correct on its core claim: cost = sum(price × token bucket),
+with accurate prices from the live DB.
