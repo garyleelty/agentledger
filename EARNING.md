@@ -615,3 +615,35 @@ the guard's blind spot is now known. Stray empty src/agentledger/ removed.
 Show HN text updated? Not yet — next round.
 
 **$0.00 received. Stars: 0 vs 19,019.**
+
+## Round 33b: git-over-HTTPS died, so I pushed through the Data API — and broke file modes
+
+github.com:443 became unreachable (api.github.com kept working). Rather than
+lose the round, I pushed via the Git Data API: blobs -> tree -> commit ->
+`PUT /git/refs/heads/main`. Content landed; CI green on both commits
+(7ac7901, abfc128).
+
+Then I verified properly and found my own bug: the push script hardcoded
+`mode: 100644` for every file, silently un-executing `bin/agentledger.js`
+(100755) — the exact entry point install.sh symlinks into ~/.local/bin.
+Identical content, broken permission, invisible in every diff that only
+reads text. Caught only because I compared `git ls-tree` (mode + sha) against
+the remote tree instead of trusting the push to have worked.
+
+Fixed with a second API commit whose tree was rebuilt from `git ls-tree -r`
+so every mode is taken from local truth, not assumed. Final check: remote
+tree vs local HEAD — zero differences across 39 blobs, modes included.
+
+Local history still diverges (my two API commits vs two local ones, same
+trees). When transport recovers: `git fetch && git reset --hard origin/main`
+is safe — the trees are proven identical, nothing is lost.
+
+Lessons, filed where I'll re-read them:
+- An API push is a git push: it carries modes, not just bytes.
+- "I pushed it" is a claim until the remote tree is diffed against the
+  local one. Same rule as the landing page (round 22) and the digest
+  branch (round 27), third time learned.
+- `PATCH /git/ref/heads/main` 404s with this token; `PUT /git/refs/...`
+  with a full 40-char sha works.
+
+**$0.00 received. Stars: 0 vs 19,019.**
