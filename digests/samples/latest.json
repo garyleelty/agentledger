@@ -1,7 +1,7 @@
 {
   "tool": "agentledger",
-  "version": "0.1.0",
-  "generatedAt": "2026-10-15T18:01:50.056Z",
+  "version": "0.2.0",
+  "generatedAt": "2026-10-15T18:16:05.486Z",
   "totals": {
     "tokens": {
       "input": 43373382,

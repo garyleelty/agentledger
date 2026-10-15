@@ -218,7 +218,7 @@ Useful flags:
 
 | Flag | Meaning |
 | --- | --- |
-| `-a, --agent <name>` | only one agent (`claude-code`, `codex`, `opencode`, `gemini-cli`) |
+| `-a, --agent <name>` | only one agent (`claude-code`, `codex`, `opencode`, `kilo`, `gemini-cli`) |
 | `-p, --path <dir>` | also scan a directory or single file |
 | `--since <date>` | only records at/after a date |
 | `-n, --top <n>` | rows in ranked reports |

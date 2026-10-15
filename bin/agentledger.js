@@ -11,6 +11,7 @@
  *   agentledger prices         # show the pricing table in use
  */
 
+import { readFileSync } from 'node:fs';
 import { collect, withCost, totals, groupBy, SOURCES } from '../src/ledger.js';
 import { PRICING, DEFAULT_PRICING, resolvePricing, cacheWriteCost } from '../src/pricing.js';
 
@@ -573,8 +574,17 @@ function printTable(headers, rows) {
 }
 
 function version() {
-  return '0.1.0';
+  // package.json is the single source; a hardcoded copy here was how the CLI
+  // and the package could disagree silently after a bump. (No caching: main()
+  // runs before module-level `let`s below this point, and one small read per
+  // invocation is not worth a hoisting hazard.)
+  try {
+    return JSON.parse(readFileSync(new URL('../package.json', import.meta.url), 'utf8')).version;
+  } catch {
+    return '0.0.0-unknown';
+  }
 }
+
 
 function printHelp() {
   const agentNames = SOURCES.map((x) => x.agent).join(', ');
