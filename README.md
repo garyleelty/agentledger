@@ -64,9 +64,13 @@ capable than this: it covers far more agents, prefers Claude Code's own
 separately, and prices reasoning tokens. If you want the most complete tool,
 use that one.
 
-agentledger exists because I wanted something I could read end to end: ~700
+agentledger exists because I wanted something I could read end to end: ~1,200
 lines, zero dependencies, no network, no build step. Whether that trade is
 worth it is your call, not mine.
+
+It still makes no network call of any kind — no telemetry, no update check, no
+pricing fetch. The one thing it does ask of the runtime is `node:sqlite`, which
+is part of Node itself.
 
 ## Install
 
@@ -218,9 +222,9 @@ they are normally within a few percent.
 
 ## Privacy
 
-`agentledger-cli` opens your log files in read mode and writes nothing. There is no
-telemetry, no update check, and no code path that can reach the network. You
-can verify this in a few minutes — the whole tool is ~1,100 lines with zero
+`agentledger-cli` opens your log files in read mode and writes nothing. There is
+no telemetry, no update check, and no code path that can reach the network. You
+can verify this in a few minutes — the whole tool is ~1,200 lines with zero
 dependencies.
 
 ## Contributing
