@@ -62,7 +62,7 @@ that makes no network calls at all.
 It reads ~/.claude/projects, ~/.codex/sessions and ~/.gemini/tmp read-only,
 has zero dependencies (Node 18+ stdlib only), and makes no network calls at
 all — I made that a hard rule because the input is your entire coding history.
-~1,100 lines, so it is auditable in one sitting.
+~1,500 lines, so it is auditable in one sitting.
 
 Costs are estimates from public per-million-token prices; they won't match a
 subscription plan or a negotiated rate, and I say so in the README.

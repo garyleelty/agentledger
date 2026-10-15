@@ -107,7 +107,7 @@
   <ul>
     <li><strong>Reads local logs only</strong> — <code>~/.claude/projects</code>, <code>~/.codex/sessions</code>, <code>~/.gemini/tmp</code></li>
     <li><strong>Cache buckets priced separately</strong> — 631M of my 678M tokens are cache reads, billed at 10-12.5% of input</li>
-    <li><strong>Never touches the network</strong> — no account, no key, no telemetry, ~1,100 lines you can audit in one sitting</li>
+    <li><strong>Never touches the network</strong> — no account, no key, no telemetry, ~1,500 lines you can audit in one sitting</li>
     <li><strong>Fast</strong> — a full scan of 400M+ tokens takes about a second</li>
   </ul>
 
@@ -165,11 +165,17 @@ branch        <span class="hi">$206</span>  <span class="dim">the web branch alo
   points at which one.</p>
 
   <h2>Compared to ccusage</h2>
-  <p><a href="https://github.com/ccusage/ccusage">ccusage</a> is the incumbent and it is
-  <strong>more capable</strong>: more agents, prefers Claude Code's own
-  <code>costUSD</code>, models 5-minute vs 1-hour cache creation, prices reasoning tokens.
-  If you want the most complete tool, use it.</p>
-  <p>agentledger's pitch is narrower and honest: ~1,100 lines, zero dependencies, no
+  <p><a href="https://github.com/ccusage/ccusage">ccusage</a> is the incumbent and it
+  covers <strong>more agents</strong>, prefers Claude Code's own <code>costUSD</code>,
+  and prices reasoning tokens. If you want the most complete tool, use it.</p>
+  <p>Where agentledger is now level or ahead: Anthropic's 5-minute vs 1-hour
+  cache-write TTLs are billed apart (x1.25 / x2) from the nested
+  <code>cache_creation</code> block when logs carry it; every built-in price is
+  reconciled against <strong>live</strong> LiteLLM in a weekly CI job, so a stale
+  entry fails a build on a schedule instead of waiting on a manual refresh; and
+  <code>savings</code> prices the counterfactual — what this ledger would have cost
+  with no prompt caching.</p>
+  <p>The pitch that stays narrower and honest: ~1,500 lines, zero dependencies, no
   network, no build step. You can read the whole thing before you trust it with logs
   that are effectively your entire coding history.</p>
 

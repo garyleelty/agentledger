@@ -58,15 +58,24 @@ while you are still working:
 
 ### Honest comparison
 
-[ccusage](https://github.com/ccusage/ccusage) is the incumbent and it is more
-capable than this: it covers far more agents, prefers Claude Code's own
-`costUSD` field when present, models 5-minute vs 1-hour cache creation
-separately, and prices reasoning tokens. If you want the most complete tool,
-use that one.
+[ccusage](https://github.com/ccusage/ccusage) is the incumbent and it covers
+far more agents than this: it prefers Claude Code's own `costUSD` field when
+present, models 5-minute vs 1-hour cache creation separately (as of today
+agentledger does too — verified against Anthropic's published rates and
+LiteLLM's `cache_creation_input_token_cost_above_1hr`), and prices reasoning
+tokens. Its pricing also comes from LiteLLM's database, embedded at build
+time from a locked revision. If you want the most complete tool, use that one.
 
-agentledger exists because I wanted something I could read end to end: ~1,200
-lines, zero dependencies, no network, no build step. Whether that trade is
-worth it is your call, not mine.
+Where this differs, as far as I can tell: agentledger's table is a checked-in
+static file that a CI job reconciles against **live** LiteLLM weekly — a stale
+entry fails a build on a schedule instead of waiting for a manual
+`update-litellm-pricing`; `savings` prices the counterfactual (what the same
+ledger would have cost with no prompt caching); and the whole tool is ~1,500
+lines of zero-dependency JavaScript with no build step, no runtime fetch, and
+no network call of any kind.
+
+agentledger exists because I wanted something I could read end to end.
+Whether that trade is worth it is your call, not mine.
 
 It still makes no network call of any kind — no telemetry, no update check, no
 pricing fetch. The one thing it does ask of the runtime is `node:sqlite`, which
@@ -267,7 +276,7 @@ they are normally within a few percent.
 
 `agentledger-cli` opens your log files in read mode and writes nothing. There is
 no telemetry, no update check, and no code path that can reach the network. You
-can verify this in a few minutes — the whole tool is ~1,200 lines with zero
+can verify this in a few minutes — the whole tool is ~1,500 lines with zero
 dependencies.
 
 ## Contributing

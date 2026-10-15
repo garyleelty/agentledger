@@ -199,3 +199,79 @@ test('every configured source points at a documented log location', () => {
     assert.equal(typeof s.parser, 'function');
   }
 });
+
+/* --------------------- 1h vs 5m cache-write TTL split --------------------- */
+
+test('parseClaudeCode carries the cache TTL split when present', async () => {
+  const dir = await mkdtemp(path.join(tmpdir(), 'aledger-ttl-'));
+  const file = path.join(dir, 'ttl.jsonl');
+  await writeFile(
+    file,
+    JSON.stringify({
+      type: 'assistant',
+      timestamp: '2026-03-01T00:00:00.000Z',
+      message: {
+        model: 'claude-sonnet-4-5',
+        usage: {
+          input_tokens: 10,
+          cache_read_input_tokens: 100,
+          cache_creation_input_tokens: 90, // lumped: 10m at 5m + 80 at 1h
+          output_tokens: 5,
+          cache_creation: { ephemeral_5m_input_tokens: 10, ephemeral_1h_input_tokens: 80 },
+        },
+      },
+    }) + '\n',
+  );
+  const records = [];
+  for await (const r of parseClaudeCode(file)) records.push(r);
+  assert.equal(records.length, 1);
+  assert.equal(records[0].cacheWrite, 90, 'the lumped field stays for grouping');
+  assert.equal(records[0].cacheWrite5m, 10);
+  assert.equal(records[0].cacheWrite1h, 80);
+});
+
+test('parseClaudeCode omits the split fields when logs lack the nested block', async () => {
+  const dir = await mkdtemp(path.join(tmpdir(), 'aledger-ttl-'));
+  const file = path.join(dir, 'old.jsonl');
+  await writeFile(
+    file,
+    JSON.stringify({
+      type: 'assistant',
+      timestamp: '2026-03-01T00:00:00.000Z',
+      message: {
+        model: 'claude-sonnet-4-5',
+        usage: { input_tokens: 10, cache_creation_input_tokens: 90, output_tokens: 5 },
+      },
+    }) + '\n',
+  );
+  const records = [];
+  for await (const r of parseClaudeCode(file)) records.push(r);
+  assert.equal(records[0].cacheWrite1h, undefined, 'no invented split');
+  assert.equal(records[0].cacheWrite5m, undefined);
+});
+
+test('costOf bills 1-hour cache writes at 2x and 5-minute at 1.25x', () => {
+  // Anthropic's published TTL rates (and LiteLLM's above_1hr field): on a
+  // $3/M model, 5m writes are $3.75/M and 1h writes are $6/M. Billing the
+  // lump at 1.25x undercharges every 1-hour write by 37.5%.
+  const p = resolvePricing('claude-sonnet-4-5');
+  assert.equal(p.cacheWrite1hMultiplier, 2.0);
+  const split = costOf({
+    model: 'claude-sonnet-4-5',
+    input: 0, cacheRead: 0, cacheWrite: 90, cacheWrite5m: 10, cacheWrite1h: 80, output: 0,
+  });
+  // 10 * 3 * 1.25 / 1e6 + 80 * 3 * 2 / 1e6
+  const expected = (10 * 3 * 1.25 + 80 * 3 * 2.0) / 1e6;
+  assert.ok(Math.abs(split.cacheWrite - expected) < 1e-12, `${split.cacheWrite} != ${expected}`);
+  // Without a split, the lump prices at the base write rate exactly as before.
+  const lump = costOf({ model: 'claude-sonnet-4-5', input: 0, cacheRead: 0, cacheWrite: 90, output: 0 });
+  assert.ok(Math.abs(lump.cacheWrite - (90 * 3 * 1.25) / 1e6) < 1e-12);
+});
+
+test('non-Anthropic models have no TTL tier and are priced at their own rate', () => {
+  // gpt-5 has no separate cache-write billing at all (billed as input).
+  const g = resolvePricing('gpt-5');
+  assert.equal(g.cacheWrite1hMultiplier, undefined);
+  const c = costOf({ model: 'gpt-5', input: 0, cacheRead: 0, cacheWrite: 1e6, output: 0 });
+  assert.ok(Math.abs(c.cacheWrite - 1.25) < 1e-9, `1M gpt-5 cache-write tokens should cost $1.25, got ${c.cacheWrite}`);
+});

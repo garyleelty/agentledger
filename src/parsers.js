@@ -38,7 +38,12 @@ export async function* parseClaudeCode(file) {
     if (!msg || typeof msg !== 'object') continue;
     const usage = msg.usage;
     if (!usage) continue;
-    yield {
+    // Anthropic bills cache writes by TTL: 5-minute writes at 1.25x input,
+    // 1-hour writes at 2x. `cache_creation_input_tokens` is the lumped
+    // total; the nested `cache_creation` block splits it when present. Carry
+    // the split so pricing.js can bill the two TTLs apart — the lumped
+    // multiplier (1.25) silently undercharges every 1-hour write.
+    const r = {
       agent: 'claude-code',
       model: msg.model || 'unknown',
       session,
@@ -50,6 +55,16 @@ export async function* parseClaudeCode(file) {
       project,
       branch,
     };
+    const split = usage.cache_creation;
+    if (split && typeof split === 'object') {
+      const w1h = num(split.ephemeral_1h_input_tokens);
+      const w5m = num(split.ephemeral_5m_input_tokens);
+      if (w1h || w5m) {
+        r.cacheWrite1h = w1h;
+        r.cacheWrite5m = w5m;
+      }
+    }
+    yield r;
   }
 }
 

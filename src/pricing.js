@@ -15,19 +15,20 @@ export const DEFAULT_PRICING = {
   output: 15.0,
   cacheReadMultiplier: 0.1,
   cacheWriteMultiplier: 1.25,
+  cacheWrite1hMultiplier: 2.0,
 };
 
 /** Well-known model -> pricing entry. */
 export const PRICING = {
   // ---- Anthropic -------------------------------------------------------
-  'claude-opus-4-1': { input: 15.0, output: 75.0, cacheReadMultiplier: 0.1, cacheWriteMultiplier: 1.25 },
-  'claude-opus-4-1-20250805': { input: 15.0, output: 75.0, cacheReadMultiplier: 0.1, cacheWriteMultiplier: 1.25 },
-  'claude-sonnet-4-5': { input: 3.0, output: 15.0, cacheReadMultiplier: 0.1, cacheWriteMultiplier: 1.25 },
-  'claude-sonnet-4-5-20250929': { input: 3.0, output: 15.0, cacheReadMultiplier: 0.1, cacheWriteMultiplier: 1.25 },
-  'claude-haiku-4-5': { input: 1.0, output: 5.0, cacheReadMultiplier: 0.1, cacheWriteMultiplier: 1.25 },
-  'claude-3-7-sonnet': { input: 3.0, output: 15.0, cacheReadMultiplier: 0.1, cacheWriteMultiplier: 1.25 },
-  'claude-3-5-sonnet': { input: 3.0, output: 15.0, cacheReadMultiplier: 0.1, cacheWriteMultiplier: 1.25 },
-  'claude-3-5-haiku': { input: 0.8, output: 4.0, cacheReadMultiplier: 0.1, cacheWriteMultiplier: 1.25 },
+  'claude-opus-4-1': { input: 15.0, output: 75.0, cacheReadMultiplier: 0.1, cacheWriteMultiplier: 1.25, cacheWrite1hMultiplier: 2.0 },
+  'claude-opus-4-1-20250805': { input: 15.0, output: 75.0, cacheReadMultiplier: 0.1, cacheWriteMultiplier: 1.25, cacheWrite1hMultiplier: 2.0 },
+  'claude-sonnet-4-5': { input: 3.0, output: 15.0, cacheReadMultiplier: 0.1, cacheWriteMultiplier: 1.25, cacheWrite1hMultiplier: 2.0 },
+  'claude-sonnet-4-5-20250929': { input: 3.0, output: 15.0, cacheReadMultiplier: 0.1, cacheWriteMultiplier: 1.25, cacheWrite1hMultiplier: 2.0 },
+  'claude-haiku-4-5': { input: 1.0, output: 5.0, cacheReadMultiplier: 0.1, cacheWriteMultiplier: 1.25, cacheWrite1hMultiplier: 2.0 },
+  'claude-3-7-sonnet': { input: 3.0, output: 15.0, cacheReadMultiplier: 0.1, cacheWriteMultiplier: 1.25, cacheWrite1hMultiplier: 2.0 },
+  'claude-3-5-sonnet': { input: 3.0, output: 15.0, cacheReadMultiplier: 0.1, cacheWriteMultiplier: 1.25, cacheWrite1hMultiplier: 2.0 },
+  'claude-3-5-haiku': { input: 0.8, output: 4.0, cacheReadMultiplier: 0.1, cacheWriteMultiplier: 1.25, cacheWrite1hMultiplier: 2.0 },
 
   // ---- OpenAI ----------------------------------------------------------
   // gpt-5.5 is NOT priced like gpt-5. Caught by cross-checking against
@@ -120,12 +121,38 @@ export function resolvePricing(model) {
 }
 
 /**
+ * Price the cache-write bucket of one record under a resolved pricing entry.
+ *
+ * Anthropic bills 1-hour cache writes at 2x input, 5-minute at 1.25x
+ * (LiteLLM: cache_creation_input_token_cost_above_1hr = 6e-6 vs 3e-6 base on
+ * sonnet-4-5 — verified 2026-10-16). When the parser supplied the TTL split,
+ * bill each subset at its own rate; pricing the lump at 1.25x undercharges
+ * every 1-hour write by 37.5%. Models without a cacheWrite1hMultiplier (every
+ * non-Anthropic provider) keep one rate.
+ *
+ * Exported because `savings` must use the *identical* formula: its
+ * counterfactual cancels cache writes against themselves, and two copies of
+ * this rule that drift would invent phantom savings out of a pricing change.
+ */
+export function cacheWriteCost(usage, p) {
+  const per = (n, price) => (Number(n) || 0) * price / 1e6;
+  const w1h = p.cacheWrite1hMultiplier ?? null;
+  const split = w1h !== null && ((usage.cacheWrite1h || 0) + (usage.cacheWrite5m || 0) > 0);
+  return split
+    ? per(usage.cacheWrite5m, p.input * p.cacheWriteMultiplier)
+      + per(usage.cacheWrite1h, p.input * w1h)
+    : per(usage.cacheWrite, p.input * p.cacheWriteMultiplier);
+}
+
+/**
  * Compute a cost breakdown for one usage record.
  *
  * @param {object} usage
  * @param {number} usage.input         fresh (non-cached) input tokens
  * @param {number} [usage.cacheRead]   tokens served from cache
- * @param {number} [usage.cacheWrite]  tokens written into cache
+ * @param {number} [usage.cacheWrite]  tokens written into cache (lumped)
+ * @param {number} [usage.cacheWrite1h] TTL-split subset: 1-hour writes
+ * @param {number} [usage.cacheWrite5m] TTL-split subset: 5-minute writes
  * @param {number} usage.output        output tokens
  * @param {string} usage.model
  * @returns {{input:number,cacheRead:number,cacheWrite:number,output:number,total:number}}
@@ -135,7 +162,7 @@ export function costOf(usage) {
   const per = (n, price) => (Number(n) || 0) * price / 1e6;
   const input = per(usage.input, p.input);
   const cacheRead = per(usage.cacheRead, p.input * p.cacheReadMultiplier);
-  const cacheWrite = per(usage.cacheWrite, p.input * p.cacheWriteMultiplier);
+  const cacheWrite = cacheWriteCost(usage, p);
   const output = per(usage.output, p.output);
   const total = input + cacheRead + cacheWrite + output;
   return { input, cacheRead, cacheWrite, output, total };

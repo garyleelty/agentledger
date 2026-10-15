@@ -12,7 +12,7 @@
  */
 
 import { collect, withCost, totals, groupBy, SOURCES } from '../src/ledger.js';
-import { PRICING, DEFAULT_PRICING, resolvePricing } from '../src/pricing.js';
+import { PRICING, DEFAULT_PRICING, resolvePricing, cacheWriteCost } from '../src/pricing.js';
 
 const argv = process.argv.slice(2);
 
@@ -367,9 +367,8 @@ export function savingsOf(records) {
     const p = resolvePricing(r.model);
     withoutCache += (
       ((r.input ?? 0) + (r.cacheRead ?? 0)) * p.input
-      + (r.cacheWrite ?? 0) * p.input * p.cacheWriteMultiplier
       + (r.output ?? 0) * p.output
-    ) / 1e6;
+    ) / 1e6 + cacheWriteCost(r, p);
   }
   return {
     actualUSD: round(t.cost),
@@ -492,12 +491,19 @@ function reportPrices() {
     `$${p.input}`,
     `$${p.output}`,
     `x${p.cacheReadMultiplier ?? DEFAULT_PRICING.cacheReadMultiplier}`,
+    p.cacheWrite1hMultiplier != null
+      ? `x${p.cacheWriteMultiplier} / x${p.cacheWrite1hMultiplier}`
+      : `x${p.cacheWriteMultiplier}`,
   ]);
-  rows.push(['(unknown models)', `$${DEFAULT_PRICING.input}`, `$${DEFAULT_PRICING.output}`, `x${DEFAULT_PRICING.cacheReadMultiplier}`]);
-  printTable(['Model', 'In $/Mtok', 'Out $/Mtok', 'Cache read'], rows);
+  rows.push(['(unknown models)', `$${DEFAULT_PRICING.input}`, `$${DEFAULT_PRICING.output}`,
+    `x${DEFAULT_PRICING.cacheReadMultiplier}`, `x${DEFAULT_PRICING.cacheWriteMultiplier} / x${DEFAULT_PRICING.cacheWrite1hMultiplier}`]);
+  printTable(['Model', 'In $/Mtok', 'Out $/Mtok', 'Cache read', 'Cache write 5m/1h'], rows);
   console.log('');
   console.log('  Prices are static snapshots of public pricing pages (USD per 1M tokens).');
-  console.log('  agentledger never contacts the network.');
+  console.log('  Cache write shows the TTL tiers where the provider has them (Anthropic:');
+  console.log('  5-minute writes x1.25, 1-hour writes x2 of the input price).');
+  console.log('  Every row is cross-checked weekly against the LiteLLM model database');
+  console.log('  (tools/audit_pricing.py, in CI). agentledger never contacts the network.');
 }
 
 function reportJson(records) {

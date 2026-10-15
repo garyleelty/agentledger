@@ -81,11 +81,19 @@ test('savings satisfies the counterfactual when recomputed by hand', async () =>
   let without = 0;
   for (const r of priced) {
     const p = resolvePricing(r.model);
+    // Model the TTL split independently of the shipped helper: 1-hour writes
+    // ride at 2x in the counterfactual too, so savings cancels them exactly
+    // as the production path does. An inline copy of the *rule*, not of the
+    // function — if the two ever disagree, this test has earned its keep.
+    const hasSplit = (r.cacheWrite1h || 0) + (r.cacheWrite5m || 0) > 0 && p.cacheWrite1hMultiplier != null;
+    const writeCost = hasSplit
+      ? ((r.cacheWrite5m || 0) * p.input * p.cacheWriteMultiplier
+         + (r.cacheWrite1h || 0) * p.input * p.cacheWrite1hMultiplier) / 1e6
+      : ((r.cacheWrite ?? 0) * p.input * p.cacheWriteMultiplier) / 1e6;
     without += (
       ((r.input ?? 0) + (r.cacheRead ?? 0)) * p.input
-      + (r.cacheWrite ?? 0) * p.input * p.cacheWriteMultiplier
       + (r.output ?? 0) * p.output
-    ) / 1e6;
+    ) / 1e6 + writeCost;
   }
   assert.ok(Math.abs(reported.withoutCacheUSD - without) < 1e-6,
     `withoutCache mismatch: ${reported.withoutCacheUSD} vs ${without}`);
