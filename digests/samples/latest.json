@@ -1,7 +1,7 @@
 {
   "tool": "agentledger",
   "version": "0.1.0",
-  "generatedAt": "2026-10-15T16:07:56.883Z",
+  "generatedAt": "2026-10-15T17:19:07.943Z",
   "totals": {
     "tokens": {
       "input": 43212821,
@@ -9,7 +9,7 @@
       "cacheWrite": 85801,
       "output": 3748168
     },
-    "costUSD": 242.709302,
+    "costUSD": 244.778618,
     "records": 10356
   },
   "byAgent": {
@@ -27,7 +27,7 @@
       "cacheWrite": 85801,
       "output": 2277755,
       "records": 3772,
-      "costUSD": 26.574055
+      "costUSD": 28.643371
     },
     "claude-code": {
       "input": 2526333,
@@ -77,7 +77,7 @@
       "cacheWrite": 0,
       "output": 35073,
       "records": 57,
-      "costUSD": 1.106787
+      "costUSD": 2.629103
     },
     "Cherry-Xiaomi-MiMo/mimo-v2.5-pro": {
       "input": 583207,
@@ -93,7 +93,7 @@
       "cacheWrite": 0,
       "output": 42545,
       "records": 72,
-      "costUSD": 0.813137
+      "costUSD": 0.866302
     },
     "Cherry-New-API/glm-5.2": {
       "input": 74865,
@@ -101,7 +101,7 @@
       "cacheWrite": 0,
       "output": 4737,
       "records": 78,
-      "costUSD": 0.158867
+      "costUSD": 0.574958
     },
     "Cherry-New-API/moonshotai/kimi-k2.7-code": {
       "input": 167902,
@@ -109,7 +109,7 @@
       "cacheWrite": 0,
       "output": 3539,
       "records": 7,
-      "costUSD": 0.115898
+      "costUSD": 0.193642
     },
     "<synthetic>": {
       "input": 0,

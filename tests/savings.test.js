@@ -21,12 +21,17 @@ import { fileURLToPath } from 'node:url';
 const root = path.dirname(path.dirname(fileURLToPath(import.meta.url)));
 const cli = path.join(root, 'bin', 'agentledger.js');
 
+// Fixture HOME with committed session logs: a CI runner has none, and every
+// assertion below ("the counterfactual must cost more") is meaningless on a
+// ledger that silently measured zero records.
+const fixtureHome = path.join(root, 'tests', 'fixtures', 'home');
+
 function run(args, env = {}) {
   try {
     const stdout = execFileSync(process.execPath, [cli, ...args], {
       encoding: 'utf8',
       maxBuffer: 256 * 1024 * 1024,
-      env: { ...process.env, ...env },
+      env: { ...process.env, HOME: fixtureHome, ...env },
     });
     return { status: 0, stdout, stderr: '' };
   } catch (err) {
@@ -57,7 +62,18 @@ test('savings satisfies the counterfactual when recomputed by hand', async () =>
   const { collect, withCost, totals } = await import('../src/ledger.js');
   const { savingsOf } = await import('../bin/agentledger.js');
 
-  const { records } = await collect();
+  const savedHome = process.env.HOME;
+  process.env.HOME = fixtureHome;
+  let records;
+  try {
+    ({ records } = await collect());
+  } finally {
+    process.env.HOME = savedHome;
+  }
+  // An empty ledger makes every equality below vacuously true; require data.
+  assert.ok(records.length > 0, 'the fixture home must produce records');
+  assert.ok(records.some((r) => r.cacheRead > 0), 'the fixture must contain cache reads to counterfactually price');
+
   const priced = records.map(withCost);
   const reported = savingsOf(priced);
 

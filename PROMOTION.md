@@ -30,14 +30,14 @@ already leave on disk.
       agentledger — 73 session files scanned
 
       Metric         Tokens   Est. cost
-      Input tokens   43.21M   $92.02
-      Cache read     631.64M  $118
-      Output tokens  3.75M    $32.48
-      TOTAL          678.68M  $243
+      Input tokens   43.21M   $92.49
+      Cache read     631.64M  $120
+      Output tokens  3.75M    $32.55
+      TOTAL          678.68M  $245
 
       Agent        Tokens   Est. cost  Records
       codex        219.58M  $200       3053
-      opencode     240.83M  $26.57     3772
+      opencode     240.83M  $28.64     3772
       claude-code  218.19M  $15.70     3531
 
 One Codex session had quietly burned $118. I had no idea.

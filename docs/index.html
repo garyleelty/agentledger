@@ -64,16 +64,16 @@
 
   Metric         Tokens   Est. cost
   ─────────────  ───────  ─────────
-  Input tokens   43.21M   <span class="hi">$92.02</span>
-  Cache read     631.64M  <span class="hi">$118</span>
+  Input tokens   43.21M   <span class="hi">$92.49</span>
+  Cache read     631.64M  <span class="hi">$120</span>
   Cache write    85.8k    $0.0000
-  Output tokens  3.75M    <span class="hi">$32.48</span>
-  <span class="ok">TOTAL          678.68M  $243</span>
+  Output tokens  3.75M    <span class="hi">$32.55</span>
+  <span class="ok">TOTAL          678.68M  $245</span>
 
   Agent        Tokens   Est. cost  Records
   ───────────  ───────  ─────────  ───────
   codex        219.58M  <span class="hi">$200</span>       3053
-  opencode     240.83M  $26.57     3772
+  opencode     240.83M  $28.64     3772
   claude-code  218.19M  $15.70     3531</pre>
   </div>
 
@@ -148,16 +148,16 @@
 
   <h2>What it found on the machine it was written on</h2>
   <div class="panel">
-<pre>paid          <span class="hi">$243</span>
-without cache <span class="hi">$1307</span>
-saved         <span class="ok">$1064   81.4% cheaper</span>
+<pre>paid          <span class="hi">$245</span>
+without cache <span class="hi">$1312</span>
+saved         <span class="ok">$1067   81.3% cheaper</span>
 cache reads   <span class="hi">631.64M</span> of 678.68M total tokens   <span class="dim">(93%)</span>
 concentration  top 10 of 262 sessions = <span class="hi">74.5%</span> of all cache reads
 priciest      <span class="hi">$118</span>  one Codex session in one repo
 branch        <span class="hi">$206</span>  <span class="dim">the web branch alone</span></pre>
   </div>
   <p class="dim">Priced the same ledger with every cache-read token billed at its model's
-  fresh-input rate and caching is worth <strong>$1,064</strong> — the tool does not
+  fresh-input rate and caching is worth <strong>$1,067</strong> — the tool does not
   just report spend, it prices what prompt caching is worth.
   <code>agentledger savings</code> prints it. Concentration that high is not
   ordinary usage — it is context churn: a long session that keeps re-sending its

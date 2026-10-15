@@ -13,16 +13,16 @@ $ agentledger
 
   Metric         Tokens   Est. cost
   ─────────────  ───────  ─────────
-  Input tokens   43.21M   $92.02
-  Cache read     631.64M  $118
+  Input tokens   43.21M   $92.49
+  Cache read     631.64M  $120
   Cache write    85.8k    $0.0000
-  Output tokens  3.75M    $32.48
-  TOTAL          678.68M  $243
+  Output tokens  3.75M    $32.55
+  TOTAL          678.68M  $245
 
   Agent        Tokens   Est. cost  Records
   ───────────  ───────  ─────────  ───────
   codex        219.58M  $200       3053
-  opencode     240.83M  $26.57     3772
+  opencode     240.83M  $28.64     3772
   claude-code  218.19M  $15.70     3531
 ```
 
@@ -137,11 +137,11 @@ answers the question you actually have while working — am I about to go over:
 $ agentledger budget -b 100
 
   budget    $100
-  spent     $243   ████████████████████████  242.7%
-  remaining $0.0000   OVER by $143
+  spent     $245   ████████████████████████  244.8%
+  remaining $0.0000   OVER by $145
 
-  run rate  $1.86/day  over 130.3 days of activity
-            already $143 over.
+  run rate  $1.88/day  over 130.3 days of activity
+            already $145 over.
 ```
 
 The run rate is measured over the span of data you actually have, not a
@@ -167,11 +167,11 @@ $ agentledger savings
 
   What prompt caching saved
 
-  paid                  $243
-  without cache         $1307
-  saved                 $1064   81.4% cheaper
+  paid                  $245
+  without cache        $1312
+  saved                $1067   81.3% cheaper
 
-  [████████████████████████░░░░░░]  81.4% saved
+  [████████████████████████░░░░░░]  81.3% saved
 
   631.64M of 678.68M tokens came from cache
   (93.1% of the total).
