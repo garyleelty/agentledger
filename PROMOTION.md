@@ -30,38 +30,39 @@ already leave on disk.
       agentledger — 73 session files scanned
 
       Metric         Tokens   Est. cost
-      Input tokens   18.30M   $20.74
-      Cache read     418.01M  $43.58
-      Output tokens  1.47M    $10.66
-      TOTAL          437.77M  $74.98
+      Input tokens   43.21M   $92.02
+      Cache read     631.64M  $118
+      Output tokens  3.75M    $32.48
+      TOTAL          678.68M  $243
 
       Agent        Tokens   Est. cost  Records
-      codex        219.58M  $59.31     3053
-      claude-code  218.19M  $15.67     3531
+      codex        219.58M  $200       3053
+      opencode     240.83M  $26.57     3772
+      claude-code  218.19M  $15.70     3531
 
-One Codex session had quietly burned $34. I had no idea.
+One Codex session had quietly burned $118. I had no idea.
 
 Two things surprised me. First, cache reads dominate everything: 631M of 678M
 total tokens. Second, they are badly concentrated — the top 10 sessions out of
 262 hold 74.5% of all cache reads. That is not "I used it a lot", that is
 context churn: one long session kept re-sending its prefix, and a single Codex
-session cost $34.67 by itself.
+session cost $118 by itself.
 
     agentledger waste        # where the cache-read spend actually went
     agentledger by-branch    # what one branch cost
     agentledger by-project   # what one repo cost
 
-The `web` branch alone was $64.53.
+The `web` branch alone was $206.
 
 To be fair up front: ccusage (19k stars) already does this, covers more
 agents, and prefers Claude's own costUSD field. I am not claiming to beat it.
-I wanted ~700 lines with zero dependencies that I could read end to end, and
+I wanted a tool small enough to read end to end that I could read end to end, and
 that makes no network calls at all.
 
 It reads ~/.claude/projects, ~/.codex/sessions and ~/.gemini/tmp read-only,
 has zero dependencies (Node 18+ stdlib only), and makes no network calls at
 all — I made that a hard rule because the input is your entire coding history.
-~700 lines, so it is auditable in one sitting.
+~1,100 lines, so it is auditable in one sitting.
 
 Costs are estimates from public per-million-token prices; they won't match a
 subscription plan or a negotiated rate, and I say so in the README.
@@ -94,7 +95,7 @@ key, no network calls — it only opens files read-only, which mattered to me
 because those logs contain my whole coding history.
 
 The thing most tools get wrong: cache tokens. In my own logs, cache reads are
-418M out of 438M total tokens. If you bill those as input you are off by
+631M out of 678M total tokens. If you bill those as input you are off by
 roughly 10x on that bucket. agentledger prices cache read / cache write /
 fresh input separately.
 
@@ -132,16 +133,16 @@ agentledger 读 Claude Code、Codex CLI、Gemini CLI 已经写在本地的 sessi
 钱的明细。只读本地文件，零依赖（Node 18+ 标准库），完全不联网 —— 这点对我
 很重要，因为那些日志基本等于我的完整编码历史。
 
-有个坑值得说一下：缓存 token。我自己日志里 438M token 中有 418M 是 cache
-read。如果把 cache read 当普通 input 算，那一块会差将近 10 倍。agentledger
-把 fresh input / cache read / cache write / output 分开计价。
+有个坑值得说一下：缓存 token。我自己日志里 678M token 中有 631M 是 cache
+read（93%）。如果把 cache read 当普通 input 算，那一块会差将近 10 倍。
+agentledger 把 fresh input / cache read / cache write / output 分开计价。
 
     npx agentledger-cli
     agentledger-cli by-model     # 哪个模型最烧钱
     agentledger-cli by-day -d 30 # 每日花费曲线
     agentledger-cli sessions     # 最贵的 session
 
-我这边跑出来的结果：单个 Codex session 烧了 $34，之前完全没察觉。
+我这边跑出来的结果：单个 Codex session 烧了 $118，之前完全没察觉。
 
 MIT，没有付费版，没有 telemetry。
 

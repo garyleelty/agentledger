@@ -9,20 +9,21 @@ to your machine and turns them into tokens and dollars.
 ```
 $ npx agentledger-cli
 
-  agentledger — 73 session files scanned
+  agentledger — 74 session files scanned
 
   Metric         Tokens   Est. cost
   ─────────────  ───────  ─────────
-  Input tokens   18.30M   $20.74
-  Cache read     418.01M  $43.58
-  Cache write    0        $0.0000
-  Output tokens  1.47M    $10.66
-  TOTAL          437.77M  $74.98
+  Input tokens   43.21M   $92.02
+  Cache read     631.64M  $118
+  Cache write    85.8k    $0.0000
+  Output tokens  3.75M    $32.48
+  TOTAL          678.68M  $243
 
   Agent        Tokens   Est. cost  Records
   ───────────  ───────  ─────────  ───────
-  codex        219.58M  $59.31     3053
-  claude-code  218.19M  $15.67     3531
+  codex        219.58M  $200       3053
+  opencode     240.83M  $26.57     3772
+  claude-code  218.19M  $15.70     3531
 ```
 
 *(That is a real run on the machine it was written on.)*
@@ -38,7 +39,7 @@ while you are still working:
   account, no API key, no network call of any kind.
 - **Cache buckets are priced separately.** Cache reads and cache writes bill at
   different rates from fresh input, and they are the majority of real traffic —
-  418M of the 438M tokens in my own logs were cache reads.
+  631M of the 678M tokens in my own logs are cache reads.
 - **Fast.** A full scan of ~180M tokens of logs takes about a second.
 - **Boring dependencies.** Node 18+ and the standard library. That's it.
 
@@ -186,7 +187,7 @@ they are normally within a few percent.
 
 `agentledger-cli` opens your log files in read mode and writes nothing. There is no
 telemetry, no update check, and no code path that can reach the network. You
-can verify this in a few minutes — the whole tool is ~700 lines with zero
+can verify this in a few minutes — the whole tool is ~1,100 lines with zero
 dependencies.
 
 ## Contributing

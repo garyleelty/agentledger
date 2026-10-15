@@ -30,7 +30,11 @@ export const PRICING = {
   'claude-3-5-haiku': { input: 0.8, output: 4.0, cacheReadMultiplier: 0.1, cacheWriteMultiplier: 1.25 },
 
   // ---- OpenAI ----------------------------------------------------------
-  'gpt-5.5': { input: 1.25, output: 10.0, cacheReadMultiplier: 0.125, cacheWriteMultiplier: 1.0 },
+  // gpt-5.5 is NOT priced like gpt-5. Caught by cross-checking against
+  // LiteLLM's live model_prices_and_context_window.json (2026-10-15):
+  // $5 / $30 per Mtok, cached input $0.50/M (10%). The earlier entry had
+  // inherited gpt-5's $1.25/$10 and under-reported a real bill ~4x.
+  'gpt-5.5': { input: 5.0, output: 30.0, cacheReadMultiplier: 0.1, cacheWriteMultiplier: 1.0 },
   'gpt-5': { input: 1.25, output: 10.0, cacheReadMultiplier: 0.125, cacheWriteMultiplier: 1.0 },
   'gpt-5-mini': { input: 0.25, output: 2.0, cacheReadMultiplier: 0.125, cacheWriteMultiplier: 1.0 },
   'gpt-4.1': { input: 2.0, output: 8.0, cacheReadMultiplier: 0.25, cacheWriteMultiplier: 1.0 },

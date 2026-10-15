@@ -59,24 +59,25 @@
   <div class="panel">
 <pre><span class="prompt">$</span> npx agentledger-cli
 
-  agentledger — 73 session files scanned
+  agentledger — 74 session files scanned
 
   Metric         Tokens   Est. cost
   ─────────────  ───────  ─────────
-  Input tokens   18.30M   <span class="hi">$20.74</span>
-  Cache read     418.01M  <span class="hi">$43.58</span>
-  Cache write    0        $0.0000
-  Output tokens  1.47M    <span class="hi">$10.66</span>
-  <span class="ok">TOTAL          437.77M  $74.98</span>
+  Input tokens   43.21M   <span class="hi">$92.02</span>
+  Cache read     631.64M  <span class="hi">$118</span>
+  Cache write    85.8k    $0.0000
+  Output tokens  3.75M    <span class="hi">$32.48</span>
+  <span class="ok">TOTAL          678.68M  $243</span>
 
   Agent        Tokens   Est. cost  Records
   ───────────  ───────  ─────────  ───────
-  codex        219.58M  <span class="hi">$59.31</span>     3053
-  claude-code  218.19M  $15.67     3531</pre>
+  codex        219.58M  <span class="hi">$200</span>       3053
+  opencode     240.83M  $26.57     3772
+  claude-code  218.19M  $15.70     3531</pre>
   </div>
 
-  <p class="dim">A real run on the machine it was written on. Nobody had told the author
-  that one Codex session had already burned $34.</p>
+  <p class="dim">A real run on the machine it was written on. Nothing had told the author
+  that one Codex session had already burned $118.</p>
 
   <div class="cta">
     <a class="btn primary" href="https://github.com/garyleelty/agentledger">View on GitHub</a>
@@ -92,8 +93,8 @@
   <h2>What it does</h2>
   <ul>
     <li><strong>Reads local logs only</strong> — <code>~/.claude/projects</code>, <code>~/.codex/sessions</code>, <code>~/.gemini/tmp</code></li>
-    <li><strong>Cache buckets priced separately</strong> — 418M of my 438M tokens were cache reads, billed at ~10% of input</li>
-    <li><strong>Never touches the network</strong> — no account, no key, no telemetry, ~700 lines you can audit in one sitting</li>
+    <li><strong>Cache buckets priced separately</strong> — 631M of my 678M tokens are cache reads, billed at 10-12.5% of input</li>
+    <li><strong>Never touches the network</strong> — no account, no key, no telemetry, ~1,100 lines you can audit in one sitting</li>
     <li><strong>Fast</strong> — a full scan of 400M+ tokens takes about a second</li>
   </ul>
 
@@ -132,10 +133,10 @@
 
   <h2>What it found on the machine it was written on</h2>
   <div class="panel">
-<pre>cache reads   <span class="hi">631.64M</span> of 678.60M total tokens   <span class="dim">(93%)</span>
+<pre>cache reads   <span class="hi">631.64M</span> of 678.68M total tokens   <span class="dim">(93%)</span>
 concentration  top 10 of 262 sessions = <span class="hi">74.5%</span> of all cache reads
-priciest      <span class="hi">$34.67</span>  one Codex session
-branch        <span class="hi">$64.53</span>  <span class="dim">web</span></pre>
+priciest      <span class="hi">$118</span>  one Codex session in one repo
+branch        <span class="hi">$206</span>  <span class="dim">the web branch alone</span></pre>
   </div>
   <p class="dim">Concentration that high is not ordinary usage — it is context churn. A long
   session that keeps re-sending its prefix, or a tool returning large output
@@ -146,7 +147,7 @@ branch        <span class="hi">$64.53</span>  <span class="dim">web</span></pre>
   <strong>more capable</strong>: more agents, prefers Claude Code's own
   <code>costUSD</code>, models 5-minute vs 1-hour cache creation, prices reasoning tokens.
   If you want the most complete tool, use it.</p>
-  <p>agentledger's pitch is narrower and honest: ~700 lines, zero dependencies, no
+  <p>agentledger's pitch is narrower and honest: ~1,100 lines, zero dependencies, no
   network, no build step. You can read the whole thing before you trust it with logs
   that are effectively your entire coding history.</p>
 

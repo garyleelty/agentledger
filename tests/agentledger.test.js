@@ -136,8 +136,8 @@ test('costOf handles dated model snapshots and unknown models', () => {
 });
 
 test('resolvePricing prefers exact matches', () => {
-  assert.equal(resolvePricing('gpt-5.5').input, 1.25);
-  assert.equal(resolvePricing('GPT-5.5').input, 1.25);
+  assert.equal(resolvePricing('gpt-5.5').input, 5.0);
+  assert.equal(resolvePricing('GPT-5.5').input, 5.0);
   assert.equal(resolvePricing(undefined).input, PRICING['claude-sonnet-4-5'].input);
 });
 
