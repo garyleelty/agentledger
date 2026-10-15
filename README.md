@@ -117,6 +117,7 @@ agentledger-cli                 # totals + per-agent breakdown
 agentledger-cli by-project      # cost per repository / working directory
 agentledger-cli by-branch       # cost per git branch
 agentledger-cli waste           # where the cache-read spend is concentrated
+agentledger-cli savings         # what prompt caching saved, priced against no cache
 agentledger-cli by-model        # which model is eating your budget
 agentledger-cli by-day -d 30    # daily spend curve
 agentledger-cli sessions -n 20  # most expensive sessions
@@ -154,6 +155,35 @@ agentledger budget -b 100 --json | jq '{spent: .spentUSD, over: .over, perDay: .
 
 An overrun is reported as `over: true` with `daysUntilRunOut: null`, rather
 than a misleading projection.
+
+### Savings
+
+`budget` tells you what you spent. This tells you what prompt caching saved,
+by pricing the same records as though every cache-read token had been billed
+at its model's fresh-input rate:
+
+```
+$ agentledger savings
+
+  What prompt caching saved
+
+  paid                  $243
+  without cache         $1307
+  saved                 $1064   81.4% cheaper
+
+  [████████████████████████░░░░░░]  81.4% saved
+
+  631.64M of 678.68M tokens came from cache
+  (93.1% of the total).
+```
+
+That is the theorem behind the whole tool: cache reads are the overwhelming
+majority of agent traffic, they bill at a fraction of the input rate, and a
+tool that does not price them separately is wrong by an order of magnitude.
+`savings` is the same arithmetic run backwards — and the reason a cache-aware
+budget matters more than an invoice.
+
+Counted per model at that model's own rates, with no provider-level averaging.
 
 Two JSON shapes, deliberately:
 

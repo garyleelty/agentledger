@@ -122,6 +122,7 @@ async function main() {
 
   switch (command) {
     case 'waste': return reportWaste(filtered, flags);
+    case 'savings': return reportSavings(filtered, flags);
     case 'by-project': return reportByProject(filtered, flags);
     case 'by-branch': return reportByBranch(filtered, flags);
     case 'by-model': return reportByModel(filtered, flags);
@@ -301,6 +302,86 @@ function reportByModel(records, flags) {
   });
   groups.sort((a, b) => num(b[2]) - num(a[2]));
   printTable(['Model', 'Tokens', 'Est. cost', 'Records'], groups.slice(0, flags.top || 50));
+}
+
+/**
+ * What prompt caching actually saved, priced as the counterfactual: every
+ * cache-read token billed at the full fresh-input price instead.
+ *
+ * This is the number that makes the tool's own headline real. Cache reads are
+ * 93% of the tokens on the machine this was written on, and they are the
+ * difference between $243 and $1,307 — a fact that is invisible if you only
+ * report what you paid.
+ */
+function reportSavings(records, flags) {
+  const saved = savingsOf(records);
+
+  if (flags.json) {
+    console.log(JSON.stringify({ tool: 'agentledger', version: version(), ...saved }, null, 2));
+    return;
+  }
+
+  const pctSaved = saved.withoutCacheUSD > 0
+    ? (saved.savingsUSD / saved.withoutCacheUSD) * 100
+    : 0;
+  const barWidth = 30;
+
+  if (saved.records === 0) {
+    console.log('');
+    console.log('  No agent sessions found. There is nothing to measure savings against.');
+    console.log('');
+    return;
+  }
+  if (saved.savingsUSD === 0) {
+    console.log('');
+    console.log('  No cache-read tokens in these records, so caching saved nothing.');
+    console.log(`  ${fmtTok(saved.totalTokens)} tokens were all billed at full price.`);
+    console.log('');
+    return;
+  }
+
+  const filled = Math.max(0, Math.min(barWidth, Math.round((pctSaved / 100) * barWidth)));
+  console.log('');
+  console.log('  What prompt caching saved');
+  console.log('');
+  console.log(`  paid            ${money(saved.actualUSD).padStart(10)}`);
+  console.log(`  without cache   ${money(saved.withoutCacheUSD).padStart(10)}`);
+  console.log(`  saved           ${money(saved.savingsUSD).padStart(10)}   ${pctSaved.toFixed(1)}% cheaper`);
+  console.log('');
+  console.log(`  [${'█'.repeat(filled)}${'░'.repeat(barWidth - filled)}]  ${pctSaved.toFixed(1)}% saved`);
+  console.log('');
+  console.log(`  ${fmtTok(saved.cacheReadTokens)} of ${fmtTok(saved.totalTokens)} tokens came from cache`);
+  console.log(`  (${((saved.cacheReadTokens / saved.totalTokens) * 100).toFixed(1)}% of the total).`);
+  console.log('');
+  console.log('  Counted at each model\'s own fresh-input rate, per provider.');
+}
+
+/**
+ * Counterfactual cost of the same records with caching priced away.
+ * Exported for the tests; see reportSavings for the argument.
+ */
+export function savingsOf(records) {
+  const t = totals(records);
+  let withoutCache = 0;
+  for (const r of records) {
+    const p = resolvePricing(r.model);
+    withoutCache += (
+      ((r.input ?? 0) + (r.cacheRead ?? 0)) * p.input
+      + (r.cacheWrite ?? 0) * p.input * p.cacheWriteMultiplier
+      + (r.output ?? 0) * p.output
+    ) / 1e6;
+  }
+  return {
+    actualUSD: round(t.cost),
+    withoutCacheUSD: round(withoutCache),
+    savingsUSD: round(Math.max(0, withoutCache - t.cost)),
+    cacheReadTokens: t.cacheRead,
+    cacheWriteTokens: t.cacheWrite,
+    inputTokens: t.input,
+    outputTokens: t.output,
+    totalTokens: t.input + t.cacheRead + t.cacheWrite + t.output,
+    records: records.length,
+  };
 }
 
 function reportWaste(records, flags) {
@@ -499,6 +580,7 @@ Usage
 Commands
   summary     Totals, cost, and per-agent breakdown (default)
   waste       Where the cache-read spend is concentrated
+  savings     What prompt caching saved, priced against no cache
   by-project  Cost per working directory / repository
   by-branch   Cost per git branch
   by-model    Per-model token and cost breakdown
