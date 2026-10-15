@@ -88,7 +88,7 @@ test('an unknown --agent is named rather than reported as "no sessions"', () => 
 });
 
 test('every documented agent name is accepted', () => {
-  for (const agent of ['claude-code', 'codex', 'opencode', 'gemini-cli']) {
+  for (const agent of ['claude-code', 'codex', 'opencode', 'kilo', 'gemini-cli']) {
     // The command comes first (as with git); flags follow it.
     const { status, stderr } = run(['json', '-a', agent]);
     assert.equal(status, 0, `${agent} should be a valid --agent (stderr: ${stderr})`);

@@ -1,16 +1,16 @@
 {
   "tool": "agentledger",
   "version": "0.1.0",
-  "generatedAt": "2026-10-15T17:19:07.943Z",
+  "generatedAt": "2026-10-15T18:01:50.056Z",
   "totals": {
     "tokens": {
-      "input": 43212821,
-      "cacheRead": 631636424,
-      "cacheWrite": 85801,
-      "output": 3748168
+      "input": 43373382,
+      "cacheRead": 634473917,
+      "cacheWrite": 366382,
+      "output": 3787898
     },
-    "costUSD": 244.778618,
-    "records": 10356
+    "costUSD": 245.097257,
+    "records": 10459
   },
   "byAgent": {
     "codex": {
@@ -36,6 +36,14 @@
       "output": 518640,
       "records": 3531,
       "costUSD": 15.696415
+    },
+    "kilo": {
+      "input": 160561,
+      "cacheRead": 2837493,
+      "cacheWrite": 280581,
+      "output": 39730,
+      "records": 103,
+      "costUSD": 0.318639
     }
   },
   "byModel": {
@@ -103,6 +111,14 @@
       "records": 78,
       "costUSD": 0.574958
     },
+    "minimax-cn/MiniMax-M2.7": {
+      "input": 79351,
+      "cacheRead": 2772133,
+      "cacheWrite": 280581,
+      "output": 36943,
+      "records": 90,
+      "costUSD": 0.318639
+    },
     "Cherry-New-API/moonshotai/kimi-k2.7-code": {
       "input": 167902,
       "cacheRead": 105152,
@@ -141,6 +157,14 @@
       "cacheWrite": 0,
       "output": 165391,
       "records": 241,
+      "costUSD": 0
+    },
+    "kilo/bytedance-seed/dola-seed-2.0-pro:free": {
+      "input": 81210,
+      "cacheRead": 65360,
+      "cacheWrite": 0,
+      "output": 2787,
+      "records": 13,
       "costUSD": 0
     }
   }

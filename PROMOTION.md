@@ -31,24 +31,25 @@ already leave on disk.
 
     $ npx agentledger-cli
 
-      agentledger — 73 session files scanned
+      agentledger — 75 session files scanned
 
       Metric         Tokens   Est. cost
-      Input tokens   43.21M   $92.49
-      Cache read     631.64M  $120
-      Output tokens  3.75M    $32.55
-      TOTAL          678.68M  $245
+      Input tokens   43.37M   $92.51
+      Cache read     634.47M  $120
+      Output tokens  3.79M    $32.59
+      TOTAL          682.00M  $245
 
       Agent        Tokens   Est. cost  Records
       codex        219.58M  $200       3053
       opencode     240.83M  $28.64     3772
       claude-code  218.19M  $15.70     3531
+      kilo         3.04M    $0.3186    103
 
 One Codex session had quietly burned $118. I had no idea.
 
-Two things surprised me. First, cache reads dominate everything: 631M of 678M
+Two things surprised me. First, cache reads dominate everything: 634M of 682M
 total tokens. Second, they are badly concentrated — the top 10 sessions out of
-262 hold 74.5% of all cache reads. That is not "I used it a lot", that is
+273 hold 74.2% of all cache reads. That is not "I used it a lot", that is
 context churn: one long session kept re-sending its prefix, and a single Codex
 session cost $118 by itself.
 
@@ -137,7 +138,7 @@ agentledger 读 Claude Code、Codex CLI、Gemini CLI 已经写在本地的 sessi
 钱的明细。只读本地文件，零依赖（Node 18+ 标准库），完全不联网 —— 这点对我
 很重要，因为那些日志基本等于我的完整编码历史。
 
-有个坑值得说一下：缓存 token。我自己日志里 678M token 中有 631M 是 cache
+有个坑值得说一下：缓存 token。我自己日志里 682M token 中有 634M 是 cache
 read（93%）。如果把 cache read 当普通 input 算，那一块会差将近 10 倍。
 agentledger 把 fresh input / cache read / cache write / output 分开计价。
 

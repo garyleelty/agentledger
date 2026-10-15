@@ -128,7 +128,14 @@ export async function* parseClaudeCode(file) {
  * helper. Read-only throughout: the tool never takes a write lock on a
  * file a running agent holds open.
  * ------------------------------------------------------------------ */
-export async function* parseOpenCode(file) {
+/**
+ * Shared reader for the OpenCode-family stores (OpenCode and Kilo — Kilo is
+ * an OpenCode fork and its `message`/`session` schema is byte-identical,
+ * verified against a live kilo.db on 2026-10-16). `agent` only labels the
+ * records; the query is the same because the schema is the same.
+ */
+function makeSqliteParser(agent) {
+return async function* parseStore(file) {
   // DatabaseSync only exists from Node 22.5. On 18/20 (which package.json
   // still admits) the import throws, and an unhandled throw here would take
   // down the whole scan instead of just the OpenCode lane -- so this source
@@ -180,8 +187,8 @@ export async function* parseOpenCode(file) {
       const output = num(row.output) + num(row.reasoning);
       if (num(row.input) === 0 && num(row.cacheRead) === 0 && num(row.cacheWrite) === 0 && output === 0) continue;
       yield {
-        agent: 'opencode',
-        model: row.model ? `${row.provider ? `${row.provider}/` : ''}${row.model}` : 'opencode',
+        agent,
+        model: row.model ? `${row.provider ? `${row.provider}/` : ''}${row.model}` : agent,
         session: row.session || path.basename(file, path.extname(file)),
         timestamp: num(row.created) || null,
         input: num(row.input),
@@ -189,7 +196,7 @@ export async function* parseOpenCode(file) {
         cacheWrite: num(row.cacheWrite),
         output,
         project: row.project || null,
-        branch: null, // opencode records no branch in these rows
+        branch: null, // neither store records a branch in these rows
       };
     }
   } catch {
@@ -197,7 +204,11 @@ export async function* parseOpenCode(file) {
   } finally {
     try { db.close(); } catch { /* already closed */ }
   }
+};
 }
+
+export const parseOpenCode = makeSqliteParser('opencode');
+export const parseKilo = makeSqliteParser('kilo');
 
 /* ------------------------------------------------------------------ *
  * Gemini CLI: ~/.gemini/tmp/<hash>/logs.json — JSON array of events.
@@ -255,5 +266,6 @@ export const PARSERS = {
   'claude-code': parseClaudeCode,
   codex: parseCodex,
   opencode: parseOpenCode,
+  kilo: parseKilo,
   'gemini-cli': parseGemini,
 };

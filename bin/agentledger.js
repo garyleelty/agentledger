@@ -577,6 +577,7 @@ function version() {
 }
 
 function printHelp() {
+  const agentNames = SOURCES.map((x) => x.agent).join(', ');
   console.log(`
 agentledger ${version()} — local-first cost ledger for AI coding agents
 
@@ -600,7 +601,7 @@ Commands
   watch       Live-refreshing totals
 
 Options
-  -a, --agent <name>   Only read this agent (claude-code, codex, opencode, gemini-cli)
+  -a, --agent <name>   Only read this agent (${agentNames})
   -p, --path <dir>     Also read logs from this directory or file
       --since <date>   Only records at/after this date (ISO or timestamp)
   -n, --top <n>        Rows to show in ranked reports (default 10)

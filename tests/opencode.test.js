@@ -153,3 +153,59 @@ test('an unknown model still prices at the documented default', () => {
   assert.equal(p.input, 3.0);
   assert.equal(p.output, 15.0);
 });
+
+/* ------------------------- Kilo (OpenCode fork) -------------------------- */
+
+test('kilo is advertised as a supported source and shares the store reader', async () => {
+  const { PARSERS } = await import('../src/parsers.js');
+  const src = SOURCES.find((s) => s.agent === 'kilo');
+  assert.ok(src, 'kilo must be in SOURCES');
+  assert.match(src.root, /kilo/);
+  assert.equal(src.parser, PARSERS.kilo);
+  // Kilo is an OpenCode fork: same schema, so one factory backs both lanes.
+  assert.equal(typeof PARSERS.kilo, 'function');
+});
+
+test('parseKilo reads a kilo.db and labels records agent=kilo', async () => {
+  const { PARSERS } = await import('../src/parsers.js');
+  // Build a kilo-shaped store: message rows with nested tokens, session rows
+  // with a directory — the exact shape verified against a live kilo.db.
+  const dir = await mkdtemp(path.join(tmpdir(), 'aledger-kilo-'));
+  const file = path.join(dir, 'kilo.db');
+  const { DatabaseSync } = await import('node:sqlite');
+  const db = new DatabaseSync(file);
+  db.exec('CREATE TABLE session (id TEXT PRIMARY KEY, directory TEXT)');
+  db.exec('CREATE TABLE message (id TEXT PRIMARY KEY, session_id TEXT, data TEXT)');
+  db.exec("INSERT INTO session (id, directory) VALUES ('ses-k1', '/work/kilo-proj')");
+  const data = JSON.stringify({
+    role: 'assistant',
+    providerID: 'minimax-cn', modelID: 'MiniMax-M2.7',
+    time: { created: 1775654466351 },
+    tokens: { input: 1000, output: 200, reasoning: 50, cache: { read: 40000, write: 0 } },
+  });
+  db.prepare('INSERT INTO message (id, session_id, data) VALUES (?, ?, ?)').run('msg1', 'ses-k1', data);
+  db.close();
+
+  const records = [];
+  for await (const r of PARSERS.kilo(file)) records.push(r);
+  assert.equal(records.length, 1);
+  assert.equal(records[0].agent, 'kilo');
+  assert.equal(records[0].model, 'minimax-cn/MiniMax-M2.7');
+  assert.equal(records[0].project, '/work/kilo-proj');
+  assert.equal(records[0].output, 250, 'reasoning folds into output');
+  assert.equal(records[0].cacheRead, 40000);
+});
+
+test('a :free model lane bills zero regardless of the paid model it names', async () => {
+  // Kilo's store carries `bytedance-seed/dola-seed-2.0-pro:free`. The free
+  // check must fire before prefix matching, or the row would price at the
+  // paid model's rate (or the $3/$15 default) while the provider bills $0.
+  const { resolvePricing, costOf } = await import('../src/pricing.js');
+  for (const m of ['bytedance-seed/dola-seed-2.0-pro:free', 'kilo/dola:FREE', 'gpt-5:free', 'some-model-free']) {
+    assert.equal(resolvePricing(m).input, 0, `${m} must resolve free`);
+  }
+  const c = costOf({ model: 'x:free', input: 1e9, output: 1e9, cacheRead: 1e9 });
+  assert.equal(c.total, 0);
+  // and the paid spelling of the same base model still costs money
+  assert.ok(resolvePricing('bytedance-seed/dola-seed-2.0-pro').input > 0);
+});

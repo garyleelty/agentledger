@@ -5,27 +5,28 @@
 **What did that agent actually cost you?**
 
 `agentledger-cli` is a local-first ledger for AI coding agents. It reads the
-session logs that Claude Code, Codex, OpenCode, and Gemini CLI already write
-to your machine and turns them into tokens and dollars.
+session logs that Claude Code, Codex, OpenCode, Kilo, and Gemini CLI already
+write to your machine and turns them into tokens and dollars.
 
 ```
 $ agentledger
 
-  agentledger — 74 session files scanned
+  agentledger — 75 session files scanned
 
   Metric         Tokens   Est. cost
   ─────────────  ───────  ─────────
-  Input tokens   43.21M   $92.49
-  Cache read     631.64M  $120
-  Cache write    85.8k    $0.0000
-  Output tokens  3.75M    $32.55
-  TOTAL          678.68M  $245
+  Input tokens   43.37M   $92.51
+  Cache read     634.47M  $120
+  Cache write    366.4k   $0.0842
+  Output tokens  3.79M    $32.59
+  TOTAL          682.00M  $245
 
   Agent        Tokens   Est. cost  Records
   ───────────  ───────  ─────────  ───────
   codex        219.58M  $200       3053
   opencode     240.83M  $28.64     3772
   claude-code  218.19M  $15.70     3531
+  kilo         3.04M    $0.3186    103
 ```
 
 *(That is a real run on the machine it was written on.)*
@@ -148,10 +149,10 @@ answers the question you actually have while working — am I about to go over:
 $ agentledger budget -b 100
 
   budget    $100
-  spent     $245   ████████████████████████  244.8%
+  spent     $245   ████████████████████████  245.1%
   remaining $0.0000   OVER by $145
 
-  run rate  $1.88/day  over 130.3 days of activity
+  run rate  $1.82/day  over 134.3 days of activity
             already $145 over.
 ```
 
@@ -179,12 +180,12 @@ $ agentledger savings
   What prompt caching saved
 
   paid                  $245
-  without cache        $1312
-  saved                $1067   81.3% cheaper
+  without cache        $1313
+  saved                $1068   81.3% cheaper
 
   [████████████████████████░░░░░░]  81.3% saved
 
-  631.64M of 678.68M tokens came from cache
+  634.47M of 682.00M tokens came from cache
   (93.1% of the total).
 ```
 
@@ -243,6 +244,7 @@ agentledger-cli json | jq '.totals.costUSD'
 | Claude Code | `~/.claude/projects/**/*.jsonl` | ✅ |
 | Codex CLI | `~/.codex/sessions/**/rollout-*.jsonl` | ✅ |
 | OpenCode | `~/.local/share/opencode/opencode.db` | ✅ |
+| Kilo | `~/.local/share/kilo/kilo.db` | ✅ |
 | Gemini CLI | `~/.gemini/tmp/**/logs.json` | ✅ |
 | Anything else | `--path` + format sniffing | partial |
 

@@ -9,6 +9,15 @@
  * price for cached reads and cache-write tokens respectively.
  */
 
+/**
+ * Free lanes bill $0 no matter what the underlying model "would" cost.
+ * Two spellings exist in the wild: OpenCode's `-free` suffix and Kilo's
+ * `:free` suffix on the model id (e.g. `bytedance-seed/dola-seed-2.0-pro:free`).
+ */
+export const FREE_PRICING = {
+  input: 0, output: 0, cacheReadMultiplier: 0, cacheWriteMultiplier: 0,
+};
+
 /** Default table used when a model is unknown. */
 export const DEFAULT_PRICING = {
   input: 3.0,
@@ -86,6 +95,10 @@ export const PRICING = {
   'glm-5': { input: 1.0, output: 3.2, cacheReadMultiplier: 0.2, cacheWriteMultiplier: 1.0 },
   'kimi-k2.7-code': { input: 0.95, output: 4.0, cacheReadMultiplier: 0.2, cacheWriteMultiplier: 1.0 },
   'kimi-k2.5': { input: 0.6, output: 3.0, cacheReadMultiplier: 0.167, cacheWriteMultiplier: 1.0 },
+  // MiniMax M2.7 as carried by LiteLLM (novita/minimax/minimax-m2.7):
+  // $0.30 in / $1.20 out, cached read $0.06/M = 0.2x. Kilo routes through
+  // minimax-cn and minimax providers; the bare name resolves for both.
+  'minimax-m2.7': { input: 0.3, output: 1.2, cacheReadMultiplier: 0.2, cacheWriteMultiplier: 1.0 },
 };
 
 /**
@@ -104,6 +117,12 @@ export function resolvePricing(model) {
   if (!model) return DEFAULT_PRICING;
   const key = String(model).toLowerCase();
   if (PRICING[key]) return PRICING[key];
+  // A `:free` / `-free` tail means the provider bills this lane at zero —
+  // it must be decided BEFORE any prefix or stripped-name match, or
+  // `gpt-5:free` would inherit gpt-5's paid rate. Found in Kilo's store:
+  // 13 records priced at $3/$15 by the default while Kilo's own cost field
+  // said 0.
+  if (/[:-]free$/.test(key)) return FREE_PRICING;
   // Strip a trailing dated snapshot, e.g. claude-sonnet-4-5-20250929
   const stripped = key.replace(/-\d{8}$/, '');
   if (PRICING[stripped]) return PRICING[stripped];

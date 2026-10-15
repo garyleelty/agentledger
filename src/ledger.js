@@ -39,6 +39,15 @@ export const SOURCES = [
     docs: 'https://opencode.ai/docs',
   },
   {
+    // Kilo is an OpenCode fork; same SQLite store shape, different directory
+    // and file name. Verified against a live ~/.local/share/kilo/kilo.db.
+    agent: 'kilo',
+    root: '~/.local/share/kilo',
+    match: (rel) => /(^|\/)kilo\.db$/.test(rel),
+    parser: PARSERS.kilo,
+    docs: 'https://kilo.ai',
+  },
+  {
     agent: 'gemini-cli',
     root: '~/.gemini/tmp',
     match: (rel) => /(^|\/)logs\.json$/.test(rel),

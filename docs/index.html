@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>agentledger — what did that agent actually cost you?</title>
-<meta name="description" content="Local-first cost ledger for AI coding agents. Read your Claude Code, Codex and Gemini CLI session logs and see tokens and dollars. No cloud, no API keys.">
+<meta name="description" content="Local-first cost ledger for AI coding agents. Read your Claude Code, Codex, OpenCode, Kilo and Gemini CLI session logs and see tokens and dollars. No cloud, no API keys.">
 <style>
   :root {
     --bg: #0b0d10; --panel: #14171c; --line: #23272e; --fg: #e6e8eb;
@@ -60,21 +60,22 @@
 <pre><span class="prompt">$</span> npm install -g git+https://github.com/garyleelty/agentledger.git
 <span class="prompt">$</span> agentledger
 
-  agentledger — 74 session files scanned
+  agentledger — 75 session files scanned
 
   Metric         Tokens   Est. cost
   ─────────────  ───────  ─────────
-  Input tokens   43.21M   <span class="hi">$92.49</span>
-  Cache read     631.64M  <span class="hi">$120</span>
-  Cache write    85.8k    $0.0000
-  Output tokens  3.75M    <span class="hi">$32.55</span>
-  <span class="ok">TOTAL          678.68M  $245</span>
+  Input tokens   43.37M   <span class="hi">$92.51</span>
+  Cache read     634.47M  <span class="hi">$120</span>
+  Cache write    366.4k   $0.0842
+  Output tokens  3.79M    <span class="hi">$32.59</span>
+  <span class="ok">TOTAL          682.00M  $245</span>
 
   Agent        Tokens   Est. cost  Records
   ───────────  ───────  ─────────  ───────
   codex        219.58M  <span class="hi">$200</span>       3053
   opencode     240.83M  $28.64     3772
-  claude-code  218.19M  $15.70     3531</pre>
+  claude-code  218.19M  $15.70     3531
+  kilo         3.04M    $0.3186    103</pre>
   </div>
 
   <p class="dim">A real run on the machine it was written on. Nothing had told the author
@@ -134,6 +135,7 @@
     <tr><td>Claude Code</td><td><code>~/.claude/projects</code></td><td class="ok">supported</td></tr>
     <tr><td>Codex CLI</td><td><code>~/.codex/sessions</code></td><td class="ok">supported</td></tr>
     <tr><td>OpenCode</td><td><code>~/.local/share/opencode/opencode.db</code></td><td class="ok">supported</td></tr>
+    <tr><td>Kilo</td><td><code>~/.local/share/kilo</code></td><td class="ok">supported</td></tr>
     <tr><td>Gemini CLI</td><td><code>~/.gemini/tmp</code></td><td class="ok">supported</td></tr>
     <tr><td>Cursor, Aider, Amp…</td><td><code>--path</code> + sniffing</td><td class="dim">partial</td></tr>
   </table>
@@ -149,15 +151,15 @@
   <h2>What it found on the machine it was written on</h2>
   <div class="panel">
 <pre>paid          <span class="hi">$245</span>
-without cache <span class="hi">$1312</span>
-saved         <span class="ok">$1067   81.3% cheaper</span>
-cache reads   <span class="hi">631.64M</span> of 678.68M total tokens   <span class="dim">(93%)</span>
-concentration  top 10 of 262 sessions = <span class="hi">74.5%</span> of all cache reads
+without cache <span class="hi">$1313</span>
+saved         <span class="ok">$1068   81.3% cheaper</span>
+cache reads   <span class="hi">634.47M</span> of 682.00M total tokens   <span class="dim">(93%)</span>
+concentration  top 10 of 273 sessions = <span class="hi">74.2%</span> of all cache reads
 priciest      <span class="hi">$118</span>  one Codex session in one repo
 branch        <span class="hi">$206</span>  <span class="dim">the web branch alone</span></pre>
   </div>
   <p class="dim">Priced the same ledger with every cache-read token billed at its model's
-  fresh-input rate and caching is worth <strong>$1,067</strong> — the tool does not
+  fresh-input rate and caching is worth <strong>$1,068</strong> — the tool does not
   just report spend, it prices what prompt caching is worth.
   <code>agentledger savings</code> prints it. Concentration that high is not
   ordinary usage — it is context churn: a long session that keeps re-sending its
