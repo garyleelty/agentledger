@@ -74,7 +74,16 @@ is part of Node itself.
 
 ## Install
 
-One line, no npm account involved:
+With npm, straight from the repository:
+
+```bash
+npm install -g git+https://github.com/garyleelty/agentledger.git   # install
+npx --package=git+https://github.com/garyleelty/agentledger.git agentledger  # run once
+```
+
+Both give you `agentledger` and `aledger`. Verified working.
+
+Or one line, with no npm involvement at all:
 
 ```bash
 curl -fsSL https://raw.githubusercontent.com/garyleelty/agentledger/main/install.sh | sh
@@ -92,10 +101,14 @@ git clone https://github.com/garyleelty/agentledger.git && cd agentledger
 node bin/agentledger.js
 ```
 
-> **npm is not available yet.** The package `agentledger-cli` is not published,
-> so `npx agentledger-cli` fails with a 404. The installer above is the working
-> path; publishing needs an npm token with 2FA bypass, which is still pending.
-> The README will lead with `npx` once that lands.
+> **The registry package is not published yet.** `npx agentledger-cli` fails
+> with a 404 because `agentledger-cli` is not on npm; publishing still needs a
+> token with 2FA bypass. The `git+https` form above is the way to install
+> through npm until that lands. This README will lead with `npx agentledger-cli`
+> once the package is actually there.
+
+Requires **Node 22.5+** — the OpenCode lane reads a SQLite database and
+`node:sqlite`'s `DatabaseSync` landed in 22.5.
 
 ## Usage
 
