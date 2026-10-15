@@ -314,3 +314,40 @@ one sitting but shouldn't be misrepresented as smaller than they are.
 
 The product is now correct on its core claim: cost = sum(price × token bucket),
 with accurate prices from the live DB.
+
+## Round 25: CI exists now — and it immediately caught two real defects
+
+The repo had **no CI running the tests on push** (only publish-on-release and
+digest workflows). `npm test` had quietly broken (`node --test tests/` treats
+the directory as a module on Node 22+) and nobody noticed because nothing ran
+it automatically. Fixed that and pushed `.github/workflows/test.yml`; a
+parallel session pushed `ci.yml` the same hour — merged into one workflow
+with a 22.5/24/26 matrix rather than two duplicating each other.
+
+**CI caught what local runs hid:** the ten data-dependent tests asserted
+against whatever lived in `~/.claude` on *my* machine. A CI runner has none,
+so they failed — worse, the class of bug is "passes by measuring nothing",
+the same silent-zero failure mode as the digest workflow in rounds 17-20.
+
+Made the suite hermetic, verified under `HOME=/tmp/emptyhome`:
+- `tests/fixtures/home/.claude/projects/demo/` — three committed session
+  files (24 records, deterministic timestamps), the CLI runs with HOME
+  pointed there for attribution/budget/digest/flags tests.
+- `tests/fixtures/sessions.jsonl` — the cost-reconciliation test now pins
+  "fixture contributes exactly 3 priced records", so it cannot pass on zero.
+- tip tests assert the contract that holds with **or without** network:
+  unreachable APIs must never be worded as "no funds yet". One positional
+  check caught a false-pass: a comment quoting `sys.exit(main())` made a
+  naive indexOf order things wrong.
+
+**Second CI catch:** the node 22.5 leg died at collection —
+`ERR_UNKNOWN_BUILTIN_MODULE: node:sqlite`. The opencode test imports it
+statically to *build* its fixtures; on 22.x that needs `--experimental-sqlite`
+(flagless only from 23/24). Production code already degraded correctly on the
+import throw; only the test path was unguarded. Test script now carries the
+flag — a no-op on 24/26.
+
+This is the payoff the whole exercise was for: claims ("55 tests green")
+become verified statements only when a machine nobody's sitting at runs them.
+
+**$0.00 received.** Star gap unchanged: agentledger 0 vs ccusage 19,017.
