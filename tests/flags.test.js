@@ -24,6 +24,10 @@ const root = path.dirname(path.dirname(fileURLToPath(import.meta.url)));
 const cli = path.join(root, 'bin', 'agentledger.js');
 
 /** Run the CLI, returning {status, stdout, stderr} instead of throwing. */
+// Fixture HOME so "--since filters real spend" and "a valid invocation prints
+// a report" have data to assert on even on a CI runner with no agent logs.
+const fixtureHome = path.join(root, 'tests', 'fixtures', 'home');
+
 function run(args) {
   try {
     // `json` on a busy machine emits many MB of records; the default 1MB
@@ -32,6 +36,7 @@ function run(args) {
       encoding: 'utf8',
       stdio: ['ignore', 'pipe', 'pipe'],
       maxBuffer: 256 * 1024 * 1024,
+      env: { ...process.env, HOME: fixtureHome },
     });
     return { status: 0, stdout, stderr: '' };
   } catch (err) {

@@ -13,20 +13,44 @@ const tipPy = path.join(root, 'tools', 'tip.py');
 const ETH = '0xB30a208B84814D3F7091Bb779f2b0225288349aE';
 const BTC = '1EKTrfpKc7fQwNYUv4oHLa2cna6NqDq3sM';
 
-test('tip.py runs and reports a balance', () => {
+// The balance lookups hit public RPC/explorer APIs. CI runners and blocked
+// networks cannot always reach them, and "unreachable" is a legitimate,
+// explicitly-worded outcome — so these tests assert the contract that holds
+// regardless of connectivity: it runs, prints both addresses, and never
+// collapses "could not look" into a bare "0". The balance lines themselves
+// are asserted only when the tool actually reached the APIs.
+test('tip.py runs and reports both addresses', () => {
   const out = execFileSync('python3', [tipPy], { encoding: 'utf8' });
   assert.match(out, /ETH\s+0x/);
   assert.match(out, /BTC\s+1/);
-  assert.match(out, /balance:/);
+  const ethReached = !/could not reach any Ethereum RPC/.test(out);
+  const btcReached = !/could not reach any balance API/.test(out);
+  if (ethReached) assert.match(out, /balance: [\d.]+ ETH/);
+  if (btcReached) assert.match(out, /BTC\s+balance: \d+ sat/);
+  // Without any successful lookup it must never claim "no funds yet",
+  // which would present ignorance as a measurement.
+  if (!ethReached && !btcReached) {
+    assert.doesNotMatch(out, /no funds yet/, 'unreachable APIs must not be reported as an empty balance');
+  }
 });
 
 test('tip.py checks the BTC address, not just ETH', () => {
   // The BTC address is published in the README and on the landing page, so it
   // is a real payment rail. It used to be advertised but never checked:
   // btc_balance_sat was defined after sys.exit(main()) and never ran, so a BTC
-  // tip would have sat there while the tool said "no funds yet".
+  // tip would have sat there while the tool said "no funds yet". The check has
+  // to be present in the flow (before sys.exit), not merely defined.
+  const src = fs.readFileSync(tipPy, 'utf8');
+  // The file's own comments quote `sys.exit(main())`, so match the real call:
+  // it is the only one anchored at the start of a line.
+  const exitPos = src.search(/^\s*sys\.exit\(main\(\)\)$/m);
+  const callPos = src.indexOf('sat = btc_balance_sat(BTC_ADDRESS)');
+  assert.ok(callPos !== -1, 'tip.py must call btc_balance_sat for the published BTC address');
+  assert.ok(exitPos === -1 || callPos < exitPos, 'the BTC check must run before the script exits');
   const out = execFileSync('python3', [tipPy], { encoding: 'utf8' });
-  assert.match(out, /BTC\s+balance: \d+ sat/, 'the BTC balance must be reported');
+  if (!/could not reach any balance API/.test(out)) {
+    assert.match(out, /BTC\s+balance: \d+ sat/, 'the BTC balance must be reported when reachable');
+  }
 });
 
 test('an unreachable balance endpoint is not reported as a zero balance', () => {
@@ -72,12 +96,20 @@ test('prove_control.py proves we hold the keys to both addresses', () => {
 test('json export: per-record costs sum to the reported total', () => {
   // Guards the exact end-to-end path an auditor would use: the per-record
   // costUSD values must add up to totals.costUSD with no drift.
-  const raw = execFileSync('node', [path.join(root, 'bin', 'agentledger.js'), 'json'], {
-    encoding: 'utf8',
-    maxBuffer: 1 << 28,
-  });
+  //
+  // Run against the committed fixture so it is hermetic: CI has no ~/.claude,
+  // ~/.codex or opencode.db, and a check that silently measures zero records
+  // there proves nothing. The fixture also pins the exact models being priced.
+  const fixture = path.join(root, 'tests', 'fixtures', 'sessions.jsonl');
+  const raw = execFileSync('node', [
+    path.join(root, 'bin', 'agentledger.js'), 'json',
+    '--agent', 'claude-code', '-p', fixture,
+  ], { encoding: 'utf8', maxBuffer: 1 << 28 });
   const d = JSON.parse(raw);
-  assert.ok(d.records.length > 0, 'expected real local logs to produce records');
+  const fx = d.records.filter((r) => r.session === 'sessions');
+  assert.equal(fx.length, 3, 'the fixture must contribute exactly 3 priced records');
+  const fxSum = fx.reduce((a, r) => a + r.costUSD, 0);
+  assert.ok(fxSum > 0, 'fixture records must price above zero');
   const sum = d.records.reduce((a, r) => a + r.costUSD, 0);
   assert.ok(
     Math.abs(sum - d.totals.costUSD) < 0.01,

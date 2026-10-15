@@ -20,10 +20,15 @@ import { fileURLToPath } from 'node:url';
 const root = path.dirname(path.dirname(fileURLToPath(import.meta.url)));
 const cli = path.join(root, 'bin', 'agentledger.js');
 
+// Fixture HOME with committed session logs, so aggregate/json assertions do
+// not depend on the machine running them (a CI runner has no agent logs).
+const fixtureHome = path.join(root, 'tests', 'fixtures', 'home');
+
 const agentledger = (args) =>
   execFileSync(process.execPath, [cli, ...args], {
     encoding: 'utf8',
     maxBuffer: 256 * 1024 * 1024,
+    env: { ...process.env, HOME: fixtureHome },
   });
 
 /** Run bin/digest.js, capturing the exit status instead of throwing. */

@@ -66,11 +66,24 @@ test('per-project costs sum back to the overall total', async () => {
   assert.ok(Math.abs(grand - perProject) < 1e-9, 'grouping must not lose or double-count cost');
 });
 
-test('collect attributes every real record to a project', async () => {
-  const { records } = await collect();
-  assert.ok(records.length > 0, 'expected local agent logs to exist on this machine');
-  const unattributed = records.filter((r) => !r.project);
-  assert.equal(unattributed.length, 0, 'every parser should carry attribution');
+// A committed HOME tree with claude-code sessions, so the ledger-level tests
+// never depend on whatever logs happen to exist on the machine running them.
+// CI runners have no ~/.claude at all, and a test that silently measures zero
+// records proves nothing.
+const fixtureHome = path.join(import.meta.dirname, 'fixtures', 'home');
+
+test('collect attributes every record to a project', async () => {
+  const savedHome = process.env.HOME;
+  process.env.HOME = fixtureHome;
+  try {
+    const { records } = await collect();
+    assert.ok(records.length > 0, 'the fixture home must produce records');
+    const unattributed = records.filter((r) => !r.project);
+    assert.equal(unattributed.length, 0, 'every parser should carry attribution');
+  } finally {
+    if (savedHome === undefined) delete process.env.HOME;
+    else process.env.HOME = savedHome;
+  }
 });
 
 test('waste report ranks sessions by cache read and states the share', async () => {
@@ -79,6 +92,7 @@ test('waste report ranks sessions by cache read and states the share', async () 
   const out = execFileSync('node', [path.join(root, 'bin', 'agentledger.js'), 'waste'], {
     encoding: 'utf8',
     maxBuffer: 1 << 28,
+    env: { ...process.env, HOME: fixtureHome },
   });
   assert.match(out, /cache reads are the story/);
   assert.match(out, /of all cache reads/);
