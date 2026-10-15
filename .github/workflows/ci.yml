@@ -15,14 +15,18 @@ on:
 jobs:
   test:
     runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        # 22.5 是下限（OpenCode 通道依赖 node:sqlite 的 DatabaseSync）；
+        # 24/26 覆盖当前 LTS 与 Latest，防住只在新版出现的回归。
+        node: ['22.5', '24', '26']
+    name: node ${{ matrix.node }}
     steps:
       - uses: actions/checkout@v4
 
       - uses: actions/setup-node@v4
         with:
-          # 必须 >=22.5：OpenCode 通道用 node:sqlite 的 DatabaseSync。
-          # 用更旧的 Node 跑测试，那条通道会直接起不来。
-          node-version: '22.5'
+          node-version: ${{ matrix.node }}
 
       - name: Lint (syntax check)
         run: npm run lint
