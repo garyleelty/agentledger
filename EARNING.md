@@ -536,3 +536,25 @@ All published figures regenerated from the tool; digest sample re-passes the
 gate; 68 tests green hermetic.
 
 **$0.00 received. Stars: 0 vs 19,019.**
+
+## Round 32: v0.2.0 cut, with a drift guard so docs can't lie again
+
+- **version() read package.json** instead of its hardcoded '0.1.0' twin.
+  First attempt cached in a module-level `let` and crashed with a TDZ error
+  — main() runs at line 33, the declaration sits at 576. Caught by running
+  it, which is the whole theme of this goal.
+- **tests/docs-numbers.test.js**: README summary block, landing-page
+  figures, and the SOURCES-vs-README agent table are now checked against
+  the committed digest sample. Published numbers drifted by hand in rounds
+  26, 27 and 31; the guard makes that a CI failure. It caught a real stale
+  row on its first run: the README flags table still listed four agents
+  after kilo landed.
+- **v0.2.0**: the version had not moved since the first commit while the
+  tool gained savings, budget, waste, by-project/by-branch, kilo, TTL
+  pricing, the LiteLLM audit and 72 hermetic tests. Tag pushed; release
+  created as a **draft** deliberately — `publish.yml` fires on
+  `release: published` and would fail without NPM_TOKEN. One click by the
+  user, once the secret exists, cuts the release AND publishes npm.
+- CI green on aeea4fc (22.5/24/26 + pricing audit).
+
+**$0.00 received. Stars: 0 vs 19,019.**
