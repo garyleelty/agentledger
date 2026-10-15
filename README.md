@@ -7,7 +7,7 @@ session logs that Claude Code, Codex, OpenCode, and Gemini CLI already write
 to your machine and turns them into tokens and dollars.
 
 ```
-$ npx agentledger-cli
+$ agentledger
 
   agentledger — 74 session files scanned
 
@@ -70,15 +70,7 @@ worth it is your call, not mine.
 
 ## Install
 
-```bash
-# run it once, no install
-npx agentledger-cli
-
-# or add it to a project
-npm install --save-dev agentledger-cli
-```
-
-Prefer not to wait for npm? One line, no npm account involved:
+One line, no npm account involved:
 
 ```bash
 curl -fsSL https://raw.githubusercontent.com/garyleelty/agentledger/main/install.sh | sh
@@ -88,6 +80,18 @@ That clones into `~/.agentledger` and symlinks `agentledger` (and the shorter
 `aledger`) into `~/.local/bin`, printing the `PATH` line to add if
 `~/.local/bin` is not already on yours. Upgrade with
 `git -C ~/.agentledger pull`, or just re-run the installer.
+
+Or run it straight from a clone, no install step at all:
+
+```bash
+git clone https://github.com/garyleelty/agentledger.git && cd agentledger
+node bin/agentledger.js
+```
+
+> **npm is not available yet.** The package `agentledger-cli` is not published,
+> so `npx agentledger-cli` fails with a 404. The installer above is the working
+> path; publishing needs an npm token with 2FA bypass, which is still pending.
+> The README will lead with `npx` once that lands.
 
 ## Usage
 
