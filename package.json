@@ -17,7 +17,7 @@
   "license": "MIT",
   "type": "module",
   "engines": {
-    "node": ">=18"
+    "node": ">=22.5"
   },
   "bin": {
     "agentledger": "bin/agentledger.js",

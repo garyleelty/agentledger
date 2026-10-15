@@ -25,8 +25,11 @@ need() { command -v "$1" >/dev/null 2>&1 || err "$1 is required but not installe
 need git
 need node
 
-node_ok=$(node -e 'process.stdout.write(String(process.versions.node.split(".")[0]))')
-[ "$node_ok" -ge 18 ] 2>/dev/null || err "Node 18+ required, found $(node -v)."
+# Node 22.5+ is the real floor: the OpenCode lane reads a SQLite database and
+# node:sqlite's DatabaseSync landed in 22.5. Advertising 18 here would let a
+# user install and then silently lose that lane.
+node_ok=$(node -e 'const v=process.versions.node.split(".").map(Number);process.stdout.write(String(v[0]*100+v[1]))')
+[ "$node_ok" -ge 2205 ] 2>/dev/null || err "Node 22.5+ required (node:sqlite), found $(node -v)."
 
 if [ -d "$DEST/.git" ]; then
   say "==> updating existing install at $DEST"

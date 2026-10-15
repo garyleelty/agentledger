@@ -41,7 +41,7 @@ while you are still working:
   different rates from fresh input, and they are the majority of real traffic —
   631M of the 678M tokens in my own logs are cache reads.
 - **Fast.** A full scan of ~180M tokens of logs takes about a second.
-- **Boring dependencies.** Node 18+ and the standard library. That's it.
+- **Boring dependencies.** Node 22.5+ and the standard library. That's it.
 
 - **Cost attribution.** Codex records the working directory and branch in
   `session_meta`; Claude Code records `cwd` and `gitBranch`; OpenCode's store

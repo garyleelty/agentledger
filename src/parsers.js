@@ -114,12 +114,29 @@ export async function* parseClaudeCode(file) {
  * file a running agent holds open.
  * ------------------------------------------------------------------ */
 export async function* parseOpenCode(file) {
-  const { DatabaseSync } = await import('node:sqlite');
+  // DatabaseSync only exists from Node 22.5. On 18/20 (which package.json
+  // still admits) the import throws, and an unhandled throw here would take
+  // down the whole scan instead of just the OpenCode lane -- so this source
+  // degrades to "no records" rather than failing the run.
+  let DatabaseSync;
+  try {
+    ({ DatabaseSync } = await import('node:sqlite'));
+  } catch {
+    return;
+  }
+  if (typeof DatabaseSync !== 'function') return;
   let db;
   try {
     db = new DatabaseSync(file, { readOnly: true });
   } catch {
-    return; // not a readable database (or not SQLite at all) — skip, never throw
+    try {
+      // `readOnly` is also 22.5+. Falling back to a plain open keeps the lane
+      // working on the 22.x builds that predate it; the parser only ever
+      // issues SELECTs, so it never writes regardless.
+      db = new DatabaseSync(file);
+    } catch {
+      return; // not a readable database (or not SQLite at all) — skip, never throw
+    }
   }
   try {
     // `open` on a non-database succeeds; the failure surfaces on first use,
