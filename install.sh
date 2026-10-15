@@ -9,7 +9,11 @@
 
 set -e
 
-REPO="https://github.com/garyleelty/agentledger.git"
+# HTTPS is the default, but it is the transport a filtered network or a
+# corporate proxy is most likely to break. If it fails, retry over SSH before
+# giving up — a user behind a block should not be left with nothing.
+REPO="${AGENTLEDGER_REPO:-https://github.com/garyleelty/agentledger.git}"
+REPO_SSH="git@github.com:garyleelty/agentledger.git"
 DEST="${AGENTLEDGER_HOME:-$HOME/.agentledger}"
 BIN_DIR="${BIN_DIR:-$HOME/.local/bin}"
 
@@ -29,7 +33,9 @@ if [ -d "$DEST/.git" ]; then
   git -C "$DEST" pull --ff-only || say "    (pull failed, using existing checkout)"
 else
   say "==> cloning into $DEST"
-  git clone --depth 1 "$REPO" "$DEST"
+  git clone --depth 1 "$REPO" "$DEST" 2>/dev/null \
+    || git clone --depth 1 "$REPO_SSH" "$DEST" \
+    || err "could not clone agentledger over HTTPS or SSH. If you are behind a filter, try: AGENTLEDGER_REPO=git@github.com:garyleelty/agentledger.git"
 fi
 
 chmod +x "$DEST/bin/agentledger.js"
