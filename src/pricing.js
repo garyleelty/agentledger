@@ -35,21 +35,37 @@ export const PRICING = {
   // $5 / $30 per Mtok, cached input $0.50/M (10%). The earlier entry had
   // inherited gpt-5's $1.25/$10 and under-reported a real bill ~4x.
   'gpt-5.5': { input: 5.0, output: 30.0, cacheReadMultiplier: 0.1, cacheWriteMultiplier: 1.0 },
-  'gpt-5': { input: 1.25, output: 10.0, cacheReadMultiplier: 0.125, cacheWriteMultiplier: 1.0 },
-  'gpt-5-mini': { input: 0.25, output: 2.0, cacheReadMultiplier: 0.125, cacheWriteMultiplier: 1.0 },
+  // gpt-5 / gpt-5-mini had cacheReadMultiplier 0.125: the absolute cached
+  // rate ($0.125/M) pasted into a *multiplier* field. Correct value is
+  // 0.125 / 1.25 = 0.1. Overstated cache reads by 25% until the automated
+  // audit (tools/audit_pricing.py) caught it. cacheWriteMultiplier 1.0 on
+  // all OpenAI/Google/DeepSeek rows means "billed as ordinary input", which
+  // is how those providers work; only Anthropic bills cache writes at 1.25x.
+  'gpt-5': { input: 1.25, output: 10.0, cacheReadMultiplier: 0.1, cacheWriteMultiplier: 1.0 },
+  'gpt-5-mini': { input: 0.25, output: 2.0, cacheReadMultiplier: 0.1, cacheWriteMultiplier: 1.0 },
   'gpt-4.1': { input: 2.0, output: 8.0, cacheReadMultiplier: 0.25, cacheWriteMultiplier: 1.0 },
   'gpt-4o': { input: 2.5, output: 10.0, cacheReadMultiplier: 0.5, cacheWriteMultiplier: 1.0 },
   'o3': { input: 2.0, output: 8.0, cacheReadMultiplier: 0.25, cacheWriteMultiplier: 1.0 },
 
   // ---- Google ----------------------------------------------------------
-  'gemini-2.5-pro': { input: 1.25, output: 10.0, cacheReadMultiplier: 0.25, cacheWriteMultiplier: 1.0 },
+  // gemini-2.5-pro cacheReadMultiplier was 0.25 — the >200k-context tier's
+  // cache rate — while standard cached input is $0.125/M on a $1.25/M base,
+  // i.e. 0.1. Cache reads were overstated 2.5x.
+  'gemini-2.5-pro': { input: 1.25, output: 10.0, cacheReadMultiplier: 0.1, cacheWriteMultiplier: 1.0 },
   'gemini-2.5-flash': { input: 0.3, output: 2.5, cacheReadMultiplier: 0.1, cacheWriteMultiplier: 1.0 },
-  'gemini-2.0-flash': { input: 0.1, output: 0.4, cacheReadMultiplier: 0.25, cacheWriteMultiplier: 1.0 },
+  // gemini-2.0-flash standard tier is $0.15/$0.60 (the $0.1/$0.4 row was the
+  // flash-lite rate); cache read $0.0375/M = 0.25x.
+  'gemini-2.0-flash': { input: 0.15, output: 0.6, cacheReadMultiplier: 0.25, cacheWriteMultiplier: 1.0 },
 
   // ---- Others seen in the wild ----------------------------------------
+  // mimo-v2.5-pro has no confident LiteLLM entry (it arrives through proxy
+  // lanes); these are the rates of the Cherry New API gateway it runs on.
   'mimo-v2.5-pro': { input: 0.6, output: 2.4, cacheReadMultiplier: 0.1, cacheWriteMultiplier: 1.0 },
-  'deepseek-chat': { input: 0.27, output: 1.1, cacheReadMultiplier: 0.07, cacheWriteMultiplier: 1.0 },
-  'deepseek-reasoner': { input: 0.55, output: 2.19, cacheReadMultiplier: 0.14, cacheWriteMultiplier: 1.0 },
+  // DeepSeek repriced to the current V4 line ($0.28/$0.42, cached 0.1x);
+  // the old rows carried the previous generation's $1.10/$2.19 output,
+  // overstating output cost ~2.6x.
+  'deepseek-chat': { input: 0.28, output: 0.42, cacheReadMultiplier: 0.1, cacheWriteMultiplier: 1.0 },
+  'deepseek-reasoner': { input: 0.28, output: 0.42, cacheReadMultiplier: 0.1, cacheWriteMultiplier: 1.0 },
 
   // ---- OpenCode's own lane --------------------------------------------
   // Promotional models bill $0. Leaving them out let them fall through to
@@ -58,13 +74,17 @@ export const PRICING = {
   'big-pickle': { input: 0, output: 0, cacheReadMultiplier: 0, cacheWriteMultiplier: 0 },
   'deepseek-v4-flash-free': { input: 0, output: 0, cacheReadMultiplier: 0, cacheWriteMultiplier: 0 },
   'hy3-free': { input: 0, output: 0, cacheReadMultiplier: 0, cacheWriteMultiplier: 0 },
-  'deepseek-v4-flash': { input: 0.27, output: 1.1, cacheReadMultiplier: 0.07, cacheWriteMultiplier: 1.0 },
+  'deepseek-v4-flash': { input: 0.3, output: 1.2, cacheReadMultiplier: 0.02, cacheWriteMultiplier: 1.0 },
 
-  // ---- Chinese labs (OpenCode / Cherry lanes) -------------------------
-  'glm-5.2': { input: 0.6, output: 2.2, cacheReadMultiplier: 0.1, cacheWriteMultiplier: 1.0 },
-  'glm-5': { input: 0.6, output: 2.2, cacheReadMultiplier: 0.1, cacheWriteMultiplier: 1.0 },
-  'kimi-k2.7-code': { input: 0.6, output: 2.5, cacheReadMultiplier: 0.1, cacheWriteMultiplier: 1.0 },
-  'kimi-k2.5': { input: 0.6, output: 2.5, cacheReadMultiplier: 0.1, cacheWriteMultiplier: 1.0 },
+  // ---- Chinese labs -----------------------------------------------------
+  // Aligned to LiteLLM's official-provider entries (zai/*, moonshot/*).
+  // The rows before this were guessed proxy-lane rates; on a 5.2M-token
+  // glm-5.2 day the guessed $0.6/$2.2 under-reported ~$4.2 against the
+  // official $1.4/$4.4 the audit cross-checks against.
+  'glm-5.2': { input: 1.4, output: 4.4, cacheReadMultiplier: 0.186, cacheWriteMultiplier: 1.0 },
+  'glm-5': { input: 1.0, output: 3.2, cacheReadMultiplier: 0.2, cacheWriteMultiplier: 1.0 },
+  'kimi-k2.7-code': { input: 0.95, output: 4.0, cacheReadMultiplier: 0.2, cacheWriteMultiplier: 1.0 },
+  'kimi-k2.5': { input: 0.6, output: 3.0, cacheReadMultiplier: 0.167, cacheWriteMultiplier: 1.0 },
 };
 
 /**

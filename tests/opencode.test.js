@@ -129,7 +129,12 @@ test('opencode is advertised as a supported source', () => {
 test('a free model never inherits a paid model price by prefix', () => {
   // deepseek-v4-flash is paid; deepseek-v4-flash-free is $0. The old resolver
   // matched in both directions, so the free lane was billed at the paid rate.
-  assert.equal(resolvePricing('deepseek-v4-flash').input, 0.27);
+  // The paid side is asserted *relationally* — it must resolve to the paid
+  // entry and stay above zero — because the exact rate is the audit script's
+  // business (tools/audit_pricing.py), and hardcoding it here made every
+  // legitimate repricing look like a resolver regression.
+  assert.equal(resolvePricing('deepseek-v4-flash'), PRICING['deepseek-v4-flash']);
+  assert.ok(PRICING['deepseek-v4-flash'].input > 0, 'the paid lane must price above zero');
   assert.equal(resolvePricing('deepseek-v4-flash-free').input, 0);
   assert.equal(resolvePricing('opencode/deepseek-v4-flash-free').input, 0);
   assert.equal(resolvePricing('hy3-free').input, 0);

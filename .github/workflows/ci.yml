@@ -10,6 +10,8 @@ on:
   push:
     branches: [main]
   pull_request:
+  schedule:
+    - cron: '17 6 * * 1'   # Mondays ~06:17 UTC
   workflow_dispatch:
 
 jobs:
@@ -33,3 +35,21 @@ jobs:
 
       - name: Test
         run: npm test
+
+  # Weekly pricing audit against the authoritative LiteLLM model database.
+  # A cost tool's numbers rot when providers reprice; this is the guard that
+  # catches gpt-5-class mistakes (absolute price pasted into a multiplier
+  # field) on a schedule instead of waiting for a user to notice a wrong bill.
+  pricing-audit:
+    runs-on: ubuntu-latest
+    if: github.event_name == 'schedule' || github.event_name == 'workflow_dispatch'
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3'
+      - name: Fetch LiteLLM model db
+        run: |
+          curl -sSL -o /tmp/litellm.json https://raw.githubusercontent.com/BerriAI/litellm/main/model_prices_and_context_window.json
+      - name: Audit pricing table
+        run: python3 tools/audit_pricing.py /tmp/litellm.json
