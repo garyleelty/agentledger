@@ -502,3 +502,37 @@ visitor sees anyway.
 
 Content is all tool-verified output from this machine ($245 total, $1,067
 savings, 74.5% concentration) — no invented numbers in the marketing art.
+
+## Round 31: Kilo as a 5th source — and its data caught two pricing bugs
+
+Swept this machine for agent stores nobody had looked at: found
+`~/.local/share/kilo/kilo.db` (120 MB dir, 103 assistant rows, 3.04M tokens).
+Kilo Code is an OpenCode fork and the schema is identical, so the sqlite
+reader became a factory (`makeSqliteParser`) and kilo registered as a source
+in one sitting. ccusage supports Kilo too — this is parity work, not a stunt.
+
+The new lane paid for itself immediately:
+
+1. `bytedance-seed/dola-seed-2.0-pro:free` — 13 records billed $3/$15 by
+   DEFAULT_PRICING while Kilo's own cost field said $0. The `:free` tail is
+   Kilo's convention for zero-billed lanes. resolvePricing now decides free
+   BEFORE prefix/stripped matching, so `gpt-5:free` can't inherit gpt-5's
+   paid rate. 3 new tests pin the rule.
+2. `minimax-cn/MiniMax-M2.7` priced at the $3/$15 default: $2.68 of phantom
+   spend on a ~$0.32 lane. Added at LiteLLM's M2 line ($0.30/$1.20, cached
+   0.2x). Audit coverage: 24 of 29 entries.
+
+Every agent list in the docs was stale within the repo's own lifetime —
+--help said four agents while five were wired. It now generates from SOURCES.
+
+Also this round: generated a 1280x640 social-preview card (all figures are
+live tool output, not mockups). GitHub's social_preview API 404s for OAuth
+tokens — browser-only — so it ships at docs/social-preview.png embedded in
+the README header, with a 10-second manual upload to Settings → Social
+preview left for the user.
+
+Real-machine ledger now: $245.10 / 682.00M tokens / 10,459 records / 5 agents.
+All published figures regenerated from the tool; digest sample re-passes the
+gate; 68 tests green hermetic.
+
+**$0.00 received. Stars: 0 vs 19,019.**
