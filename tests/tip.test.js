@@ -50,3 +50,19 @@ test('prove_control.py proves we hold the keys to both addresses', () => {
   // the private key must never leak into normal output
   assert.doesNotMatch(out, /private key:/);
 });
+
+test('json export: per-record costs sum to the reported total', () => {
+  // Guards the exact end-to-end path an auditor would use: the per-record
+  // costUSD values must add up to totals.costUSD with no drift.
+  const raw = execFileSync('node', [path.join(root, 'bin', 'agentledger.js'), 'json'], {
+    encoding: 'utf8',
+    maxBuffer: 1 << 28,
+  });
+  const d = JSON.parse(raw);
+  assert.ok(d.records.length > 0, 'expected real local logs to produce records');
+  const sum = d.records.reduce((a, r) => a + r.costUSD, 0);
+  assert.ok(
+    Math.abs(sum - d.totals.costUSD) < 0.01,
+    `sum of records ($${sum.toFixed(4)}) must match totals.costUSD ($${d.totals.costUSD})`,
+  );
+});
