@@ -27,6 +27,66 @@ export const DEFAULT_PRICING = {
   cacheWrite1hMultiplier: 2.0,
 };
 
+/**
+ * User overrides, loaded from a JSON file (see `--prices`).
+ *
+ * Why this exists: every estimate in this tool is a *list price*. Users on
+ * subscription plans, negotiated rates, or proxy lanes with their own price
+ * sheet cannot match their bill without editing the source — so the source
+ * gets an official seam. An override is checked BEFORE the built-in table,
+ * the free-lane rule, and prefix resolution: if you name `gpt-5:free`
+ * explicitly, you meant it.
+ *
+ * Shape: { "<model-id>": { input?, output?, cacheReadMultiplier?,
+ *                           cacheWriteMultiplier?, cacheWrite1hMultiplier? } }
+ * Partial entries merge over the built-in row for that model (or over
+ * DEFAULT_PRICING when the model is unknown), so overriding one field never
+ * silently resets the others.
+ */
+let overrides = {};
+
+/** Merge one override entry over the row it would otherwise resolve to. */
+function buildOverride(modelKey, patch) {
+  const base = PRICING[modelKey] ?? DEFAULT_PRICING;
+  const known = ['input', 'output', 'cacheReadMultiplier', 'cacheWriteMultiplier', 'cacheWrite1hMultiplier'];
+  const merged = { ...base };
+  for (const [field, value] of Object.entries(patch)) {
+    if (!known.includes(field)) {
+      throw new Error(`prices: unknown field ${JSON.stringify(field)} for model ${JSON.stringify(modelKey)} (known: ${known.join(', ')})`);
+    }
+    if (typeof value !== 'number' || !Number.isFinite(value) || value < 0) {
+      throw new Error(`prices: ${modelKey}.${field} must be a finite number >= 0, got ${JSON.stringify(value)}`);
+    }
+    merged[field] = value;
+  }
+  return merged;
+}
+
+/**
+ * Install overrides from a parsed JSON object. Validates everything up
+ * front and throws on the first bad entry — a half-applied price file is
+ * worse than no price file, because the report still looks authoritative.
+ */
+export function loadPricingOverrides(map) {
+  if (map === null || typeof map !== 'object' || Array.isArray(map)) {
+    throw new Error('prices: file must contain a JSON object of { model: { fields… } }');
+  }
+  const next = {};
+  for (const [model, patch] of Object.entries(map)) {
+    if (patch === null || typeof patch !== 'object' || Array.isArray(patch)) {
+      throw new Error(`prices: entry for ${JSON.stringify(model)} must be an object of pricing fields`);
+    }
+    next[model.toLowerCase()] = buildOverride(model.toLowerCase(), patch);
+  }
+  overrides = next;
+  return Object.keys(next).length;
+}
+
+/** Which model keys currently have a user override (for reporting). */
+export function overriddenModels() {
+  return new Set(Object.keys(overrides));
+}
+
 /** Well-known model -> pricing entry. */
 export const PRICING = {
   // ---- Anthropic -------------------------------------------------------
@@ -116,6 +176,7 @@ export const PRICING = {
 export function resolvePricing(model) {
   if (!model) return DEFAULT_PRICING;
   const key = String(model).toLowerCase();
+  if (overrides[key]) return overrides[key];
   if (PRICING[key]) return PRICING[key];
   // A `:free` / `-free` tail means the provider bills this lane at zero —
   // it must be decided BEFORE any prefix or stripped-name match, or

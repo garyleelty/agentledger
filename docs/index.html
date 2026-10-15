@@ -106,10 +106,11 @@
 
   <h2>What it does</h2>
   <ul>
-    <li><strong>Reads local logs only</strong> — <code>~/.claude/projects</code>, <code>~/.codex/sessions</code>, <code>~/.gemini/tmp</code></li>
-    <li><strong>Cache buckets priced separately</strong> — 631M of my 678M tokens are cache reads, billed at 10-12.5% of input</li>
+    <li><strong>Reads local logs only</strong> — <code>~/.claude/projects</code>, <code>~/.codex/sessions</code>, <code>~/.local/share/opencode</code>, <code>~/.local/share/kilo</code>, <code>~/.gemini/tmp</code></li>
+    <li><strong>Cache buckets priced separately</strong> — 634M of my 682M tokens are cache reads, billed at 10-25% of input</li>
     <li><strong>Never touches the network</strong> — no account, no key, no telemetry, ~1,500 lines you can audit in one sitting</li>
-    <li><strong>Fast</strong> — a full scan of 400M+ tokens takes about a second</li>
+    <li><strong>Fast</strong> — a full scan of 680M+ tokens takes about a second</li>
+    <li><strong>Your rates, not mine</strong> — <code>--prices my-prices.json</code> overrides any model, partial entries merge over the built-in table</li>
   </ul>
 
   <h2>Commands</h2>

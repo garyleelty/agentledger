@@ -13,7 +13,13 @@
 
 import { readFileSync } from 'node:fs';
 import { collect, withCost, totals, groupBy, SOURCES } from '../src/ledger.js';
-import { PRICING, DEFAULT_PRICING, resolvePricing, cacheWriteCost } from '../src/pricing.js';
+import { PRICING, DEFAULT_PRICING, resolvePricing, cacheWriteCost, loadPricingOverrides, overriddenModels } from '../src/pricing.js';
+
+// How many --prices overrides are active; read by reportPrices(). Declared
+// here, before main() runs at the bottom of the flag block, because a `let`
+// below main()'s call site is in the temporal dead zone when version() and
+// this are first touched (round 32 learned that the hard way).
+let overrideCount = 0;
 
 const argv = process.argv.slice(2);
 
@@ -60,12 +66,17 @@ function money0(raw, flag) {
 }
 
 function parseFlags(args) {
-  const out = { agent: [], path: [], json: false, top: 10, days: 30, since: null, budget: null };
+  const out = { agent: [], path: [], json: false, top: 10, days: 30, since: null, budget: null, prices: null };
   for (let i = 0; i < args.length; i++) {
     const a = args[i];
     if (a === '--agent' || a === '-a') out.agent.push(args[++i]);
     else if (a === '--path' || a === '-p') out.path.push(args[++i]);
     else if (a === '--json') out.json = true;
+    else if (a === '--prices') {
+      const raw = args[++i];
+      if (!raw || raw.startsWith('-')) throw new Error('--prices expects a JSON file path');
+      out.prices = raw;
+    }
     else if (a === '--budget' || a === '-b') out.budget = money0(args[++i], a);
     else if (a === '--top' || a === '-n') out.top = positiveInt(args[++i], a);
     else if (a === '--days' || a === '-d') out.days = positiveInt(args[++i], a);
@@ -106,6 +117,27 @@ async function main() {
         `unknown agent ${unknown.map((a) => JSON.stringify(a)).join(', ')}; known agents: ${known.join(', ')}`,
       );
     }
+  }
+
+  // User price overrides load before any pricing happens, so every report —
+  // including `prices` itself — reflects them. Validation is all-or-nothing:
+  // a half-applied price file would still print an authoritative-looking
+  // table, which is the failure mode this feature must not have.
+  if (flags.prices) {
+    let text;
+    try {
+      text = readFileSync(flags.prices, 'utf8');
+    } catch (err) {
+      throw new Error(`--prices could not read ${JSON.stringify(flags.prices)}: ${err.message}`);
+    }
+    let parsed;
+    try {
+      parsed = JSON.parse(text);
+    } catch (err) {
+      throw new Error(`--prices file is not valid JSON: ${err.message}`);
+    }
+    const n = loadPricingOverrides(parsed);
+    overrideCount = n;
   }
 
   const { records, filesScanned, skipped } = await collect({
@@ -487,19 +519,37 @@ function reportSources() {
 }
 
 function reportPrices() {
-  const rows = Object.entries(PRICING).map(([model, p]) => [
-    model,
-    `$${p.input}`,
-    `$${p.output}`,
-    `x${p.cacheReadMultiplier ?? DEFAULT_PRICING.cacheReadMultiplier}`,
-    p.cacheWrite1hMultiplier != null
-      ? `x${p.cacheWriteMultiplier} / x${p.cacheWrite1hMultiplier}`
-      : `x${p.cacheWriteMultiplier}`,
-  ]);
+  const over = overriddenModels();
+  // Show what pricing ACTUALLY resolves to (resolvePricing), not the static
+  // table — otherwise an override marks its row with * and still prints the
+  // price it replaced. Caught by running it, of course.
+  const rows = Object.keys(PRICING).map((model) => {
+    const p = resolvePricing(model);
+    return [
+      over.has(model) ? `${model} *` : model,
+      `$${p.input}`,
+      `$${p.output}`,
+      `x${p.cacheReadMultiplier ?? DEFAULT_PRICING.cacheReadMultiplier}`,
+      p.cacheWrite1hMultiplier != null
+        ? `x${p.cacheWriteMultiplier} / x${p.cacheWrite1hMultiplier}`
+        : `x${p.cacheWriteMultiplier}`,
+    ];
+  });
+  for (const key of over) {
+    if (!(key in PRICING)) {
+      const p = resolvePricing(key);
+      rows.push([`${key} *`, `$${p.input}`, `$${p.output}`, `x${p.cacheReadMultiplier}`,
+        p.cacheWrite1hMultiplier != null ? `x${p.cacheWriteMultiplier} / x${p.cacheWrite1hMultiplier}` : `x${p.cacheWriteMultiplier}`]);
+    }
+  }
   rows.push(['(unknown models)', `$${DEFAULT_PRICING.input}`, `$${DEFAULT_PRICING.output}`,
     `x${DEFAULT_PRICING.cacheReadMultiplier}`, `x${DEFAULT_PRICING.cacheWriteMultiplier} / x${DEFAULT_PRICING.cacheWrite1hMultiplier}`]);
   printTable(['Model', 'In $/Mtok', 'Out $/Mtok', 'Cache read', 'Cache write 5m/1h'], rows);
   console.log('');
+  if (overrideCount) {
+    console.log(`  ${overrideCount} model(s) overridden by --prices; overridden rows are marked with *.`);
+    console.log('');
+  }
   console.log('  Prices are static snapshots of public pricing pages (USD per 1M tokens).');
   console.log('  Cache write shows the TTL tiers where the provider has them (Anthropic:');
   console.log('  5-minute writes x1.25, 1-hour writes x2 of the input price).');
@@ -616,6 +666,7 @@ Options
       --since <date>   Only records at/after this date (ISO or timestamp)
   -n, --top <n>        Rows to show in ranked reports (default 10)
   -d, --days <n>       Days to show in by-day (default 30)
+      --prices <file>  Override prices from a JSON map before reporting
       --json           Emit JSON instead of a table
   -h, --help           This help
 

@@ -113,3 +113,71 @@ test('a valid invocation still exits 0 and prints a report', () => {
   assert.equal(status, 0);
   assert.match(stdout, /agentledger — \d+ session files scanned/);
 });
+
+/* ------------------------- --prices overrides ---------------------------- */
+
+import { mkdtemp, writeFile } from 'node:fs/promises';
+import { tmpdir } from 'node:os';
+
+async function priceFile(content) {
+  const dir = await mkdtemp(path.join(tmpdir(), 'aledger-prices-'));
+  const file = path.join(dir, 'p.json');
+  await writeFile(file, content);
+  return file;
+}
+
+test('--prices overrides a built-in model and the total moves', async () => {
+  // Target claude-sonnet-4-5: the model the fixture home actually carries.
+  // (A first draft overrode gpt-5.5 and "passed" on an empty ledger — the
+  // silent-zero trap again: no records, no delta, and the assertion that
+  // checked `a !== b` would have failed on real data but the fixture has
+  // no gpt-5.5 rows at all, so it compared 0 to 0.)
+  const file = await priceFile(JSON.stringify({ 'claude-sonnet-4-5': { input: 0.5 } }));
+  const withOverride = run(['json', '--prices', file]);
+  const plain = run(['json']);
+  assert.equal(withOverride.status, 0, withOverride.stderr);
+  assert.equal(plain.status, 0);
+  const a = JSON.parse(withOverride.stdout).totals.costUSD;
+  const b = JSON.parse(plain.stdout).totals.costUSD;
+  assert.ok(b > 0, 'the fixture ledger must have real spend to override');
+  assert.ok(a < b, 'cutting input $3 -> $0.5 must lower the total');
+});
+
+test('--prices partial entries keep the untouched fields of the built-in row', async () => {
+  const { resolvePricing, loadPricingOverrides, PRICING: P } = await import('../src/pricing.js');
+  loadPricingOverrides({ 'gpt-5.5': { input: 4.0 } });
+  const p = resolvePricing('gpt-5.5');
+  assert.equal(p.input, 4.0);
+  assert.equal(p.output, P['gpt-5.5'].output, 'output must survive an input-only override');
+  assert.equal(p.cacheReadMultiplier, P['gpt-5.5'].cacheReadMultiplier);
+  loadPricingOverrides({}); // restore for later tests in this file
+});
+
+test('--prices rejects a bad file loudly, never silently ignoring it', async () => {
+  const bad = await priceFile('not json');
+  const r = run(['summary', '--prices', bad]);
+  assert.notEqual(r.status, 0);
+  assert.match(r.stderr, /not valid JSON/);
+
+  const neg = await priceFile(JSON.stringify({ 'gpt-5': { input: -1 } }));
+  const r2 = run(['summary', '--prices', neg]);
+  assert.notEqual(r2.status, 0);
+  assert.match(r2.stderr, /finite number >= 0/);
+
+  const missing = run(['summary', '--prices', '/nonexistent/nope.json']);
+  assert.notEqual(missing.status, 0);
+  assert.match(missing.stderr, /could not read/);
+
+  const noArg = run(['summary', '--prices']);
+  assert.notEqual(noArg.status, 0);
+  assert.match(noArg.stderr, /expects a JSON file path/);
+});
+
+test('a free lane can be repriced by an explicit override', async () => {
+  // The documented rule: overrides are checked BEFORE the :free tail. Someone
+  // paying a proxy for "gpt-5:free" must be able to price it honestly.
+  const { resolvePricing, loadPricingOverrides } = await import('../src/pricing.js');
+  loadPricingOverrides({ 'gpt-5:free': { input: 0.5, output: 2 } });
+  assert.equal(resolvePricing('gpt-5:free').input, 0.5);
+  loadPricingOverrides({});
+});

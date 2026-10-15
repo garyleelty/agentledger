@@ -222,6 +222,7 @@ Useful flags:
 | `-p, --path <dir>` | also scan a directory or single file |
 | `--since <date>` | only records at/after a date |
 | `-n, --top <n>` | rows in ranked reports |
+| `--prices <file>` | override prices from a JSON map (see below) |
 | `--json` | JSON instead of a table |
 
 Examples:
@@ -236,6 +237,30 @@ agentledger-cli json > ledger.json
 # Pipe into a status line / CI check
 agentledger-cli json | jq '.totals.costUSD'
 ```
+
+### Custom prices (`--prices`)
+
+Every number this tool prints is a list price. If you pay something else —
+a negotiated rate, a proxy lane, a regional price — bring your own:
+
+```bash
+# my-prices.json — partial entries merge over the built-in row,
+# so overriding `input` never resets output or the cache multipliers.
+{
+  "gpt-5.5": { "input": 4.0, "output": 24.0 },
+  "minimax-cn/MiniMax-M2.7": { "input": 0.25, "output": 1.0 },
+  "my-gateway-model": { "input": 0.5, "output": 1.5 }
+}
+
+agentledger --prices my-prices.json           # any report
+agentledger prices --prices my-prices.json    # the table, overrides marked *
+```
+
+Overrides win over everything, including the `-free`/`:free` zero-lane rule:
+if you name a model explicitly, you meant it. A bad file fails the run with
+a clear message — a half-applied price file would still print an
+authoritative-looking table, which is the one outcome this feature must
+never produce.
 
 ## Supported agents
 

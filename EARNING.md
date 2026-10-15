@@ -580,3 +580,38 @@ gate; 68 tests green hermetic.
     like everything else in this channel.
 
 **$0.00 received. Stars: 0 vs 19,019.**
+
+## Round 33: --prices — the one ccusage feature users actually asked for
+
+ccusage lets users override token prices (`ccusage.json`); agentledger had
+no seam, so anyone on a negotiated rate or proxy lane couldn't match their
+bill without editing source. Now `agentledger --prices my-prices.json` works
+on every report:
+
+- partial entries merge over the built-in row (override input, keep output
+  and cache multipliers) — editing one number can't silently reset four.
+- overrides resolve BEFORE the :free rule: naming `gpt-5:free` explicitly
+  means you pay for it and want it priced.
+- all-or-nothing validation, exit 1 with the offending model/field. A
+  half-applied price file still prints an authoritative table — the one
+  outcome this feature must never have.
+
+Three bugs caught by running things, all recorded because they're the same
+bug in different clothes:
+1. `prices` iterated PRICING directly -> marked gpt-5.5 with * while still
+   printing $5 (the price the override replaced). Now shows resolved values.
+2. `let overrideCount` below main()'s call site -> TDZ crash on first run.
+   Round 32's lesson, repeated within the hour.
+3. A test that overrode gpt-5.5 against the fixture home (which has no
+   gpt-5.5 rows) compared 0 to 0 and "passed" on nothing — the silent-zero
+   trap in test form. Retargeted at the model the fixture actually carries,
+   with an explicit `b > 0` precondition.
+
+Also: the landing-page number guard only substring-matches formatted values,
+so prose figures ("631M of my 678M tokens") stayed stale. Fixed by hand;
+the guard's blind spot is now known. Stray empty src/agentledger/ removed.
+
+76 tests green hermetic. --prices is a differentiator worth promoting:
+Show HN text updated? Not yet — next round.
+
+**$0.00 received. Stars: 0 vs 19,019.**
