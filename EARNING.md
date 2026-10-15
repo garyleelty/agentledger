@@ -673,3 +673,16 @@ on source count (17 vs 5) and 5-hour billing blocks; shared now: TTL-split
 cache writes, host-cost-first statusline, per-model overrides.
 
 **$0.00 received. Stars: 0 vs 19,019.**
+
+### Addendum, same round: "Everything up-to-date" was a lie
+
+The round-34 push printed `Everything up-to-date` and I moved on. It was
+wrong: the remote never received the commit. Caught only because the next
+round's `ls-remote` showed remote still at 80d42fb. Git's success output on
+this network is not trustworthy — the transport half-connects and reports a
+clean no-op. Rule now enforced mechanically: after every push, read the
+remote head back (API or ls-remote) and compare to the commit I meant to
+land. That is how d7b5124 got pushed tonight — via the Data API, with the
+tree diffed against local afterwards: zero differences, modes included.
+
+**$0.00 received. Stars: 0 vs 19,019.**
