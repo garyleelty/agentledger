@@ -558,3 +558,25 @@ gate; 68 tests green hermetic.
 - CI green on aeea4fc (22.5/24/26 + pricing audit).
 
 **$0.00 received. Stars: 0 vs 19,019.**
+
+## Round 32b: verified install.sh from a clean HOME; screened two more lists
+
+- Ran `install.sh` with `HOME=/tmp/al-install-home`: clone, symlinks, PATH
+  notice, and the installed `agentledger --version` printing 0.2.0 and
+  `sources` listing all five agents. The README's headline install line is
+  now a claim I executed, not one I asserted.
+- Digest workflow re-dispatched green; docs/digest.html already matched the
+  refreshed sample (no-op path proven again).
+- Screened two more awesome lists:
+  - `hesreallyhim/awesome-claude-code` (55k stars): bot auto-closes entries
+    under 100 stars AND 14 days of commits. agentledger qualifies on neither
+    yet; submitting now buys a public auto-close, which PROMOTION.md itself
+    says is worse than not applying. Deferred until ~Oct 26 at earliest.
+  - `hashgraph-online/awesome-ai-plugins`: it is a plugin *marketplace*
+    (plugins.json, marketplace.json, validate-plugins.yml), not a tool list.
+    agentledger is a standalone CLI — submitting would repeat the exact
+    format mistake PR #856 made. Dropped on sight.
+- PR #872 has no validation bot at all — it waits on a human maintainer
+    like everything else in this channel.
+
+**$0.00 received. Stars: 0 vs 19,019.**
