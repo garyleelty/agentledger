@@ -170,6 +170,7 @@ async function main() {
     case 'prices': return reportPrices();
     case 'aggregate': return reportAggregate(filtered);
     case 'json': return reportJson(filtered);
+    case 'statusline': return statusline(flags);
     case 'watch': return watch(flags);
     case 'summary':
     default: return reportSummary(filtered, { filesScanned, skipped }, flags);
@@ -586,6 +587,97 @@ function reportJson(records) {
   );
 }
 
+/**
+ * `agentledger statusline` — one line, for Claude Code's statusLine hook.
+ *
+ * Claude Code invokes a statusline command before each render and pipes it a
+ * JSON payload (session id, transcript path, model, workspace). This reads
+ * that payload, prices ONLY the current session's transcript file — one
+ * file, not the whole ledger, because a statusline re-renders on every
+ * message and a full scan would make the UI stutter — and prints one line.
+ *
+ * Rules that come from the hook contract, not taste:
+ *  - exit 0 always; a statusline that fails must never break the prompt bar.
+ *  - print nothing but the line itself; no headers, no colors, no stderr noise.
+ *  - if the payload is missing or unparseable, degrade to the today-total
+ *    over the normal sources; if THAT has no data, print a plain marker.
+ */
+async function statusline(flags) {
+  let payload = null;
+  try {
+    const chunks = [];
+    if (!process.stdin.isTTY) {
+      for await (const c of process.stdin) chunks.push(c);
+      const text = Buffer.concat(chunks).toString('utf8').trim();
+      if (text) payload = JSON.parse(text);
+    }
+  } catch {
+    payload = null; // a statusline must survive a payload it cannot read
+  }
+
+  // Fast path: modern Claude Code payloads carry the session's own cost and
+  // token totals. Using them means zero file I/O per render — the bar updates
+  // as fast as the host can print it. It is also the host's own number, which
+  // is the most honest thing available for "what is this session costing";
+  // our transcript scan below is the estimate. Older payloads lack these
+  // fields, so every access is optional and falls through to the scan.
+  if (payload?.cost?.total_cost_usd != null) {
+    const cost = Number(payload.cost.total_cost_usd) || 0;
+    const cw = payload.context_window ?? {};
+    const tok = (Number(cw.total_input_tokens) || 0) + (Number(cw.total_output_tokens) || 0);
+    const model = payload?.model?.display_name || payload?.model?.id || '';
+    if (flags.json) {
+      process.stdout.write(JSON.stringify({
+        session: payload?.session_id ?? null, costUSD: cost, tokens: tok,
+        records: null, source: 'hook-payload',
+      }) + '\n');
+      return;
+    }
+    console.log(`agentledger · ${money(cost)}${tok ? ` · ${fmtTok(tok)} tok` : ''}${model ? ` · ${model}` : ''}`);
+    return;
+  }
+
+  const transcript = payload?.transcript_path;
+  if (transcript) {
+    try {
+      const { records } = await collect({ agents: ['claude-code'], paths: [transcript] });
+      // The claude-code parser walks its whole root when the path matches a
+      // directory tree, so `records` can include the entire ledger. The
+      // session id is the transcript file's basename without extension;
+      // filter to it so the bar prices THIS session, not the machine.
+      const base = transcript.slice(transcript.lastIndexOf('/') + 1).replace(/\.[^.]+$/, '');
+      const priced = records.filter((r) => r.session === base).map(withCost);
+      const t = totals(priced);
+      const model = payload?.model?.id ? ` ${payload.model.id}` : '';
+      if (flags.json) {
+        process.stdout.write(JSON.stringify({ session: payload?.session_id ?? null, costUSD: round(t.cost), tokens: t.input + t.cacheRead + t.cacheWrite + t.output, records: t.records }) + '\n');
+        return;
+      }
+      if (t.records === 0) {
+        console.log(`agentledger · session starting${model}`);
+        return;
+      }
+      const tok = t.input + t.cacheRead + t.cacheWrite + t.output;
+      console.log(`agentledger · ${money(t.cost)} · ${fmtTok(tok)} tok · ${t.records} calls${model}`);
+      return;
+    } catch {
+      // fall through to the ledger-wide fallback
+    }
+  }
+
+  // No transcript (older Claude Code, another agent, or a manual run):
+  // price today across the normal sources instead of printing nothing.
+  const startOfDay = new Date(); startOfDay.setHours(0, 0, 0, 0);
+  const { records } = await collect({ agents: flags.agent.length ? flags.agent : null, paths: flags.path });
+  const priced = records.map(withCost).filter((r) => (r.timestamp ?? 0) >= startOfDay.getTime());
+  const t = totals(priced);
+  if (flags.json) {
+    process.stdout.write(JSON.stringify({ session: null, costUSD: round(t.cost), tokens: t.input + t.cacheRead + t.cacheWrite + t.output, records: t.records }) + '\n');
+    return;
+  }
+  console.log(t.records ? `agentledger · today ${money(t.cost)} · ${fmtTok(t.input + t.cacheRead + t.cacheWrite + t.output)} tok` : 'agentledger · no usage today');
+}
+
 async function watch(flags) {
   console.log('agentledger watch — Ctrl-C to stop');
   const tick = async () => {
@@ -658,6 +750,7 @@ Commands
   aggregate   Shareable totals + groupings (no session ids)
   budget      Spend against a limit (e.g. budget -b 100)
   json        Machine-readable dump of every record
+  statusline  One line for Claude Code's status bar (reads hook JSON on stdin)
   watch       Live-refreshing totals
 
 Options

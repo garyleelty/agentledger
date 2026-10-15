@@ -62,12 +62,12 @@ while you are still working:
 ### Honest comparison
 
 [ccusage](https://github.com/ccusage/ccusage) is the incumbent and it covers
-far more agents than this: it prefers Claude Code's own `costUSD` field when
-present, models 5-minute vs 1-hour cache creation separately (as of today
-agentledger does too — verified against Anthropic's published rates and
-LiteLLM's `cache_creation_input_token_cost_above_1hr`), and prices reasoning
-tokens. Its pricing also comes from LiteLLM's database, embedded at build
-time from a locked revision. If you want the most complete tool, use that one.
+far more agents than this (17 sources against our 5): it prices reasoning
+tokens per model, and its statusline shows 5-hour billing blocks and burn
+rate. Its pricing also comes from LiteLLM's database, embedded at build
+time from a locked revision. If you want the most complete tool, use that
+one. What we share now: TTL-split cache writes, a statusline that prefers
+the host's own session cost over any estimate, and per-model overrides.
 
 Where this differs, as far as I can tell: agentledger's table is a checked-in
 static file that a CI job reconciles against **live** LiteLLM weekly — a stale
@@ -134,6 +134,7 @@ agentledger-cli by-model        # which model is eating your budget
 agentledger-cli by-day -d 30    # daily spend curve
 agentledger-cli sessions -n 20  # most expensive sessions
 agentledger-cli budget -b 100   # spend against a limit
+agentledger-cli statusline      # one line for Claude Code's status bar
 agentledger-cli watch           # live totals, refreshes every 5s
 agentledger-cli prices          # the built-in pricing table
 agentledger-cli aggregate       # shareable totals + groupings, no session ids
@@ -167,6 +168,29 @@ agentledger budget -b 100 --json | jq '{spent: .spentUSD, over: .over, perDay: .
 
 An overrun is reported as `over: true` with `daysUntilRunOut: null`, rather
 than a misleading projection.
+
+### Statusline
+
+`statusline` is for Claude Code's status bar. Add to `~/.claude/settings.json`:
+
+```json
+{
+  "statusLine": {
+    "type": "command",
+    "command": "agentledger statusline",
+    "padding": 0
+  }
+}
+```
+
+Claude Code pipes it a JSON payload on every render. When the payload carries
+the session's own cost (current versions do), agentledger echoes that number —
+the host's own measurement beats any estimate, and no files are read, so the
+bar never stutters. On older payloads it prices just the session's transcript
+file, not the whole ledger. It always exits 0 and prints exactly one line: a
+statusline that can break your prompt bar is a statusline you delete, so the
+degradation paths are tested as hard as the happy one (82 tests, 6 of them
+this contract).
 
 ### Savings
 
