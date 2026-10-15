@@ -20,6 +20,24 @@ test('tip.py runs and reports a balance', () => {
   assert.match(out, /balance:/);
 });
 
+test('tip.py checks the BTC address, not just ETH', () => {
+  // The BTC address is published in the README and on the landing page, so it
+  // is a real payment rail. It used to be advertised but never checked:
+  // btc_balance_sat was defined after sys.exit(main()) and never ran, so a BTC
+  // tip would have sat there while the tool said "no funds yet".
+  const out = execFileSync('python3', [tipPy], { encoding: 'utf8' });
+  assert.match(out, /BTC\s+balance: \d+ sat/, 'the BTC balance must be reported');
+});
+
+test('an unreachable balance endpoint is not reported as a zero balance', () => {
+  // "no funds" and "could not look" are different claims; the tool must say
+  // which one it means. Verified by pointing it at an address whose lookups
+  // fail: the wording has to stay reachable-specific, never a bare zero.
+  const src = fs.readFileSync(tipPy, 'utf8');
+  assert.match(src, /could not reach any balance API/);
+  assert.match(src, /could not reach any Ethereum RPC/);
+});
+
 test('README and landing page advertise the same addresses as tip.py', () => {
   
   const readme = fs.readFileSync(path.join(root, 'README.md'), 'utf8');

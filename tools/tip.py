@@ -8,8 +8,12 @@ Queries a public Ethereum RPC (no API key, no account) for the balance of the
 project's tip address. This is the only payment rail that needed no signup:
 generate a keypair, publish the address, watch the balance.
 
-Balance is reported in ETH and USD (USD via a public rate endpoint, skipped if
-unreachable). Exits 0 always; prints what it found.
+Both published addresses are checked: ETH through a public Ethereum RPC, BTC
+through a public block explorer. An unreachable endpoint is reported as
+unreachable rather than as a zero balance — "no funds" and "could not look"
+are different claims.
+
+Exits 0 always; prints what it found.
 
 Read-only. Never signs, never spends, never moves funds.
 """
@@ -77,43 +81,11 @@ def get_balance_wei(addr):
     raise RuntimeError(f"no RPC reachable (last error: {last_err})")
 
 
-def main():
-    if not eip55_verify(ADDRESS):
-        print("ERROR: tip address failed its checksum — refusing to trust it.")
-        return 1
-
-    print("tip addresses (no signup needed to send to either):")
-    print(f"  ETH  {ETH_ADDRESS}")
-    print(f"  BTC  {BTC_ADDRESS}")
-    print()
-    print("  (EIP-55 checksum verified)")
-    try:
-        wei, via = get_balance_wei(ADDRESS)
-    except RuntimeError as e:
-        print(f"could not reach any Ethereum RPC: {e}")
-        return 0
-
-    eth = wei / 1e18
-    print(f"  via: {via}")
-    print(f"  balance: {eth:.8f} ETH  ({wei} wei)")
-    if wei > 0:
-        print("\n  *** FUNDS RECEIVED ***")
-    else:
-        print("  no funds yet.")
-    return 0
-
-
-if __name__ == "__main__":
-    sys.exit(main())
-
-
 def btc_balance_sat(addr):
     """Query a public API for a BTC address balance. Returns None if unreachable."""
-    import urllib.error
-
     urls = [
-        f"https://api.blockchair.com/bitcoin/dashboards/address/{addr}",
         f"https://blockstream.info/api/address/{addr}",
+        f"https://api.blockchair.com/bitcoin/dashboards/address/{addr}",
     ]
     for u in urls:
         try:
@@ -133,3 +105,50 @@ def btc_balance_sat(addr):
         except Exception:
             continue
     return None
+
+
+def main():
+    if not eip55_verify(ADDRESS):
+        print("ERROR: tip address failed its checksum — refusing to trust it.")
+        return 1
+
+    print("tip addresses (no signup needed to send to either):")
+    print(f"  ETH  {ETH_ADDRESS}")
+    print(f"  BTC  {BTC_ADDRESS}")
+    print()
+    print("  (EIP-55 checksum verified)")
+
+    received = False
+
+    try:
+        wei, via = get_balance_wei(ADDRESS)
+    except RuntimeError as e:
+        print(f"  ETH: could not reach any Ethereum RPC: {e}")
+    else:
+        eth = wei / 1e18
+        print(f"  ETH  via {via}")
+        print(f"       balance: {eth:.8f} ETH  ({wei} wei)")
+        if wei > 0:
+            received = True
+
+    # The BTC address is published in the README and on the landing page, so it
+    # has to be checked too. It was not: btc_balance_sat was defined after
+    # sys.exit(main()) and never ran, which meant a BTC tip would sit there
+    # while this tool reported "no funds yet".
+    sat = btc_balance_sat(BTC_ADDRESS)
+    if sat is None:
+        print("  BTC: could not reach any balance API")
+    else:
+        print(f"  BTC  balance: {sat} sat  ({sat / 1e8:.8f} BTC)")
+        if sat > 0:
+            received = True
+
+    if received:
+        print("\n  *** FUNDS RECEIVED ***")
+    else:
+        print("  no funds yet.")
+    return 0
+
+
+if __name__ == "__main__":
+    sys.exit(main())
