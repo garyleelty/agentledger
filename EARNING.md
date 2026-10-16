@@ -686,3 +686,43 @@ land. That is how d7b5124 got pushed tonight — via the Data API, with the
 tree diffed against local afterwards: zero differences, modes included.
 
 **$0.00 received. Stars: 0 vs 19,019.**
+
+## Round 35: two dead credentials, one real feature
+
+**Credentials, checked rather than assumed.** A `~/.npmrc` with a valid-format
+`npm_…` token appeared (created 01:03, new since round 7's ENEEDAUTH). It is
+dead: 401 on `/-/whoami`, `/-/npm/v1/user`, and a real `npm publish` returns
+404 "could not be found or you do not have permission". Dry-run passes only
+because dry-run does not authenticate — worth remembering, it looked healthy.
+The repo still has zero Actions secrets, so `publish.yml` would fail the same
+way. GitHub Packages was the next hope: the token DOES authenticate there
+(`{"username":"garyleelty"}`), but publishing needs `write:packages`, which
+this token lacks (403 permission_denied). So npm remains one `npm login` away,
+and that is the user's.
+
+**lobste.rs is reachable** (new) but posting requires an invite; not usable.
+
+**awesome-agent-observability** is a perfect category fit (it is *the* agent
+observability list) and its maintainer merges actively (22/29 recent PRs,
+including today). It also has a hard threshold 4: **projects must be at least
+8 weeks old**. agentledger is 4 days old, so submitting now would be declined
+by a stated rule. Deferred to ~2026-12-07, logged so it is not forgotten.
+Its README also lists **AgentsView** (6.1k stars, Go) — a closer competitor
+than ccusage for the local-first cost-analytics niche. Recorded.
+
+**Shipped: `sources` now reports whether each source actually has data.**
+A table of paths answers "where would it look", never "why is this lane
+empty" — a missing directory, an empty one, and unparseable files all looked
+identical. It immediately explained a real silence: the gemini-cli lane has
+never produced a record here because `~/.gemini/tmp` does not exist, which
+the old output could not distinguish from "no usage yet". `sources` also
+honours `--json` now (it was the only command that ignored it). 85 tests,
+3 pinning the new reporting.
+
+Also: found remote/local history diverged again (the round-33/34 Data-API
+pushes left different lineage, same content — verified with an empty diff).
+Rebased onto the true remote head rather than force-pushing over it, then
+confirmed the push by reading the remote head back: 5de651b == 5de651b.
+CI green.
+
+**$0.00 received. Stars: 0 vs 19,019 (ccusage) / 6,128 (AgentsView).**
