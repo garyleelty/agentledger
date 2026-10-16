@@ -89,15 +89,20 @@
 
   <h2>Install</h2>
   <div class="panel">
-<pre><span class="prompt">$</span> npm install -g git+https://github.com/garyleelty/agentledger.git
+<pre><span class="dim"># from the release tarball — no npm account, no registry:</span>
+<span class="prompt">$</span> npm install -g https://github.com/garyleelty/agentledger/releases/download/v0.3.0/agentledger-cli-0.3.0.tgz
+
+<span class="dim"># or straight from the repository:</span>
+<span class="prompt">$</span> npm install -g git+https://github.com/garyleelty/agentledger.git
 <span class="prompt">$</span> npx --package=git+https://github.com/garyleelty/agentledger.git agentledger
 
-<span class="dim"># or, without npm at all:</span>
+<span class="dim"># or without npm at all:</span>
 <span class="prompt">$</span> curl -fsSL https://raw.githubusercontent.com/garyleelty/agentledger/main/install.sh | sh</pre>
   </div>
-  <p class="dim">The registry package is not published yet, so plain
-  <code>npx agentledger-cli</code> returns a 404 — the <code>git+https</code>
-  form is the way to install through npm until it is. Node 22.5+.</p>
+  <p class="dim">Each release attaches its tarball using the repo's own token,
+  so the first form installs whether or not <code>agentledger-cli</code> is on
+  the registry (it is not yet — plain <code>npx agentledger-cli</code> still
+  404s). Node 22.5+.</p>
 
   <h2>Why it exists</h2>
   <p>If you pay per token, your invoice is a lagging indicator — you find out after
