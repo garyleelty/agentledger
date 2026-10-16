@@ -110,7 +110,8 @@
     <li><strong>Cache buckets priced separately</strong> — 1.32B of my 1.54B tokens are cache reads, billed at 10-25% of input</li>
     <li><strong>Never touches the network</strong> — no account, no key, no telemetry, ~1,500 lines you can audit in one sitting</li>
     <li><strong>Fast</strong> — a full scan of 680M+ tokens takes about a second</li>
-    <li><strong>Your rates, not mine</strong> — <code>--prices my-prices.json</code> overrides any model, partial entries merge over the built-in table</li>
+    <li><strong>Your rates, not mine</strong> — <code>--prices my-prices.json</code> overrides any model, partial entries merge over the built-in table; <code>prices --template</code> writes the file for you, naming exactly the models your ledger could not price</li>
+    <li><strong>Honest about unknowns</strong> — a model with no built-in price is billed at a stated default and the report says so, with its dollar share, instead of quietly folding a placeholder into the total</li>
     <li><strong>Status bar</strong> — <code>agentledger statusline</code> in Claude Code's <code>statusLine</code> hook: live session cost, zero file reads on current payloads</li>
   </ul>
 
