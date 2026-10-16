@@ -128,9 +128,14 @@ export const PRICING = {
   'gemini-2.0-flash': { input: 0.15, output: 0.6, cacheReadMultiplier: 0.25, cacheWriteMultiplier: 1.0 },
 
   // ---- Others seen in the wild ----------------------------------------
-  // mimo-v2.5-pro has no confident LiteLLM entry (it arrives through proxy
-  // lanes); these are the rates of the Cherry New API gateway it runs on.
-  'mimo-v2.5-pro': { input: 0.6, output: 2.4, cacheReadMultiplier: 0.1, cacheWriteMultiplier: 1.0 },
+  // MiMo (Xiaomi) cached reads are ~0.8% of input, not the 10% Anthropic
+  // convention. Three independent LiteLLM entries agree on the ratio —
+  // xiaomi_mimo/mimo-v2.6-pro 0.0036/0.435, novita 0.0043/0.522, aihubmix
+  // 0.0016/0.2 — all ≈0.008. This entry carried 0.1, a 12x overcharge on the
+  // cache-read bucket, which is where 98% of this model's tokens are. Found by
+  // running ccusage against the same logs: its $2.21 vs my $15.67 was entirely
+  // this multiplier. Rate follows the vendor-canonical xiaomi_mimo/* row.
+  'mimo-v2.5-pro': { input: 0.435, output: 0.87, cacheReadMultiplier: 0.0083, cacheWriteMultiplier: 1.0 },
   // DeepSeek repriced to the current V4 line ($0.28/$0.42, cached 0.1x);
   // the old rows carried the previous generation's $1.10/$2.19 output,
   // overstating output cost ~2.6x.

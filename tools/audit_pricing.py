@@ -50,6 +50,10 @@ MAP = {
     "glm-5.2": ["zai/glm-5.2", "glm-5.2"],
     "kimi-k2.7-code": ["moonshot/kimi-k2.7-code", "kimi-k2.7-code"],
     "kimi-k2.5": ["moonshot/kimi-k2.5", "kimi-k2.5"],
+    # MiMo: LiteLLM carries several reseller rows whose input/output agree
+    # closely but whose cache-read rates are the point (all ~0.8% of input).
+    # Map to the vendor-namespaced row so the cache ratio is checked too.
+    "mimo-v2.5-pro": ["xiaomi_mimo/mimo-v2.6-pro", "novita/xiaomimimo/mimo-v2.5-pro"],
 }
 
 

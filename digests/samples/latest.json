@@ -1,25 +1,25 @@
 {
   "tool": "agentledger",
   "version": "0.3.0",
-  "generatedAt": "2026-10-16T18:30:02.449Z",
+  "generatedAt": "2026-10-16T18:33:45.526Z",
   "totals": {
     "tokens": {
-      "input": 218950564,
-      "cacheRead": 1337939021,
+      "input": 218963120,
+      "cacheRead": 1347037005,
       "cacheWrite": 366382,
-      "output": 6088867
+      "output": 6102515
     },
-    "costUSD": 1008.073098,
-    "records": 13081
+    "costUSD": 994.50319,
+    "records": 13103
   },
   "byAgent": {
     "dsh": {
-      "input": 175725657,
-      "cacheRead": 716448080,
+      "input": 175738213,
+      "cacheRead": 725546064,
       "cacheWrite": 0,
-      "output": 2307993,
-      "records": 4691,
-      "costUSD": 763.860762
+      "output": 2321641,
+      "records": 4713,
+      "costUSD": 766.832545
     },
     "codex": {
       "input": 15768773,
@@ -27,7 +27,7 @@
       "cacheWrite": 0,
       "output": 951773,
       "records": 3053,
-      "costUSD": 200.438832
+      "costUSD": 199.69205
     },
     "opencode": {
       "input": 24917715,
@@ -35,7 +35,7 @@
       "cacheWrite": 85801,
       "output": 2277755,
       "records": 3772,
-      "costUSD": 28.643371
+      "costUSD": 25.422329
     },
     "claude-code": {
       "input": 2377858,
@@ -43,7 +43,7 @@
       "cacheWrite": 0,
       "output": 511616,
       "records": 1462,
-      "costUSD": 14.811494
+      "costUSD": 2.237627
     },
     "kilo": {
       "input": 160561,
@@ -72,12 +72,12 @@
       "costUSD": 199.343891
     },
     "deepseek-v4.1-flash": {
-      "input": 2022003,
-      "cacheRead": 351728512,
+      "input": 2034559,
+      "cacheRead": 360826496,
       "cacheWrite": 0,
-      "output": 849015,
-      "records": 1343,
-      "costUSD": 124.319788
+      "output": 862663,
+      "records": 1365,
+      "costUSD": 127.291571
     },
     "step-5-preview": {
       "input": 17655038,
@@ -111,14 +111,6 @@
       "records": 20,
       "costUSD": 17.142706
     },
-    "mimo-v2.5-pro": {
-      "input": 3128122,
-      "cacheRead": 212831872,
-      "cacheWrite": 0,
-      "output": 524854,
-      "records": 1471,
-      "costUSD": 15.906435
-    },
     "cline-free/step-5-preview": {
       "input": 891441,
       "cacheRead": 39471168,
@@ -135,14 +127,6 @@
       "records": 54,
       "costUSD": 5.366914
     },
-    "Cherry-httpsnew-api.abrdns.comconso/mimo-v2.5-pro": {
-      "input": 1632517,
-      "cacheRead": 35148544,
-      "cacheWrite": 0,
-      "output": 188294,
-      "records": 538,
-      "costUSD": 3.540328
-    },
     "Cherry-New-API/kimi-k2.7-code": {
       "input": 777215,
       "cacheRead": 9212928,
@@ -151,13 +135,21 @@
       "records": 57,
       "costUSD": 2.629103
     },
-    "Cherry-Xiaomi-MiMo/mimo-v2.5-pro": {
-      "input": 583207,
-      "cacheRead": 8569024,
+    "mimo-v2.5-pro": {
+      "input": 3128122,
+      "cacheRead": 212831872,
       "cacheWrite": 0,
-      "output": 66762,
-      "records": 171,
-      "costUSD": 1.024294
+      "output": 524854,
+      "records": 1471,
+      "costUSD": 2.585786
+    },
+    "Cherry-httpsnew-api.abrdns.comconso/mimo-v2.5-pro": {
+      "input": 1632517,
+      "cacheRead": 35148544,
+      "cacheWrite": 0,
+      "output": 188294,
+      "records": 538,
+      "costUSD": 1.000864
     },
     "Cherry-New-API/deepseek-v4-flash": {
       "input": 2669176,
@@ -182,6 +174,14 @@
       "output": 193433,
       "records": 255,
       "costUSD": 0.470813
+    },
+    "Cherry-Xiaomi-MiMo/mimo-v2.5-pro": {
+      "input": 583207,
+      "cacheRead": 8569024,
+      "cacheWrite": 0,
+      "output": 66762,
+      "records": 171,
+      "costUSD": 0.342716
     },
     "minimax-cn/MiniMax-M2.7": {
       "input": 79351,
@@ -255,7 +255,7 @@
     },
     {
       "model": "deepseek-v4.1-flash",
-      "records": 1343
+      "records": 1365
     },
     {
       "model": "step-5-preview",
@@ -282,7 +282,7 @@
       "records": 20
     }
   ],
-  "unpricedCostUSD": 763.389949,
+  "unpricedCostUSD": 766.361732,
   "defaultPricingUSD": {
     "input": 3,
     "output": 15

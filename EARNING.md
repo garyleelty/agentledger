@@ -884,3 +884,39 @@ that the disclosure work from rounds 36-37 was the right call.
 101 tests green. Docs regenerated from the sample.
 
 **$0.00 received. Stars: 0 vs 19,019.**
+
+### Round 39b: the second half of the head-to-head — a 12x pricing error
+
+Round 39 fixed the *counting* bug (duplicate Claude messages). This fixes the
+*pricing* bug the same comparison exposed.
+
+After dedup, my claude-code lane still read $14.81 against ccusage's $2.24.
+Token counts matched exactly, so the difference had to be rates. Solving for
+the rate that reproduces ccusage's number gave an absurd near-zero cache-read
+price — which turned out to be right: LiteLLM's MiMo entries all put cached
+reads at ~0.8% of input, not the 10% Anthropic convention:
+
+    xiaomi_mimo/mimo-v2.6-pro        0.0036 / 0.435  = 0.0083x
+    novita/xiaomimimo/mimo-v2.5-pro  0.0043 / 0.522  = 0.0082x
+    aihubmix/coding-xiaomi-mimo-...  0.0016 / 0.200  = 0.0080x
+
+My table said 0.1x — a 12x overcharge on the bucket holding 98% of that
+model's tokens. Fixed to the vendor-namespaced row ($0.435/$0.87, 0.0083x).
+
+Result: **claude-code now matches ccusage to the cent — $2.24 vs $2.24**, and
+the comparable-source total is $228 vs $224.65 (was $245 vs $224.65).
+
+Both bugs were invisible from inside this codebase and invisible in the tests;
+each was found by running a competitor's binary against the same files and
+asking why the numbers differed. That is worth remembering the next time
+"97 tests green" feels like evidence of correctness — it is evidence of
+self-consistency, which is a weaker claim.
+
+Remaining differences, now understood rather than mysterious: ccusage strips
+gateway prefixes (`Cherry-New-API/gpt-5.5` -> `gpt-5.5`) and charges for
+`-free` lanes that I price at $0; its codex gpt-5.5 cache rate works out to
+~0.091x against my 0.1x. Those are judgment calls where the sources disagree,
+not arithmetic errors, and the README now says so.
+
+mimo-v2.5-pro is in the audit map, so its cache ratio is machine-checked from
+here on: 26 of 30 entries compared.
