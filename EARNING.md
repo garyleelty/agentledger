@@ -726,3 +726,45 @@ confirmed the push by reading the remote head back: 5de651b == 5de651b.
 CI green.
 
 **$0.00 received. Stars: 0 vs 19,019 (ccusage) / 6,128 (AgentsView).**
+
+## Round 36: DSH as a sixth source — and the placeholder-pricing problem it exposed
+
+**A source no other tool can read.** `~/.dsh/sessions/*/session.v4.jsonl.zstd`
+is the harness this very session runs in. Its assistant turns carry full
+camelCase usage buckets, and no competitor touches these files.
+
+The parser needed frame-aware decompression: DSH appends **one zstd frame per
+write** (144 frames in the first file), and Node's `zstdDecompressSync` returns
+only the FIRST — 238 bytes of a 776 kB session, zero records, no error. An
+empty lane that looks like "no usage yet". Splitting on the frame magic and
+decompressing each independently recovers all 251 lines. Guarded for the 22.5
+floor where `node:zlib` has no zstd at all.
+
+**Then its data exposed the real problem.** 9 of 19 models have no built-in
+price and were silently billed at the $3/$15 default: **$721 of a $966 total
+was a placeholder**, printed with no indication. That is the exact sin this
+tool exists to prevent — an authoritative-looking number that is mostly
+invented. Fixed by disclosing, in every shape that can leave the machine:
+- `summary` names the models, record counts, the default used, the dollar
+  share, and the fix (`--prices`).
+- `aggregate` carries `unpricedModels` + `unpricedCostUSD` so the shareable
+  shape cannot drop the caveat.
+- Both digest renderers print "of which placeholder-priced" — a public page
+  must not assert a total it cannot back.
+- A fully-priced ledger stays silent (no false alarm), pinned by test.
+
+I did **not** invent prices for hy4-preview / qfmodel / step-5-preview.
+Guessing a rate to make the number look complete is the failure mode, not
+the fix.
+
+**CI caught my test, not my code.** The node 22.5 leg failed with
+`zstdCompressSync is not a function`: the product guard was right, the test
+fixtures could not run where the format does not exist. Now they skip with a
+stated reason. A leg that fails for an environment fact trains people to
+ignore it. All three legs green after the fix.
+
+94 tests. README/landing figures regenerated from real output — including the
+warning block, because the drift guard failed on the stale landing page first,
+which is exactly its job.
+
+**$0.00 received. Stars: 0 vs 19,019 (ccusage) / 6,128 (AgentsView).**
