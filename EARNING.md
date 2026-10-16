@@ -768,3 +768,34 @@ warning block, because the drift guard failed on the stale landing page first,
 which is exactly its job.
 
 **$0.00 received. Stars: 0 vs 19,019 (ccusage) / 6,128 (AgentsView).**
+
+## Round 37: turned the placeholder warning into a one-step fix
+
+Last round I disclosed that $741 of this machine's total was placeholder
+pricing. A warning you cannot act on is half a feature, so this round added
+the action:
+
+    agentledger prices --template > prices.json
+    $EDITOR prices.json
+    agentledger --prices prices.json
+
+The template names exactly the models in YOUR ledger that fell back to
+DEFAULT_PRICING, each annotated with record count and token volume, with
+null placeholders. Round-trip proven: filling it in takes this machine from
+$987 to $367 and silences the warning; a fully-priced ledger prints
+"nothing to do" instead of an empty object. Tests assert both directions.
+
+Also priced `deepseek-flash` — LiteLLM has a canonical entry ($0.30/$1.20,
+cached 0.02x, provider `deepseek`), and DSH reports provider
+`deepseek-account` for the same model id, same vendor. Audit coverage 25/30.
+
+**Deliberately left unpriced**: hy4-preview ($449 — the single biggest line),
+qfmodel, step-5-preview, cline-free/*. LiteLLM carries only reseller rows for
+these, and a reseller's markup is not the model's price. Inventing a number
+to make the total look complete is the exact failure mode this whole feature
+exists to prevent. The tool says "unknown" and now says how to fix it; that
+is the honest state.
+
+97 tests green. README + landing page figures regenerated from real output.
+
+**$0.00 received. Stars: 0 vs 19,019 (ccusage) / 6,128 (AgentsView).**
