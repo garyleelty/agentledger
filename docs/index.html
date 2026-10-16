@@ -64,11 +64,11 @@
 
   Metric         Tokens   Est. cost
   ─────────────  ───────  ─────────
-  Input tokens   206.97M  <span class="hi">$583</span>
-  Cache read     1.29B    <span class="hi">$318</span>
+  Input tokens   215.54M  <span class="hi">$608</span>
+  Cache read     1.32B    <span class="hi">$315</span>
   Cache write    366.4k   $0.0842
-  Output tokens  5.98M    <span class="hi">$65.42</span>
-  <span class="ok">TOTAL          1.51B    $966</span>
+  Output tokens  6.03M    <span class="hi">$63.62</span>
+  <span class="ok">TOTAL          1.54B    $987</span>
 
   Agent        Tokens   Est. cost  Records
   ───────────  ───────  ─────────  ───────
@@ -107,7 +107,7 @@
   <h2>What it does</h2>
   <ul>
     <li><strong>Reads local logs only</strong> — <code>~/.claude/projects</code>, <code>~/.codex/sessions</code>, <code>~/.local/share/opencode</code>, <code>~/.local/share/kilo</code>, <code>~/.gemini/tmp</code></li>
-    <li><strong>Cache buckets priced separately</strong> — 1.29B of my 1.51B tokens are cache reads, billed at 10-25% of input</li>
+    <li><strong>Cache buckets priced separately</strong> — 1.32B of my 1.54B tokens are cache reads, billed at 10-25% of input</li>
     <li><strong>Never touches the network</strong> — no account, no key, no telemetry, ~1,500 lines you can audit in one sitting</li>
     <li><strong>Fast</strong> — a full scan of 680M+ tokens takes about a second</li>
     <li><strong>Your rates, not mine</strong> — <code>--prices my-prices.json</code> overrides any model, partial entries merge over the built-in table</li>
@@ -153,16 +153,16 @@
 
   <h2>What it found on the machine it was written on</h2>
   <div class="panel">
-<pre>paid          <span class="hi">$966</span>
-without cache <span class="hi">$3816</span>
-saved         <span class="ok">$2850   74.7% cheaper</span>
-cache reads   <span class="hi">1.29B</span> of 1.51B total tokens   <span class="dim">(85%)</span>
-concentration  top 10 of 315 sessions = <span class="hi">74.7%</span> of all cache reads
+<pre>paid          <span class="hi">$987</span>
+without cache <span class="hi">$3819</span>
+saved         <span class="ok">$2832   74.2% cheaper</span>
+cache reads   <span class="hi">1.32B</span> of 1.54B total tokens   <span class="dim">(85%)</span>
+concentration  top 10 of 315 sessions = <span class="hi">75.1%</span> of all cache reads
 priciest      <span class="hi">$118</span>  one Codex session in one repo
 branch        <span class="hi">$206</span>  <span class="dim">the web branch alone</span></pre>
   </div>
   <p class="dim">Priced the same ledger with every cache-read token billed at its model's
-  fresh-input rate and caching is worth <strong>$2,850</strong> — the tool does not
+  fresh-input rate and caching is worth <strong>$2,832</strong> — the tool does not
   just report spend, it prices what prompt caching is worth.
   <code>agentledger savings</code> prints it. Concentration that high is not
   ordinary usage — it is context churn: a long session that keeps re-sending its

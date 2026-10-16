@@ -45,7 +45,7 @@ test('summary names unpriced models instead of silently defaulting them', async 
   assert.match(stdout, /no built-in price/, 'the fallback must be disclosed');
   assert.match(stdout, /totally-made-up-model-9/);
   assert.match(stdout, /\$3\/\$15 per-Mtok default/);
-  assert.match(stdout, /--prices/, 'the disclosure must say how to fix it');
+  assert.match(stdout, /prices --template/, 'the disclosure must say how to fix it');
 });
 
 test('a fully-priced ledger prints no placeholder warning', () => {
@@ -69,4 +69,36 @@ test('the rendered digest states the placeholder portion', async () => {
   const dump = JSON.parse(run(['aggregate', '-p', file]).stdout);
   assert.match(renderDigest(dump), /placeholder-priced/);
   assert.match(renderDigestHtml(dump), /placeholder-priced/);
+});
+
+test('prices --template emits a fill-in override file for the unpriced models', async () => {
+  const file = await unknownModelTranscript();
+  const { stdout } = run(['prices', '--template', '-p', file]);
+  // the comment lines name each model with its weight
+  assert.match(stdout, /totally-made-up-model-9: \d+ records/);
+  assert.match(stdout, /--prices prices\.json/);
+  // and the JSON block parses, with null placeholders (not invented numbers)
+  const json = stdout.slice(stdout.indexOf('{'));
+  const obj = JSON.parse(json);
+  assert.deepEqual(obj['totally-made-up-model-9'], { input: null, output: null });
+});
+
+test('the template round-trips: filling it in removes the warning', async () => {
+  const file = await unknownModelTranscript();
+  const { stdout: tpl } = run(['prices', '--template', '-p', file]);
+  const obj = JSON.parse(tpl.slice(tpl.indexOf('{')));
+  for (const k of Object.keys(obj)) obj[k] = { input: 1, output: 2 };
+  const dir = await mkdtemp(path.join(tmpdir(), 'aledger-tpl-'));
+  const pricesFile = path.join(dir, 'prices.json');
+  await writeFile(pricesFile, JSON.stringify(obj));
+
+  const before = run(['summary', '-p', file]).stdout;
+  const after = run(['summary', '-p', file, '--prices', pricesFile]).stdout;
+  assert.match(before, /no built-in price/);
+  assert.doesNotMatch(after, /no built-in price/, 'pricing the models must silence the warning');
+});
+
+test('prices --template says so when everything is already priced', () => {
+  const { stdout } = run(['prices', '--template']); // fixture home is fully priced
+  assert.match(stdout, /every model in this ledger already has a price/);
 });

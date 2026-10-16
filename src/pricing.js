@@ -134,6 +134,13 @@ export const PRICING = {
   // DeepSeek repriced to the current V4 line ($0.28/$0.42, cached 0.1x);
   // the old rows carried the previous generation's $1.10/$2.19 output,
   // overstating output cost ~2.6x.
+  // DSH (DeepSeek's own harness) reports provider `deepseek-account` with
+  // model id `deepseek-flash`; LiteLLM carries a canonical `deepseek-flash`
+  // entry under provider `deepseek` at $0.30/$1.20, cached $0.006/M (0.02x).
+  // Same vendor, canonical id, not a reseller row — so this is a real price
+  // rather than a guess. Models like hy4-preview/qfmodel/step-5-preview have
+  // no canonical entry anywhere, so they stay on the disclosed default.
+  'deepseek-flash': { input: 0.3, output: 1.2, cacheReadMultiplier: 0.02, cacheWriteMultiplier: 1.0 },
   'deepseek-chat': { input: 0.28, output: 0.42, cacheReadMultiplier: 0.1, cacheWriteMultiplier: 1.0 },
   'deepseek-reasoner': { input: 0.28, output: 0.42, cacheReadMultiplier: 0.1, cacheWriteMultiplier: 1.0 },
 

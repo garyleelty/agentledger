@@ -15,26 +15,27 @@ $ agentledger
 
   Metric         Tokens   Est. cost
   ─────────────  ───────  ─────────
-  Input tokens   206.97M  $583
-  Cache read     1.29B    $318
+  Input tokens   215.54M  $608
+  Cache read     1.32B    $315
   Cache write    366.4k   $0.0842
-  Output tokens  5.98M    $65.42
-  TOTAL          1.51B    $966
+  Output tokens  6.03M    $63.62
+  TOTAL          1.54B    $987
 
   Agent        Tokens   Est. cost  Records
   ───────────  ───────  ─────────  ───────
-  dsh          825.38M  $721       4460
+  dsh          856.09M  $742       4577
   codex        219.58M  $200       3053
   opencode     240.83M  $28.64     3772
   claude-code  218.19M  $15.70     3531
   kilo         3.04M    $0.3186    103
 
-  ! 9 model(s) have no built-in price and used the
-    $3/$15 per-Mtok default ($721 of the total):
-      hy4-preview  (1294 records)
-      deepseek-v4.1-flash  (1207 records)
+  ! 8 model(s) have no built-in price and used the
+    $3/$15 per-Mtok default ($741 of the total):
+      hy4-preview  (1347 records)
+      deepseek-v4.1-flash  (1260 records)
       ...
-    Set real rates with --prices <file>, or add them to src/pricing.js.
+    Fix in one step: `agentledger prices --template` prints a
+    fill-in override file for exactly these models.
 ```
 
 *(That is a real run on the machine it was written on — including the warning,
@@ -213,13 +214,13 @@ $ agentledger savings
 
   What prompt caching saved
 
-  paid                  $966
-  without cache        $3816
-  saved                $2850   74.7% cheaper
+  paid                  $987
+  without cache        $3819
+  saved                $2832   74.2% cheaper
 
-  [██████████████████████░░░░░░░░]  74.7% saved
+  [██████████████████████░░░░░░░░]  74.2% saved
 
-  1.29B of 1.51B tokens came from cache
+  1.32B of 1.54B tokens came from cache
   (93.1% of the total).
 ```
 
@@ -295,6 +296,18 @@ if you name a model explicitly, you meant it. A bad file fails the run with
 a clear message — a half-applied price file would still print an
 authoritative-looking table, which is the one outcome this feature must
 never produce.
+
+Don't want to write the file by hand? Ask for it:
+
+```bash
+agentledger prices --template > prices.json   # only the unpriced models, blank
+$EDITOR prices.json                           # fill in your rates
+agentledger --prices prices.json
+```
+
+The template names exactly the models in *your* ledger that fell back to the
+default, each with its record count and token volume, so you can see what a
+blank line is worth before you go looking up rates.
 
 ## Supported agents
 

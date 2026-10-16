@@ -67,12 +67,13 @@ function money0(raw, flag) {
 }
 
 function parseFlags(args) {
-  const out = { agent: [], path: [], json: false, top: 10, days: 30, since: null, budget: null, prices: null };
+  const out = { agent: [], path: [], json: false, template: false, top: 10, days: 30, since: null, budget: null, prices: null };
   for (let i = 0; i < args.length; i++) {
     const a = args[i];
     if (a === '--agent' || a === '-a') out.agent.push(args[++i]);
     else if (a === '--path' || a === '-p') out.path.push(args[++i]);
     else if (a === '--json') out.json = true;
+    else if (a === '--template') out.template = true;
     else if (a === '--prices') {
       const raw = args[++i];
       if (!raw || raw.startsWith('-')) throw new Error('--prices expects a JSON file path');
@@ -168,7 +169,7 @@ async function main() {
       }
       return reportBudget(filtered, flags);
     case 'sources': return reportSources(flags);
-    case 'prices': return reportPrices();
+    case 'prices': return reportPrices(flags, filtered);
     case 'aggregate': return reportAggregate(filtered);
     case 'json': return reportJson(filtered);
     case 'statusline': return statusline(flags);
@@ -367,7 +368,8 @@ function reportSummary(records, meta, flags) {
       console.log(`      ${model}  (${n} records)`);
     }
     if (unpriced.length > 5) console.log(`      … and ${unpriced.length - 5} more`);
-    console.log('    Set real rates with --prices <file>, or add them to src/pricing.js.');
+    console.log('    Fix in one step: `agentledger prices --template` prints a');
+    console.log('    fill-in override file for exactly these models.');
   }
   if (meta.skipped.length) {
     console.log(`  ${meta.skipped.length} file(s) could not be parsed (skipped).`);
@@ -627,7 +629,7 @@ function countMatching(dir, match, depth) {
   return n;
 }
 
-function reportPrices() {
+function reportPrices(flags, records) {
   const over = overriddenModels();
   // Show what pricing ACTUALLY resolves to (resolvePricing), not the static
   // table — otherwise an override marks its row with * and still prints the
@@ -664,6 +666,39 @@ function reportPrices() {
   console.log('  5-minute writes x1.25, 1-hour writes x2 of the input price).');
   console.log('  Every row is cross-checked weekly against the LiteLLM model database');
   console.log('  (tools/audit_pricing.py, in CI). agentledger never contacts the network.');
+
+  if (flags?.template) {
+    // Turn the warning into a one-step fix: emit an override file naming
+    // exactly the models in THIS ledger that fell back to the default, with
+    // their token volumes so each blank line has a visible weight.
+    const unpriced = unpricedModels(records ?? []);
+    if (!unpriced.length) {
+      console.log('');
+      console.log('  --template: every model in this ledger already has a price.');
+      return;
+    }
+    const byModel = new Map();
+    for (const r of (records ?? [])) {
+      if (r.model && resolvePricing(r.model) === DEFAULT_PRICING) {
+        const cur = byModel.get(r.model) ?? { records: 0, tokens: 0 };
+        cur.records++;
+        cur.tokens += (r.input || 0) + (r.cacheRead || 0) + (r.cacheWrite || 0) + (r.output || 0);
+        byModel.set(r.model, cur);
+      }
+    }
+    console.log('');
+    console.log('  --template: fill in real rates below, save as prices.json,');
+    console.log('  then run any command with:  agentledger --prices prices.json');
+    console.log('');
+    const obj = {};
+    for (const [model] of unpriced) {
+      const v = byModel.get(model);
+      obj[model] = { input: null, output: null };
+      console.log(`  // ${model}: ${v.records} records, ${fmtTok(v.tokens)} tokens`);
+    }
+    console.log('');
+    console.log(JSON.stringify(obj, null, 2));
+  }
 }
 
 function reportJson(records) {
