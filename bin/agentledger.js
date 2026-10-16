@@ -282,6 +282,13 @@ function reportAggregate(records) {
       })
       .sort((a, b) => b[1].costUSD - a[1].costUSD),
   );
+  // The shareable shape carries the caveat too. A digest built from this is
+  // published on a public page; if a chunk of the total is a placeholder, the
+  // page has to say so or it is asserting a number it cannot back.
+  const unpriced = unpricedModels(records);
+  const unpricedCost = records
+    .filter((r) => r.model && resolvePricing(r.model) === DEFAULT_PRICING)
+    .reduce((a, r) => a + (r.cost?.total ?? 0), 0);
   console.log(JSON.stringify({
     tool: 'agentledger',
     version: version(),
@@ -293,10 +300,34 @@ function reportAggregate(records) {
     },
     byAgent: by((r) => r.agent),
     byModel: by((r) => r.model),
+    ...(unpriced.length ? {
+      unpricedModels: unpriced.map(([model, n]) => ({ model, records: n })),
+      unpricedCostUSD: round(unpricedCost),
+      defaultPricingUSD: { input: DEFAULT_PRICING.input, output: DEFAULT_PRICING.output },
+    } : {}),
   }, null, 2));
 }
 
 /* ------------------------------ reports ------------------------------ */
+
+
+/**
+ * Models whose cost came from DEFAULT_PRICING because nothing in the table
+ * matched. The estimate is still printed — refusing to price a model helps
+ * nobody — but the summary has to say so. Silence here is how a $3/$15
+ * fallback becomes a number someone quotes: on this machine 7 of 10 models
+ * in one lane were unpriced, and the total read $719 with no hint that most
+ * of it was a placeholder.
+ */
+function unpricedModels(records) {
+  const out = new Map();
+  for (const r of records) {
+    if (r.model && resolvePricing(r.model) === DEFAULT_PRICING) {
+      out.set(r.model, (out.get(r.model) || 0) + 1);
+    }
+  }
+  return [...out.entries()].sort((a, b) => b[1] - a[1]);
+}
 
 function reportSummary(records, meta, flags) {
   if (flags.json) return reportJson(records);
@@ -324,6 +355,20 @@ function reportSummary(records, meta, flags) {
   printTable(['Agent', 'Tokens', 'Est. cost', 'Records'], byAgent);
   console.log('');
   console.log('  Run `agentledger by-model` for a per-model breakdown.');
+  const unpriced = unpricedModels(records);
+  if (unpriced.length) {
+    const cost = records
+      .filter((r) => r.model && resolvePricing(r.model) === DEFAULT_PRICING)
+      .reduce((a, r) => a + (r.cost?.total ?? 0), 0);
+    console.log('');
+    console.log(`  ! ${unpriced.length} model(s) have no built-in price and used the`);
+    console.log(`    $${DEFAULT_PRICING.input}/$${DEFAULT_PRICING.output} per-Mtok default (${money(cost)} of the total):`);
+    for (const [model, n] of unpriced.slice(0, 5)) {
+      console.log(`      ${model}  (${n} records)`);
+    }
+    if (unpriced.length > 5) console.log(`      … and ${unpriced.length - 5} more`);
+    console.log('    Set real rates with --prices <file>, or add them to src/pricing.js.');
+  }
   if (meta.skipped.length) {
     console.log(`  ${meta.skipped.length} file(s) could not be parsed (skipped).`);
   }

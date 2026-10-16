@@ -39,7 +39,7 @@ test('sources --json is machine-readable and carries the same facts', () => {
   const { stdout } = run(['sources', '--json'], fixtureHome);
   const d = JSON.parse(stdout);
   assert.ok(Array.isArray(d.sources));
-  assert.equal(d.sources.length, 5, 'one row per supported source');
+  assert.equal(d.sources.length, 6, 'one row per supported source');
   for (const s of d.sources) {
     assert.ok(typeof s.agent === 'string');
     assert.ok(typeof s.state === 'string');
@@ -52,6 +52,6 @@ test('sources --json is machine-readable and carries the same facts', () => {
 
 test('an empty home reports zero sources and says what to do', () => {
   const { stdout } = run(['sources'], '/nonexistent-home-for-tests');
-  assert.match(stdout, /0 of 5 sources have data/);
+  assert.match(stdout, /0 of 6 sources have data/);
   assert.match(stdout, /point at it with -p/);
 });

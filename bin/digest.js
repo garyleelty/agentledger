@@ -69,6 +69,9 @@ export function renderDigest(ledger) {
     `| Output tokens | ${comma(t.output)} |`,
     `| **All tokens** | **${comma(totalTokens)}** |`,
     `| **Estimated total** | **${money(ledger?.totals?.costUSD)}** |`,
+    ...(ledger?.unpricedCostUSD > 0
+      ? [`| of which placeholder-priced | ${money(ledger.unpricedCostUSD)} (${comma(ledger.unpricedModels?.length ?? 0)} models with no built-in price) |`]
+      : []),
     '',
     '## By agent',
     '',
@@ -147,6 +150,9 @@ ${row(['Cache write', comma(t.cacheWrite)])}
 ${row(['Output tokens', comma(t.output)])}
 ${row(['All tokens', comma(totalTokens)])}
 ${row(['Estimated total', money(ledger?.totals?.costUSD)])}
+${ledger?.unpricedCostUSD > 0
+  ? row(['of which placeholder-priced', `${money(ledger.unpricedCostUSD)} (${comma(ledger.unpricedModels?.length ?? 0)} models with no built-in price)`])
+  : ''}
 </table>
 
 <h2>By agent</h2>

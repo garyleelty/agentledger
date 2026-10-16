@@ -262,10 +262,100 @@ async function readJsonSafe(file) {
   }
 }
 
+/* ------------------------------------------------------------------ *
+ * DSH (DeepSeek Harness): one zstd session file per directory under
+ * ~/.dsh/sessions (session.v4.jsonl.zstd)
+ *
+ * The only source whose log is compressed. Each session is a zstd frame of
+ * JSONL events; assistant turns carry a `usage` block with camelCase token
+ * buckets. The model is NOT on the usage record — it lives on the preceding
+ * `request/header` event, so the parser tracks the latest one and attributes
+ * every subsequent turn to it. No other tool reads these logs.
+ * ------------------------------------------------------------------ */
+
+/**
+ * DSH appends to its session file one zstd frame per write, so a real file is
+ * dozens of concatenated frames. Node's zstdDecompressSync stops after the
+ * first one — on this machine that yielded 238 bytes of a 776 kB session, and
+ * the lane silently reported zero records. Split on the frame magic and
+ * decompress each independently; the magic cannot appear inside a frame
+ * header/payload in a way that matters here, and a torn final frame (a live
+ * session mid-write) is skipped rather than failing the file.
+ */
+function decompressZstdFrames(zlib, raw) {
+  const magic = Buffer.from([0x28, 0xb5, 0x2f, 0xfd]);
+  const offsets = [];
+  let i = 0;
+  while ((i = raw.indexOf(magic, i)) !== -1) {
+    offsets.push(i);
+    i += 4;
+  }
+  if (offsets.length <= 1) return zlib.zstdDecompressSync(raw).toString('utf8');
+  const parts = [];
+  for (let k = 0; k < offsets.length; k++) {
+    const end = k + 1 < offsets.length ? offsets[k + 1] : raw.length;
+    try {
+      parts.push(zlib.zstdDecompressSync(raw.subarray(offsets[k], end)));
+    } catch {
+      // torn tail of a session being written right now
+    }
+  }
+  return Buffer.concat(parts).toString('utf8');
+}
+
+export async function* parseDsh(file) {
+  let text;
+  try {
+    // zstd support landed in Node 23.8. On the 22.5 floor the import or the
+    // call throws, and this lane degrades to zero records like any other
+    // unreadable store rather than taking down the scan.
+    const zlib = await import('node:zlib');
+    if (typeof zlib.zstdDecompressSync !== 'function') return;
+    const { readFileSync } = await import('node:fs');
+    text = decompressZstdFrames(zlib, readFileSync(file));
+  } catch {
+    return;
+  }
+  const session = path.basename(path.dirname(file));
+  let model = null;
+  for (const line of text.split('\n')) {
+    const trimmed = line.trim();
+    if (!trimmed) continue;
+    let rec;
+    try {
+      rec = JSON.parse(trimmed);
+    } catch {
+      continue; // a torn tail is normal for a live session
+    }
+    if (rec.type === 'request/header') {
+      model = rec.data?.header?.config?.model ?? model;
+      continue;
+    }
+    if (rec.type !== 'assistant/message') continue;
+    const u = rec.data?.usage;
+    if (!u) continue;
+    const input = num(u.inputTokens);
+    const cacheRead = num(u.cacheReadTokens);
+    const cacheWrite = num(u.cacheWriteTokens);
+    const output = num(u.outputTokens);
+    if (input + cacheRead + cacheWrite + output === 0) continue;
+    yield {
+      agent: 'dsh',
+      model: model || 'unknown',
+      session,
+      timestamp: num(rec.time) || null,
+      input, cacheRead, cacheWrite, output,
+      project: null,
+      branch: null,
+    };
+  }
+}
+
 export const PARSERS = {
   'claude-code': parseClaudeCode,
   codex: parseCodex,
   opencode: parseOpenCode,
   kilo: parseKilo,
+  dsh: parseDsh,
   'gemini-cli': parseGemini,
 };

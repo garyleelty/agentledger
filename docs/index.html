@@ -60,15 +60,15 @@
 <pre><span class="prompt">$</span> npm install -g git+https://github.com/garyleelty/agentledger.git
 <span class="prompt">$</span> agentledger
 
-  agentledger — 75 session files scanned
+  agentledger — 119 session files scanned
 
   Metric         Tokens   Est. cost
   ─────────────  ───────  ─────────
-  Input tokens   43.37M   <span class="hi">$92.51</span>
-  Cache read     634.47M  <span class="hi">$120</span>
+  Input tokens   206.97M  <span class="hi">$583</span>
+  Cache read     1.29B    <span class="hi">$318</span>
   Cache write    366.4k   $0.0842
-  Output tokens  3.79M    <span class="hi">$32.59</span>
-  <span class="ok">TOTAL          682.00M  $245</span>
+  Output tokens  5.98M    <span class="hi">$65.42</span>
+  <span class="ok">TOTAL          1.51B    $966</span>
 
   Agent        Tokens   Est. cost  Records
   ───────────  ───────  ─────────  ───────
@@ -107,7 +107,7 @@
   <h2>What it does</h2>
   <ul>
     <li><strong>Reads local logs only</strong> — <code>~/.claude/projects</code>, <code>~/.codex/sessions</code>, <code>~/.local/share/opencode</code>, <code>~/.local/share/kilo</code>, <code>~/.gemini/tmp</code></li>
-    <li><strong>Cache buckets priced separately</strong> — 634M of my 682M tokens are cache reads, billed at 10-25% of input</li>
+    <li><strong>Cache buckets priced separately</strong> — 1.29B of my 1.51B tokens are cache reads, billed at 10-25% of input</li>
     <li><strong>Never touches the network</strong> — no account, no key, no telemetry, ~1,500 lines you can audit in one sitting</li>
     <li><strong>Fast</strong> — a full scan of 680M+ tokens takes about a second</li>
     <li><strong>Your rates, not mine</strong> — <code>--prices my-prices.json</code> overrides any model, partial entries merge over the built-in table</li>
@@ -138,6 +138,7 @@
     <tr><td>Codex CLI</td><td><code>~/.codex/sessions</code></td><td class="ok">supported</td></tr>
     <tr><td>OpenCode</td><td><code>~/.local/share/opencode/opencode.db</code></td><td class="ok">supported</td></tr>
     <tr><td>Kilo</td><td><code>~/.local/share/kilo</code></td><td class="ok">supported</td></tr>
+    <tr><td>DSH (DeepSeek Harness)</td><td><code>~/.dsh/sessions</code></td><td class="ok">supported</td></tr>
     <tr><td>Gemini CLI</td><td><code>~/.gemini/tmp</code></td><td class="ok">supported</td></tr>
     <tr><td>Cursor, Aider, Amp…</td><td><code>--path</code> + sniffing</td><td class="dim">partial</td></tr>
   </table>
@@ -152,16 +153,16 @@
 
   <h2>What it found on the machine it was written on</h2>
   <div class="panel">
-<pre>paid          <span class="hi">$245</span>
-without cache <span class="hi">$1313</span>
-saved         <span class="ok">$1068   81.3% cheaper</span>
-cache reads   <span class="hi">634.47M</span> of 682.00M total tokens   <span class="dim">(93%)</span>
-concentration  top 10 of 273 sessions = <span class="hi">74.2%</span> of all cache reads
+<pre>paid          <span class="hi">$966</span>
+without cache <span class="hi">$3816</span>
+saved         <span class="ok">$2850   74.7% cheaper</span>
+cache reads   <span class="hi">1.29B</span> of 1.51B total tokens   <span class="dim">(85%)</span>
+concentration  top 10 of 315 sessions = <span class="hi">74.7%</span> of all cache reads
 priciest      <span class="hi">$118</span>  one Codex session in one repo
 branch        <span class="hi">$206</span>  <span class="dim">the web branch alone</span></pre>
   </div>
   <p class="dim">Priced the same ledger with every cache-read token billed at its model's
-  fresh-input rate and caching is worth <strong>$1,068</strong> — the tool does not
+  fresh-input rate and caching is worth <strong>$2,850</strong> — the tool does not
   just report spend, it prices what prompt caching is worth.
   <code>agentledger savings</code> prints it. Concentration that high is not
   ordinary usage — it is context churn: a long session that keeps re-sending its

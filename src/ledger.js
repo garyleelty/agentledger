@@ -48,6 +48,15 @@ export const SOURCES = [
     docs: 'https://kilo.ai',
   },
   {
+    // DSH (DeepSeek Harness) keeps zstd-compressed JSONL sessions. Read-only;
+    // the parser decompresses in memory and never writes back.
+    agent: 'dsh',
+    root: '~/.dsh/sessions',
+    match: (rel) => /session\.v4\.jsonl\.zstd$/.test(rel),
+    parser: PARSERS.dsh,
+    docs: 'https://github.com/deepseek-ai/deepseek-harness',
+  },
+  {
     agent: 'gemini-cli',
     root: '~/.gemini/tmp',
     match: (rel) => /(^|\/)logs\.json$/.test(rel),

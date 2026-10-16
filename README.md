@@ -5,31 +5,41 @@
 **What did that agent actually cost you?**
 
 `agentledger-cli` is a local-first ledger for AI coding agents. It reads the
-session logs that Claude Code, Codex, OpenCode, Kilo, and Gemini CLI already
-write to your machine and turns them into tokens and dollars.
+session logs that Claude Code, Codex, OpenCode, Kilo, DSH, and Gemini CLI
+already write to your machine and turns them into tokens and dollars.
 
 ```
 $ agentledger
 
-  agentledger — 75 session files scanned
+  agentledger — 119 session files scanned
 
   Metric         Tokens   Est. cost
   ─────────────  ───────  ─────────
-  Input tokens   43.37M   $92.51
-  Cache read     634.47M  $120
+  Input tokens   206.97M  $583
+  Cache read     1.29B    $318
   Cache write    366.4k   $0.0842
-  Output tokens  3.79M    $32.59
-  TOTAL          682.00M  $245
+  Output tokens  5.98M    $65.42
+  TOTAL          1.51B    $966
 
   Agent        Tokens   Est. cost  Records
   ───────────  ───────  ─────────  ───────
+  dsh          825.38M  $721       4460
   codex        219.58M  $200       3053
   opencode     240.83M  $28.64     3772
   claude-code  218.19M  $15.70     3531
   kilo         3.04M    $0.3186    103
+
+  ! 9 model(s) have no built-in price and used the
+    $3/$15 per-Mtok default ($721 of the total):
+      hy4-preview  (1294 records)
+      deepseek-v4.1-flash  (1207 records)
+      ...
+    Set real rates with --prices <file>, or add them to src/pricing.js.
 ```
 
-*(That is a real run on the machine it was written on.)*
+*(That is a real run on the machine it was written on — including the warning,
+which is the point of it. Most of that total is placeholder-priced, and the
+tool says so rather than letting you quote it.)*
 
 ## Why
 
@@ -150,11 +160,11 @@ answers the question you actually have while working — am I about to go over:
 $ agentledger budget -b 100
 
   budget    $100
-  spent     $245   ████████████████████████  245.1%
-  remaining $0.0000   OVER by $145
+  spent     $966   ████████████████████████  966.4%
+  remaining $0.0000   OVER by $866
 
-  run rate  $1.82/day  over 134.3 days of activity
-            already $145 over.
+  run rate  $5.06/day  over 191.2 days of activity
+            already $866 over.
 ```
 
 The run rate is measured over the span of data you actually have, not a
@@ -203,13 +213,13 @@ $ agentledger savings
 
   What prompt caching saved
 
-  paid                  $245
-  without cache        $1313
-  saved                $1068   81.3% cheaper
+  paid                  $966
+  without cache        $3816
+  saved                $2850   74.7% cheaper
 
-  [████████████████████████░░░░░░]  81.3% saved
+  [██████████████████████░░░░░░░░]  74.7% saved
 
-  634.47M of 682.00M tokens came from cache
+  1.29B of 1.51B tokens came from cache
   (93.1% of the total).
 ```
 
@@ -242,7 +252,7 @@ Useful flags:
 
 | Flag | Meaning |
 | --- | --- |
-| `-a, --agent <name>` | only one agent (`claude-code`, `codex`, `opencode`, `kilo`, `gemini-cli`) |
+| `-a, --agent <name>` | only one agent (`claude-code`, `codex`, `opencode`, `kilo`, `dsh`, `gemini-cli`) |
 | `-p, --path <dir>` | also scan a directory or single file |
 | `--since <date>` | only records at/after a date |
 | `-n, --top <n>` | rows in ranked reports |
@@ -294,6 +304,7 @@ never produce.
 | Codex CLI | `~/.codex/sessions/**/rollout-*.jsonl` | ✅ |
 | OpenCode | `~/.local/share/opencode/opencode.db` | ✅ |
 | Kilo | `~/.local/share/kilo/kilo.db` | ✅ |
+| DSH (DeepSeek Harness) | `~/.dsh/sessions/*/session.v4.jsonl.zstd` | ✅ |
 | Gemini CLI | `~/.gemini/tmp/**/logs.json` | ✅ |
 | Anything else | `--path` + format sniffing | partial |
 
