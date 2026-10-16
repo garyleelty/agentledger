@@ -97,14 +97,24 @@ is part of Node itself.
 
 ## Install
 
-With npm, straight from the repository:
+From a release tarball (no npm account, no registry, no build step):
+
+```bash
+npm install -g https://github.com/garyleelty/agentledger/releases/download/v0.3.0/agentledger-cli-0.3.0.tgz
+```
+
+The tarball is attached to each release by the release workflow using the
+repo's own token, so this path works whether or not the package is on the
+registry. Verified: installed from that URL and ran `agentledger --version`.
+
+Or with npm, straight from the repository:
 
 ```bash
 npm install -g git+https://github.com/garyleelty/agentledger.git   # install
 npx --package=git+https://github.com/garyleelty/agentledger.git agentledger  # run once
 ```
 
-Both give you `agentledger` and `aledger`. Verified working.
+All of these give you `agentledger` and `aledger`.
 
 Or one line, with no npm involvement at all:
 

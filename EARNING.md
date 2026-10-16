@@ -799,3 +799,43 @@ is the honest state.
 97 tests green. README + landing page figures regenerated from real output.
 
 **$0.00 received. Stars: 0 vs 19,019 (ccusage) / 6,128 (AgentsView).**
+
+## Round 38: a real install channel, with no credentials at all
+
+Two rounds of staring at a dead npm token produced nothing. This round found
+the path that does not need one.
+
+**`publish.yml` could never succeed.** `on: release` ran `npm publish`
+unconditionally, so cutting a release produced a red X and **no artifact**.
+Rewritten as two jobs: the first builds the tarball and attaches it to the
+release with the workflow's own GITHUB_TOKEN (no npm account, no secret); the
+second publishes to npm only when NPM_TOKEN exists, and logs a `::notice`
+instead of failing when it does not. A release is now a real download channel
+today:
+
+    npm install -g https://github.com/garyleelty/agentledger/releases/download/v0.3.0/agentledger-cli-0.3.0.tgz
+
+Verified end to end, not assumed: the release workflow ran green on the
+`release` event, the asset attached (32,451 bytes), and a clean directory
+installed from that URL and ran `agentledger --version` -> 0.3.0 with all six
+sources listed. That is the first distribution path in this whole goal that
+needed nothing from the user.
+
+**Stopped hand-syncing the docs.** The published figures are real output from
+a ledger that grows whenever I work — and this tool counts its own authoring
+session (DSH), so the docs went stale within the hour, every hour, and I lost
+that race three rounds running. `tools/sync-docs.mjs` now renders every token
+figure and per-agent row from the committed sample; proven idempotent by
+hashing consecutive runs. CI regenerates and fails on any diff.
+
+**A silent-corruption bug in that script, caught by reading its output.**
+`money()` returns a literal `$`, and in a JavaScript string replacement `$1`
+/ `$2` are backreferences — the first run rewrote the codex row as
+`219.58M    00`. A function replacement fixes it, and the reason is in the
+source comment, because that class of bug corrupts rather than throws.
+
+v0.3.0 published (not draft). 97 tests green.
+
+**$0.00 received. Stars: 0 vs 19,019 (ccusage) / 6,128 (AgentsView).** The
+difference this round is that a stranger can now install the tool with one
+command that works.
