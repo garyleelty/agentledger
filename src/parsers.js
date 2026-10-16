@@ -29,6 +29,17 @@ export async function* parseClaudeCode(file) {
   let session = path.basename(file, '.jsonl');
   let project = null;
   let branch = null;
+  // Claude Code writes the SAME assistant message more than once — a resumed
+  // session, a sidechain replay, or a retried request all re-emit the record
+  // with the same `message.id`. On this machine that is 2,861 usage rows for
+  // 1,260 distinct message ids: summing every row double-counts 2.2x and
+  // reported $15.67 where the true figure is ~$2.21. ccusage deduplicates on
+  // message id (rust/adapters/claude/src/lib.rs: DedupeIndex); a head-to-head
+  // run against its binary is how this was found, so the rule is mirrored:
+  // keep one row per message id, prefer the non-sidechain copy, then the one
+  // with the most tokens.
+  const byMessage = new Map();
+  const order = [];
   for await (const rec of jsonl(file)) {
     // Attribution is carried on the first record that has it; later turns keep
     // the same working directory but do not repeat these fields.
@@ -64,8 +75,34 @@ export async function* parseClaudeCode(file) {
         r.cacheWrite5m = w5m;
       }
     }
+    r.isSidechain = rec.isSidechain === true;
+    r.messageId = msg.id || null;
+
+    if (!r.messageId) {
+      yield r; // no id to dedupe on: keep it rather than drop real usage
+      continue;
+    }
+    const prior = byMessage.get(r.messageId);
+    if (!prior) {
+      byMessage.set(r.messageId, r);
+      order.push(r.messageId);
+    } else if (preferOver(r, prior)) {
+      byMessage.set(r.messageId, r);
+    }
+  }
+  for (const id of order) {
+    const r = byMessage.get(id);
+    delete r.isSidechain;
+    delete r.messageId;
     yield r;
   }
+}
+
+/** ccusage's rule, mirrored: non-sidechain wins; then more tokens wins. */
+function preferOver(candidate, existing) {
+  if (candidate.isSidechain !== existing.isSidechain) return !candidate.isSidechain;
+  const total = (x) => (x.input || 0) + (x.output || 0) + (x.cacheRead || 0) + (x.cacheWrite || 0);
+  return total(candidate) > total(existing);
 }
 
 /* ------------------------------------------------------------------ *

@@ -15,24 +15,24 @@ $ agentledger
 
   Metric         Tokens   Est. cost
   ─────────────  ───────  ─────────
-  Input tokens   218.84M  $608
-  Cache read     1.33B    $315
+  Input tokens   218.95M  $608
+  Cache read     1.34B    $315
   Cache write    366.4k   $0.0842
-  Output tokens  6.06M    $63.62
-  TOTAL          1.55B    $987
+  Output tokens  6.09M    $63.62
+  TOTAL          1.56B    $987
 
   Agent        Tokens   Est. cost  Records
   ───────────  ───────  ─────────  ───────
-  dsh          869.19M  $755       4577
+  dsh          894.48M  $764       4577
   codex        219.58M  $200       3053
   opencode     240.91M  $28.64     3772
-  claude-code  218.19M  $15.70     3531
+  claude-code  205.05M  $14.81     3531
   kilo         3.32M    $0.3186    103
 
   ! 8 model(s) have no built-in price and used the
-    $3/$15 per-Mtok default ($755 of the total):
-      hy4-preview  (1374 records)
-      deepseek-v4.1-flash  (1280 records)
+    $3/$15 per-Mtok default ($763 of the total):
+      hy4-preview  (1377 records)
+      deepseek-v4.1-flash  (1343 records)
       ...
     Fix in one step: `agentledger prices --template` prints a
     fill-in override file for exactly these models.
@@ -87,6 +87,20 @@ entry fails a build on a schedule instead of waiting for a manual
 ledger would have cost with no prompt caching); and the whole tool is ~1,500
 lines of zero-dependency JavaScript with no build step, no runtime fetch, and
 no network call of any kind.
+
+**Measured against ccusage on the same machine** (ccusage 20.0.34, darwin
+arm64, run against the same `~/.claude/projects`, `~/.codex/sessions` and
+`opencode.db`): token counts agree exactly for codex (219,388,883) and
+opencode (240,912,255), and for Claude Code after the fix below
+(in=2,373,420 / out=511,342 / cache read=202,163,520 for the largest model).
+That head-to-head is also how a real bug surfaced: Claude Code re-emits the
+same assistant message (resumed sessions, sidechain replays, retries) and this
+tool was summing every row — 2,861 rows for 1,260 distinct message ids, a 2.2x
+over-count that reported $15.67 for a lane costing ~$2.21. It now deduplicates
+on `message.id` with ccusage's rule (prefer non-sidechain, then more tokens).
+Where the totals still differ it is pricing, not counting: `mimo-v2.5-pro` has
+no canonical LiteLLM entry (only reseller rows that disagree with each other),
+so this tool's rate for it is an estimate and ccusage's is a different one.
 
 agentledger exists because I wanted something I could read end to end.
 Whether that trade is worth it is your call, not mine.

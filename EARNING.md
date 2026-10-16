@@ -839,3 +839,48 @@ v0.3.0 published (not draft). 97 tests green.
 **$0.00 received. Stars: 0 vs 19,019 (ccusage) / 6,128 (AgentsView).** The
 difference this round is that a stranger can now install the tool with one
 command that works.
+
+## Round 39: ran ccusage head-to-head — and it found a real bug in agentledger
+
+There is a ccusage 20.0.34 darwin-arm64 binary in the Cherry Studio cache. So
+for the first time this goal could be tested directly instead of argued about:
+run both tools against the same logs and compare.
+
+**Token counts agree exactly** for codex (219,388,883) and opencode
+(240,912,255) — and that agreement is meaningful, because the parsers were
+written independently against different references.
+
+**Claude Code did not agree**, and the disagreement was mine:
+
+| | agentledger | ccusage |
+|---|---|---|
+| claude-code cost | $15.67 | $2.21 |
+| mimo-v2.5-pro cache read | 215,146,496 | 202,163,520 |
+
+Root cause: Claude Code writes the **same assistant message more than once** —
+resumed sessions, sidechain replays, retried requests. This machine's logs hold
+2,861 usage rows for 1,260 distinct `message.id`s. agentledger summed every
+row; ccusage deduplicates (`DedupeIndex`, rust/adapters/claude/src/lib.rs —
+read, not guessed). After mirroring the rule (prefer non-sidechain, then the
+larger token total) the token counts match ccusage exactly:
+in=2,373,420 / out=511,342 / cacheRead=202,163,520.
+
+That is a 2.2x over-count on a real user's bill, found only by running the
+competitor against the same data. 4 regression tests pin the rule, including
+the sidechain tiebreak and the no-id case (kept, not dropped — losing real
+spend is worse than a pathological double-count).
+
+**What still differs is pricing, not counting.** `mimo-v2.5-pro` has no
+canonical LiteLLM entry — only reseller rows that disagree with each other
+(novita 0.522/1.044, deepinfra 1.0/3.0, aihubmix 0.2/0.4) — so both tools are
+estimating, differently. That is now stated in the README rather than papered
+over. I did not tune my number to match theirs; matching an estimate is not
+the same as being right.
+
+Also notable: ccusage *warns* about unpriced models on the same machine
+("Missing embedded pricing for big-pickle"), which is independent confirmation
+that the disclosure work from rounds 36-37 was the right call.
+
+101 tests green. Docs regenerated from the sample.
+
+**$0.00 received. Stars: 0 vs 19,019.**
