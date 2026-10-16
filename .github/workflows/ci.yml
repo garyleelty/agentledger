@@ -36,6 +36,18 @@ jobs:
       - name: Test
         run: npm test
 
+      # The docs quote this machine's real ledger, which grows whenever the
+      # maintainer works. Regenerate from the committed sample and fail if the
+      # result differs — a stale figure is a wrong claim, not a cosmetic nit.
+      - name: Docs match the committed sample
+        run: |
+          node tools/sync-docs.mjs
+          if ! git diff --quiet -- README.md docs/index.html; then
+            echo "::error::README/landing figures are stale; run: node tools/sync-docs.mjs"
+            git diff --stat -- README.md docs/index.html
+            exit 1
+          fi
+
   # Weekly pricing audit against the authoritative LiteLLM model database.
   # A cost tool's numbers rot when providers reprice; this is the guard that
   # catches gpt-5-class mistakes (absolute price pasted into a multiplier

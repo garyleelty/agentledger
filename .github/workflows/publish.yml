@@ -1,9 +1,15 @@
-# Publishes to npm on release.
+# Publishes a release: attaches a tarball asset, and pushes to npm when a
+# token exists.
 #
-# One-time setup by the maintainer:
-#   1. npm token (Automation type) -> repo Settings -> Secrets -> NPM_TOKEN
-#   2. then: git tag v0.1.1 && git push origin v0.1.1
-#      (or create a release in the GitHub UI)
+# The tarball step is the important one. It needs no npm account, no token and
+# no secret beyond the GITHUB_TOKEN every workflow already has — so a release
+# is a real download channel even while `agentledger-cli` is unpublished:
+#
+#     npm install -g https://github.com/garyleelty/agentledger/releases/download/v0.3.0/agentledger-cli-0.3.0.tgz
+#
+# Before this, `on: release` ran `npm publish` unconditionally and failed the
+# entire workflow when NPM_TOKEN was absent, which meant publishing a release
+# produced nothing at all. Now the asset always ships and npm is conditional.
 name: publish
 
 on:
@@ -12,11 +18,10 @@ on:
   workflow_dispatch:
 
 jobs:
-  publish:
+  release-asset:
     runs-on: ubuntu-latest
     permissions:
-      contents: read
-      id-token: write
+      contents: write
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -25,8 +30,44 @@ jobs:
           # 的 DatabaseSync，它在 22.5 才落地）。这里必须一致，否则发布环境
           # 比运行要求还旧，装出来的包在用的时候才会炸。
           node-version: '22.5'
-          registry-url: https://registry.npmjs.org
       - run: npm test
+      - name: Build the tarball
+        run: |
+          npm pack
+          ls -l ./*.tgz
+      - name: Attach it to the release
+        if: github.event_name == 'release'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: gh release upload "${{ github.event.release.tag_name }}" ./*.tgz --clobber
+
+  npm:
+    needs: release-asset
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      id-token: write
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22.5'
+          registry-url: https://registry.npmjs.org
+      # Skips instead of failing when the secret is absent: a red X on a
+      # release that did ship its asset is a false alarm, and the npm gap is
+      # already documented in the README.
+      - name: Is NPM_TOKEN configured?
+        id: token
+        run: |
+          if [ -n "${NODE_AUTH_TOKEN}" ]; then
+            echo "present=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "present=false" >> "$GITHUB_OUTPUT"
+            echo "::notice::NPM_TOKEN is not set; skipping npm publish (the release asset still shipped)."
+          fi
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
       - run: npm publish --access public
+        if: steps.token.outputs.present == 'true'
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}

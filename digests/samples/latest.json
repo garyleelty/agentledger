@@ -1,25 +1,25 @@
 {
   "tool": "agentledger",
-  "version": "0.2.0",
-  "generatedAt": "2026-10-16T18:11:28.192Z",
+  "version": "0.3.0",
+  "generatedAt": "2026-10-16T18:17:24.582Z",
   "totals": {
     "tokens": {
-      "input": 215537807,
-      "cacheRead": 1316157773,
+      "input": 218839547,
+      "cacheRead": 1325934541,
       "cacheWrite": 366382,
-      "output": 6034545
+      "output": 6055893
     },
-    "costUSD": 986.924866,
-    "records": 15036
+    "costUSD": 1000.083336,
+    "records": 15084
   },
   "byAgent": {
     "dsh": {
-      "input": 172164425,
-      "cacheRead": 681683856,
+      "input": 175466165,
+      "cacheRead": 691460624,
       "cacheWrite": 0,
-      "output": 2246647,
-      "records": 4577,
-      "costUSD": 741.827609
+      "output": 2267995,
+      "records": 4625,
+      "costUSD": 754.986079
     },
     "codex": {
       "input": 15768773,
@@ -56,12 +56,12 @@
   },
   "byModel": {
     "hy4-preview": {
-      "input": 142824235,
-      "cacheRead": 46662848,
+      "input": 146112451,
+      "cacheRead": 48721088,
       "cacheWrite": 0,
-      "output": 556020,
-      "records": 1347,
-      "costUSD": 450.811859
+      "output": 565536,
+      "records": 1374,
+      "costUSD": 461.436719
     },
     "gpt-5.5": {
       "input": 15018509,
@@ -72,12 +72,12 @@
       "costUSD": 199.343891
     },
     "deepseek-v4.1-flash": {
-      "input": 1974150,
-      "cacheRead": 319407360,
+      "input": 1987674,
+      "cacheRead": 327125888,
       "cacheWrite": 0,
-      "output": 798505,
-      "records": 1259,
-      "costUSD": 113.722233
+      "output": 810337,
+      "records": 1280,
+      "costUSD": 116.255843
     },
     "step-5-preview": {
       "input": 17655038,
@@ -251,11 +251,11 @@
   "unpricedModels": [
     {
       "model": "hy4-preview",
-      "records": 1347
+      "records": 1374
     },
     {
       "model": "deepseek-v4.1-flash",
-      "records": 1259
+      "records": 1280
     },
     {
       "model": "step-5-preview",
@@ -282,7 +282,7 @@
       "records": 20
     }
   ],
-  "unpricedCostUSD": 741.356795,
+  "unpricedCostUSD": 754.515266,
   "defaultPricingUSD": {
     "input": 3,
     "output": 15
