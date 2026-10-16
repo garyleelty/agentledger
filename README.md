@@ -297,6 +297,21 @@ never produce.
 | Gemini CLI | `~/.gemini/tmp/**/logs.json` | ✅ |
 | Anything else | `--path` + format sniffing | partial |
 
+`agentledger sources` tells you which of those are actually present on your
+machine, so an empty lane is never mistaken for a wrong path:
+
+```
+$ agentledger sources
+  Agent        Log location             Here        Docs
+  claude-code  ~/.claude/projects       62 file(s)  https://docs.claude.com/...
+  codex        ~/.codex/sessions        11 file(s)  https://github.com/openai/codex
+  opencode     ~/.local/share/opencode  1 file(s)   https://opencode.ai/docs
+  kilo         ~/.local/share/kilo      1 file(s)   https://kilo.ai
+  gemini-cli   ~/.gemini/tmp            not found   https://github.com/google-gemini/...
+
+  4 of 5 sources have data on this machine.
+```
+
 `agentledger-cli sources` prints this table with links.
 
 OpenCode is the one supported agent whose store is a SQLite database rather

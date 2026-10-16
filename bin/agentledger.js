@@ -11,8 +11,9 @@
  *   agentledger prices         # show the pricing table in use
  */
 
-import { readFileSync } from 'node:fs';
-import { collect, withCost, totals, groupBy, SOURCES } from '../src/ledger.js';
+import { readFileSync, statSync, readdirSync } from 'node:fs';
+import { join as pathJoin, relative as pathRelative, basename as pathBasename } from 'node:path';
+import { collect, withCost, totals, groupBy, SOURCES, expandHome } from '../src/ledger.js';
 import { PRICING, DEFAULT_PRICING, resolvePricing, cacheWriteCost, loadPricingOverrides, overriddenModels } from '../src/pricing.js';
 
 // How many --prices overrides are active; read by reportPrices(). Declared
@@ -166,7 +167,7 @@ async function main() {
         throw new Error('budget needs a limit, e.g. `agentledger budget --budget 100` (or -b 100)');
       }
       return reportBudget(filtered, flags);
-    case 'sources': return reportSources();
+    case 'sources': return reportSources(flags);
     case 'prices': return reportPrices();
     case 'aggregate': return reportAggregate(filtered);
     case 'json': return reportJson(filtered);
@@ -512,11 +513,73 @@ function reportSessions(records, flags) {
   printTable(['Session', 'Tokens', 'Est. cost', 'Started'], groups.slice(0, flags.top || 10));
 }
 
-function reportSources() {
-  printTable(
-    ['Agent', 'Log location', 'Docs'],
-    SOURCES.map((s) => [s.agent, s.root, s.docs]),
-  );
+/**
+ * Which agents are supported, AND whether each one is actually readable here.
+ *
+ * The status column is the point. A table of paths tells you where the tool
+ * would look; it does not tell you why you got "no sessions found" — a missing
+ * directory, an empty one, and a directory full of files this tool cannot
+ * parse all look identical from the outside. That is the silent-zero failure
+ * mode this project keeps meeting, so `sources` now reports it directly.
+ */
+function reportSources(flags = {}) {
+  const rows = SOURCES.map((src) => {
+    const root = expandHome(src.root);
+    let state = 'not found';
+    let files = 0;
+    try {
+      const st = statSync(root);
+      if (st.isFile()) {
+        files = src.match(pathBasename(root)) ? 1 : 0;
+        state = files ? '1 file' : 'unreadable shape';
+      } else if (st.isDirectory()) {
+        files = countMatching(root, src.match, 0);
+        state = files ? `${files} file(s)` : 'empty';
+      }
+    } catch {
+      state = 'not found';
+    }
+    return { agent: src.agent, root: src.root, state, files, docs: src.docs };
+  });
+  if (flags.json) {
+    console.log(JSON.stringify({
+      tool: 'agentledger',
+      version: version(),
+      sources: rows,
+      withData: rows.filter((r) => r.files > 0).length,
+    }, null, 2));
+    return;
+  }
+  printTable(['Agent', 'Log location', 'Here', 'Docs'],
+    rows.map((r) => [r.agent, r.root, r.state, r.docs]));
+  const total = rows.filter((r) => r.files > 0).length;
+  console.log('');
+  console.log(`  ${total} of ${rows.length} sources have data on this machine.`);
+  if (total === 0) {
+    console.log('  None found — if an agent is installed elsewhere, point at it with -p <dir>.');
+  }
+}
+
+/** Count files under `dir` whose relative path passes the source's matcher. */
+function countMatching(dir, match, depth) {
+  if (depth > 8) return 0;
+  let n = 0;
+  let entries;
+  try {
+    entries = readdirSync(dir, { withFileTypes: true });
+  } catch {
+    return 0;
+  }
+  for (const e of entries) {
+    const full = pathJoin(dir, e.name);
+    if (e.isDirectory()) {
+      if (e.name === 'node_modules' || e.name.startsWith('.')) continue;
+      n += countMatching(full, match, depth + 1);
+    } else if (e.isFile() && match(pathRelative(dir, full))) {
+      n++;
+    }
+  }
+  return n;
 }
 
 function reportPrices() {
