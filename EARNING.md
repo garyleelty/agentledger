@@ -1099,3 +1099,27 @@ genuinely unknown models that stay disclosed — which is correct behaviour.
 $726 -> $721 placeholder; unpriced 9 -> 8. Audit 27/31. 106 tests green,
 including a regression test asserting the prefixed and bare forms resolve
 to the identical rate.
+
+## Round 46: dropped a zero-token model from the unpriced warning
+
+The unpriced list included `<synthetic>` — 35 records, all token buckets zero,
+$0 cost. It is Claude Code's own literal model name for placeholder assistant
+turns, not a real model anyone bills. Listing it said "35 unpriced records"
+for usage that never cost anything, which is noise that trains people to
+ignore the warning — the same discounting a false alarm produces.
+
+`unpricedModels` now filters to models with actual token volume, so
+`prices --template` also stops offering a blank line worth filling.
+
+Checked the neighbouring behaviours before shipping: `by-model` never showed
+it (zero tokens, sorts last, empty row) so nothing was lost there, and the
+`aggregate` shape carries the same filtered list.
+
+Also verified two hy4 rows are correctly one family: `hy4-preview` and
+`hy4-preview-f` both come from the same `workbuddy` provider in the same DSH
+sessions (`-f` is a variant flag), both resolve identically, and the prefix
+pass means a future price for either covers the other. Nothing to fix.
+
+Distribution re-checked: npm token still 401, both awesome-list PRs still open
+and unmerged, stars still 0. `sn-sensenova-6-8-flash` and `step-5-preview` have
+zero LiteLLM rows for any spelling, so they stay disclosed.

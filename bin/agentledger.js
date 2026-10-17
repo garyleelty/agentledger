@@ -324,10 +324,20 @@ function unpricedModels(records) {
   const out = new Map();
   for (const r of records) {
     if (r.model && resolvePricing(r.model) === DEFAULT_PRICING) {
-      out.set(r.model, (out.get(r.model) || 0) + 1);
+      const prev = out.get(r.model) || { records: 0, tokens: 0 };
+      prev.records++;
+      prev.tokens += (r.input || 0) + (r.cacheRead || 0) + (r.cacheWrite || 0) + (r.output || 0);
+      out.set(r.model, prev);
     }
   }
-  return [...out.entries()].sort((a, b) => b[1] - a[1]);
+  // Drop records that carry no tokens at all: Claude Code writes <synthetic>
+  // placeholder turns with every bucket zero, and listing "35 unpriced
+  // records" for a model that never billed anything is noise that trains
+  // people to ignore the warning. Real unpriced models have real volume.
+  return [...out.entries()]
+    .filter(([, v]) => v.tokens > 0)
+    .map(([model, v]) => [model, v.records])
+    .sort((a, b) => b[1] - a[1]);
 }
 
 function reportSummary(records, meta, flags) {
