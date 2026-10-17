@@ -943,3 +943,27 @@ Also fixed the test that locked in the bug: its fixture used
 real format contradicts. Fabricated fixtures that encode a wrong assumption are
 worse than no fixture — corrected to real semantics plus a dedicated regression
 test naming the arithmetic.
+
+### Round 40b: the head-to-head is now essentially a match
+
+Per-lane, agentledger vs ccusage 20.0.34 on the same machine and logs:
+
+| lane | agentledger | ccusage |
+|---|---|---|
+| claude | $2.24 | $2.24 |
+| codex | $192 | $192.71 |
+| opencode | $25.42 | $29.40 |
+| kilo | $0.319 | $0.34 |
+| comparable total | $220 | $224.69 |
+
+Plus DSH (~870M tokens, $750), a source ccusage and AgentsView cannot read at
+all — so agentledger reports strictly more of this user's spend than either.
+
+Three bugs, all invisible to 100+ green tests, all found by comparing against
+the competitor: duplicate Claude messages (2.2x), MiMo cache multiplier (12x),
+codex reasoning double-count. The remaining ~$4.7 difference is gateway-prefix
+handling and -free lane policy — judgment calls, not arithmetic errors.
+
+**$0.00 received. Stars: 0 vs 19,019.** On correctness and coverage the tool
+now matches or beats the incumbent; on reach it is nowhere near, and that gap
+is not closable from this machine.
