@@ -1123,3 +1123,31 @@ pass means a future price for either covers the other. Nothing to fix.
 Distribution re-checked: npm token still 401, both awesome-list PRs still open
 and unmerged, stars still 0. `sn-sensenova-6-8-flash` and `step-5-preview` have
 zero LiteLLM rows for any spelling, so they stay disclosed.
+
+## Round 47: end-to-end workflow tests — the bug class that actually bit this project
+
+Unit tests covered parsers and pricing in isolation. But every bug that really
+cost something was in the **composition**: a flag parsed and then never honoured
+downstream (statusline ignored --prices for a while), or two commands
+disagreement about the same ledger. So I walked the real CLI through the
+workflows a user actually runs and pinned them.
+
+Verified, not assumed:
+- the README's --prices flow verbatim: template -> fill -> apply. $975 -> $350
+  on this machine, warning clears.
+- savings counterfactual still reconciles with overrides applied
+  (350 + 1396 = 1746).
+- ten flag combinations across savings/budget/waste/by-project/by-model/
+  sessions/aggregate/json, all exit 0 with no NaN/undefined leakage.
+- statusline with a realistic Claude Code payload (session id, transcript,
+  model, workspace): session-scoped cost, model echoed, exit 0.
+- `prices --template` on a fully-priced ledger says "nothing to do" rather
+  than emitting an empty JSON blob (the fixture home caught this — my first
+  test draft tried to parse a block that is not there, which is the right
+  output).
+
+Two test bugs of my own along the way, both of the familiar kind: `require` in
+an ESM module (ReferenceError), and a test asserting on HTML-escaped output it
+never actually read. Caught by running them, like everything else.
+
+111 tests green, 4 new.
