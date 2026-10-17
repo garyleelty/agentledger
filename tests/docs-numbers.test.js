@@ -71,3 +71,35 @@ test('every agent in SOURCES appears in the README sources table', async () => {
     );
   }
 });
+
+test('the README line-count claim matches the source', async () => {
+  // The claim "auditable in one sitting" is the tool's central pitch, and it
+  // went stale by 40% (claimed ~1,500 when the source reached 2,117) because
+  // nothing checked it. Same failure shape as the figures, same fix.
+  const { execFileSync } = await import('node:child_process');
+  const readme = fs.readFileSync(path.join(root, 'README.md'), 'utf8');
+  const claimed = readme.match(/~([\d,]+) lines/);
+  assert.ok(claimed, 'README must state a line count');
+  const claimedN = Number(claimed[1].replace(/,/g, ''));
+
+  const out = execFileSync('wc', ['-l', 'src/ledger.js', 'src/parsers.js', 'src/pricing.js',
+    'bin/agentledger.js', 'bin/digest.js'], { encoding: 'utf8', cwd: root });
+  const actual = Number(out.trim().split('\n').pop().trim().split(/\s+/)[0]);
+
+  // ~ prefix allows a rounded claim, but not a 40% error
+  const drift = Math.abs(claimedN - actual) / actual;
+  assert.ok(drift < 0.1, `README claims ~${claimedN} lines, source is ${actual} (${(drift * 100).toFixed(0)}% drift)`);
+});
+
+test('the README command list covers every implemented command', async () => {
+  const readme = fs.readFileSync(path.join(root, 'README.md'), 'utf8');
+  const cli = fs.readFileSync(path.join(root, 'bin', 'agentledger.js'), 'utf8');
+  const implemented = new Set([...cli.matchAll(/case '([a-z-]+)':/g)].map((m) => m[1]));
+  for (const cmd of implemented) {
+    // every command must appear in the README usage block, by name
+    assert.ok(
+      new RegExp(`agentledger-cli\\s+${cmd}\\b`).test(readme),
+      `README command list is missing: ${cmd}`,
+    );
+  }
+});

@@ -15,24 +15,24 @@ $ agentledger
 
   Metric         Tokens   Est. cost
   ─────────────  ───────  ─────────
-  Input tokens   244.26M  $608
-  Cache read     1.73B    $315
+  Input tokens   244.29M  $608
+  Cache read     1.77B    $315
   Cache write    366.4k   $0.0842
-  Output tokens  6.98M    $63.62
-  TOTAL          1.99B    $987
+  Output tokens  7.01M    $63.62
+  TOTAL          2.02B    $987
 
   Agent        Tokens   Est. cost  Records
   ───────────  ───────  ─────────  ───────
-  dsh          1.31B  $768       4577
+  dsh          1.35B  $771       4577
   codex        219.45M  $193       3053
   opencode     246.32M  $25.42     3772
   claude-code  205.05M  $2.24     3531
   kilo         3.32M    $0.3186    103
 
   ! 8 model(s) have no built-in price and used the
-    $3/$15 per-Mtok default ($761 of the total):
+    $3/$15 per-Mtok default ($764 of the total):
       hy4-preview  (1491 records)
-      step-5-preview  (907 records)
+      step-5-preview  (924 records)
       ...
     Fix in one step: `agentledger prices --template` prints a
     fill-in override file for exactly these models.
@@ -84,7 +84,7 @@ Where this differs, as far as I can tell: agentledger's table is a checked-in
 static file that a CI job reconciles against **live** LiteLLM weekly — a stale
 entry fails a build on a schedule instead of waiting for a manual
 `update-litellm-pricing`; `savings` prices the counterfactual (what the same
-ledger would have cost with no prompt caching); and the whole tool is ~1,500
+ledger would have cost with no prompt caching); and the whole tool is ~2,100
 lines of zero-dependency JavaScript with no build step, no runtime fetch, and
 no network call of any kind.
 
@@ -186,7 +186,8 @@ Requires **Node 22.5+** — the OpenCode lane reads a SQLite database and
 ## Usage
 
 ```bash
-agentledger-cli                 # totals + per-agent breakdown
+agentledger-cli summary         # totals + per-agent breakdown (also the default with no args)
+agentledger-cli sources         # which sources have data on this machine
 agentledger-cli by-project      # cost per repository / working directory
 agentledger-cli by-branch       # cost per git branch
 agentledger-cli waste           # where the cache-read spend is concentrated
@@ -452,7 +453,7 @@ implementation is what actually finds bugs.
 
 `agentledger-cli` opens your log files in read mode and writes nothing. There is
 no telemetry, no update check, and no code path that can reach the network. You
-can verify this in a few minutes — the whole tool is ~1,500 lines with zero
+can verify this in a few minutes — the whole tool is ~2,100 lines with zero
 dependencies.
 
 ## Contributing

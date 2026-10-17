@@ -64,11 +64,11 @@
 
   Metric         Tokens   Est. cost
   ─────────────  ───────  ─────────
-  Input tokens   244.26M  <span class="hi">$617</span>
-  Cache read     1.73B    <span class="hi">$318</span>
+  Input tokens   244.29M  <span class="hi">$617</span>
+  Cache read     1.77B    <span class="hi">$318</span>
   Cache write    366.4k   $0.0842
-  Output tokens  6.98M    <span class="hi">$63.89</span>
-  <span class="ok">TOTAL          1.99B    $998</span>
+  Output tokens  7.01M    <span class="hi">$63.89</span>
+  <span class="ok">TOTAL          2.02B    $998</span>
 
   Agent        Tokens   Est. cost  Records
   ───────────  ───────  ─────────  ───────
@@ -112,8 +112,8 @@
   <h2>What it does</h2>
   <ul>
     <li><strong>Reads local logs only</strong> — <code>~/.claude/projects</code>, <code>~/.codex/sessions</code>, <code>~/.local/share/opencode</code>, <code>~/.local/share/kilo</code>, <code>~/.gemini/tmp</code></li>
-    <li><strong>Cache buckets priced separately</strong> — 1.73B of my 1.99B tokens are cache reads, billed at 10-25% of input</li>
-    <li><strong>Never touches the network</strong> — no account, no key, no telemetry, ~1,500 lines you can audit in one sitting</li>
+    <li><strong>Cache buckets priced separately</strong> — 1.77B of my 2.02B tokens are cache reads, billed at 10-25% of input</li>
+    <li><strong>Never touches the network</strong> — no account, no key, no telemetry, ~2,100 lines you can audit in one sitting</li>
     <li><strong>Fast</strong> — a full scan of 680M+ tokens takes about a second</li>
     <li><strong>Your rates, not mine</strong> — <code>--prices my-prices.json</code> overrides any model, partial entries merge over the built-in table; <code>prices --template</code> writes the file for you, naming exactly the models your ledger could not price</li>
     <li><strong>Honest about unknowns</strong> — a model with no built-in price is billed at a stated default and the report says so, with its dollar share, instead of quietly folding a placeholder into the total</li>
@@ -163,7 +163,7 @@
 <pre>paid          <span class="hi">pre>paid          <span class="hi">000</span>
 without cache <span class="hi">$3853</span>
 saved         <span class="ok">$2854   74.1% cheaper</span>
-cache reads   <span class="hi">1.73B</span> of 1.99B total tokens   <span class="dim">(85%)</span>
+cache reads   <span class="hi">1.77B</span> of 2.02B total tokens   <span class="dim">(85%)</span>
 concentration  top 10 of 315 sessions = <span class="hi">75.3%</span> of all cache reads
 priciest      <span class="hi">$118</span>  one Codex session in one repo
 branch        <span class="hi">$206</span>  <span class="dim">the web branch alone</span></pre>
@@ -187,7 +187,7 @@ branch        <span class="hi">$206</span>  <span class="dim">the web branch alo
   entry fails a build on a schedule instead of waiting on a manual refresh; and
   <code>savings</code> prices the counterfactual — what this ledger would have cost
   with no prompt caching.</p>
-  <p>The pitch that stays narrower and honest: ~1,500 lines, zero dependencies, no
+  <p>The pitch that stays narrower and honest: ~2,100 lines, zero dependencies, no
   network, no build step. You can read the whole thing before you trust it with logs
   that are effectively your entire coding history.</p>
 

@@ -1,25 +1,25 @@
 {
   "tool": "agentledger",
   "version": "0.3.0",
-  "generatedAt": "2026-10-17T18:15:11.973Z",
+  "generatedAt": "2026-10-17T18:42:15.426Z",
   "totals": {
     "tokens": {
-      "input": 244261549,
-      "cacheRead": 1734948557,
+      "input": 244290569,
+      "cacheRead": 1769809357,
       "cacheWrite": 366382,
-      "output": 6976059
+      "output": 7012216
     },
-    "costUSD": 988.71501,
-    "records": 14620
+    "costUSD": 991.798836,
+    "records": 14705
   },
   "byAgent": {
     "dsh": {
-      "input": 200396145,
-      "cacheRead": 1108676816,
+      "input": 200425165,
+      "cacheRead": 1143537616,
       "cacheWrite": 0,
-      "output": 3339078,
-      "records": 6137,
-      "costUSD": 767.988974
+      "output": 3375235,
+      "records": 6222,
+      "costUSD": 771.0728
     },
     "codex": {
       "input": 15835116,
@@ -72,12 +72,12 @@
       "costUSD": 192.394674
     },
     "step-5-preview": {
-      "input": 17728380,
-      "cacheRead": 213781952,
+      "input": 17735485,
+      "cacheRead": 223097408,
       "cacheWrite": 0,
-      "output": 272222,
-      "records": 907,
-      "costUSD": 121.403056
+      "output": 276906,
+      "records": 924,
+      "costUSD": 124.289267
     },
     "qfmodel": {
       "input": 2309261,
@@ -136,12 +136,12 @@
       "costUSD": 5.366914
     },
     "deepseek-v4.1-flash": {
-      "input": 2379114,
-      "cacheRead": 446734720,
+      "input": 2401029,
+      "cacheRead": 472280064,
       "cacheWrite": 0,
-      "output": 972236,
-      "records": 1646,
-      "costUSD": 4.560826
+      "output": 1003709,
+      "records": 1714,
+      "costUSD": 4.75844
     },
     "Cherry-New-API/kimi-k2.7-code": {
       "input": 777215,
@@ -295,7 +295,7 @@
     },
     {
       "model": "step-5-preview",
-      "records": 907
+      "records": 924
     },
     {
       "model": "qfmodel",
@@ -322,7 +322,7 @@
       "records": 20
     }
   ],
-  "unpricedCostUSD": 761.170535,
+  "unpricedCostUSD": 764.056747,
   "defaultPricingUSD": {
     "input": 3,
     "output": 15
