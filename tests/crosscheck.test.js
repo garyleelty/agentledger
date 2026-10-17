@@ -38,3 +38,12 @@ test('the tool file is a runnable module with the comparison wired', () => {
     assert.match(src, new RegExp(`'${lane}'`));
   }
 });
+
+test('it reports lanes agentledger reads that ccusage cannot', () => {
+  // The DSH claim in the README must stay true. If ccusage ever ships a dsh
+  // adapter, this output changes and the README's claim goes stale — so the
+  // tool proves it rather than the docs asserting it.
+  const src = execFileSync('cat', [tool], { encoding: 'utf8' });
+  assert.match(src, /UNCOMPARABLE/);
+  assert.match(src, /agentledger-only coverage/);
+});

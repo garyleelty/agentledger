@@ -88,6 +88,23 @@ ledger would have cost with no prompt caching); and the whole tool is ~1,500
 lines of zero-dependency JavaScript with no build step, no runtime fetch, and
 no network call of any kind.
 
+**One source ccusage cannot read at all.** ccusage has adapters for 20 agents
+and **no `dsh` adapter** — `ccusage dsh` returns `Unknown command`. `crosscheck`
+reports this automatically rather than trusting prose:
+
+```
+  ONLY DSH (DeepSeek Harness) — 1091363048 tokens, $843.38 (ccusage has no adapter)
+```
+
+DSH
+(DeepSeek Harness) keeps multi-frame zstd sessions at
+`~/.dsh/sessions/*/session.v4.jsonl.zstd`; on this machine that is 46 sessions
+and ~1.1B tokens, more than every other agent combined. Caveat stated plainly:
+most DSH models reach it through gateways with no canonical public price, so a
+large share of that lane is placeholder-priced and the report says so. The
+token *counts* are real; the dollars in that lane are estimates until you set
+real rates with `--prices`.
+
 **Reasoning tokens are billed as output.** OpenCode records them in a separate
 `tokens.reasoning` field; verified on this machine that `total = input +
 output + reasoning + cache.read + cache.write` holds for all 2,176 rows that

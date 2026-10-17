@@ -1020,3 +1020,29 @@ is green" only proves a program is consistent with itself; comparing against an
 independent implementation is what actually finds bugs.
 
 **$0.00 received. Stars: 0 vs 19,019.**
+
+## Round 43: made the one real coverage advantage provable
+
+agentledger reads DSH (~1.1B tokens, $843 — more than all other agents
+combined); ccusage has 20 adapters and **no `dsh`** (`ccusage dsh` returns
+"Unknown command"). That is the single dimension where agentledger genuinely
+beats the incumbent rather than matching it, and it was stated only in prose
+that could go stale.
+
+`crosscheck` now proves it: it probes ccusage for each agentledger-only lane
+and prints `ONLY DSH ... (ccusage has no adapter)`. If ccusage ships a dsh
+adapter, the tool says so and the README claim changes. A test asserts the
+mechanism exists.
+
+Stated with its caveat, because the advantage is narrower than it looks: most
+DSH models arrive via gateways with no canonical public price, so ~$838 of that
+lane is placeholder-priced. The token counts are real; the dollars are
+estimates until real rates are set. Claiming "$843 of coverage" without that
+would be the same sin the placeholder disclosure exists to prevent.
+
+Also declined to invent prices: `hy4-preview` (the largest DSH model, 1,042
+records) has exactly one LiteLLM row and it is `aihubmix`, a reseller — my
+standing rule is not to guess from reseller-only entries where the vendor is
+unknown. `qfmodel`, `step-5-preview`, `sensenova` have no rows at all.
+
+**$0.00 received. Stars: 0 vs 19,019.**

@@ -147,6 +147,36 @@ for (const [lane, agent] of LANES) {
   );
 }
 
+// Lanes agentledger reads that ccusage has no adapter for. Reported, not
+// compared: ccusage 20.x has adapters for amp/antigravity/claude/codebuff/
+// codex/copilot/droid/gemini/goose/grok/hermes/kilo/kimi/openclaw/opencode/
+// pi/qwen/zcode — and no `dsh`. These are a coverage advantage, so the tool
+// states them explicitly instead of leaving them invisible.
+const UNCOMPARABLE = [['dsh', 'DSH (DeepSeek Harness)']];
+console.log('');
+for (const [agent, label] of UNCOMPARABLE) {
+  let mine;
+  try {
+    mine = agentledgerTotals(agent);
+  } catch {
+    continue;
+  }
+  if (mine.input + mine.cacheRead + mine.output === 0) continue;
+  let supported = false;
+  try {
+    execFileSync(cc, [agent, 'monthly', '--json', '--offline'], { stdio: 'pipe' });
+    supported = true;
+  } catch {
+    supported = false;
+  }
+  console.log(
+    `  ${supported ? 'ok  ' : 'ONLY'} ${label}` +
+      ` — ${mine.input + mine.cacheRead + mine.output} tokens,` +
+      ` $${mine.cost.toFixed(2)}` +
+      (supported ? '' : ' (ccusage has no adapter; agentledger-only coverage)'),
+  );
+}
+
 console.log('');
 // Comparing zero lanes must never read as a pass. A tool that silently
 // compares nothing looks like safety while providing none — the same failure
