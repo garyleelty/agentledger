@@ -967,3 +967,42 @@ handling and -free lane policy — judgment calls, not arithmetic errors.
 **$0.00 received. Stars: 0 vs 19,019.** On correctness and coverage the tool
 now matches or beats the incumbent; on reach it is nowhere near, and that gap
 is not closable from this machine.
+
+## Round 41: made the head-to-head reproducible, and it found a 4th bug
+
+The comparison that found three bugs lived in scratch shell commands. That is
+fragile — it cannot be re-run after the next parser change, and a check nobody
+runs is not a check. So it is now `tools/crosscheck.mjs`: it runs both tools
+against the same logs, diffs token buckets and cost per lane, and exits
+non-zero on real disagreement.
+
+**It immediately found a fourth bug.** The codex parser treated the first
+`token_count` event as a zero baseline. Codex writes cumulative counters, but
+a resumed session opens with counters already advanced — 6 of 11 files on this
+machine had non-zero first events, and **108,711 input / 2,244 output tokens
+were being discarded before the first delta was ever computed**. Fixed: the
+first event yields its absolute values, later events yield deltas.
+
+**And it caught a defect in the tool itself.** With ccusage missing it skipped
+every lane... and exited 0, printing "tokens agree on all lanes". A green
+result that compared nothing is the exact trap this project keeps meeting.
+Now it exits 2 with the path it tried.
+
+Turning the tool loose also settled the last open question. All three
+remaining "disagreements" are one policy difference: ccusage excludes
+reasoning from OpenCode/Kilo output, agentledger bills it as output:
+
+- opencode out: mine 2,294,147 vs theirs 1,634,195 — gap is exactly
+  659,952 reasoning tokens (verified: sum(output)=1,220,552,
+  sum(reasoning)=474,660 for the dominant model)
+- kilo out: 39,730 vs 39,597 — gap is exactly 133 reasoning tokens
+
+Reasoning is genuinely separate for OpenCode — all 2,176 rows satisfy
+total = input + output + reasoning + cache.read + cache.write, and 598 rows
+have reasoning > output, impossible if nested. It bills at the output rate
+(no separate DeepSeek rate exists in LiteLLM). So agentledger reports more
+complete output, and that is now documented in the README with the evidence,
+not hidden. Codex is the opposite (output already includes reasoning) and
+both cases are pinned by tests.
+
+104 tests green.

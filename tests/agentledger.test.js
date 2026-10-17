@@ -88,15 +88,23 @@ test('parseCodex converts cumulative counters into deltas', async () => {
 
   const records = [];
   for await (const r of parseCodex(file)) records.push(r);
-  assert.equal(records.length, 1, 'first event only sets the baseline');
+  // The first token_count is real usage, not a zero baseline: Codex resumes
+  // sessions with counters already advanced, so its absolute values are
+  // yielded, and later events are deltas. Six of eleven files on this machine
+  // had non-zero first events (108,711 input tokens were being dropped).
+  assert.equal(records.length, 2, 'first event is absolute, second is a delta');
   assert.equal(records[0].agent, 'codex');
   assert.equal(records[0].model, 'gpt-5.5');
-  // fresh input = (3000-2000) - (1000-800) = 800
-  assert.equal(records[0].input, 800);
-  assert.equal(records[0].cacheRead, 1200);
+  // record 0 = first event, absolute: input (1000-800)=200, cacheRead 800, out 100
+  assert.equal(records[0].input, 200);
+  assert.equal(records[0].cacheRead, 800);
+  assert.equal(records[0].output, 100);
+  // record 1 = delta: input (3000-2000)-(1000-800)=800, cacheRead 1200, out 200
+  assert.equal(records[1].input, 800);
+  assert.equal(records[1].cacheRead, 1200);
   // output delta is 300-100 = 200; reasoning (60-20=40) is already
   // inside those numbers and must NOT be added again.
-  assert.equal(records[0].output, 200);
+  assert.equal(records[1].output, 200);
 });
 
 test('parseGemini reads usageMetadata events', async () => {
@@ -304,10 +312,12 @@ test('parseCodex does not add reasoning tokens to output', async () => {
 
   const records = [];
   for await (const r of parseCodex(file)) records.push(r);
-  assert.equal(records.length, 1);
+  // event 1 is all-zero baseline (yields 0), event 2 is the real usage.
+  assert.equal(records.length, 2);
+  const rec = records[1];
   // fresh input = (12851-2432) - 0
-  assert.equal(records[0].input, 10419);
-  assert.equal(records[0].cacheRead, 2432);
+  assert.equal(rec.input, 10419);
+  assert.equal(rec.cacheRead, 2432);
   // output is the delta of output_tokens alone (348), NOT 348+315=663
-  assert.equal(records[0].output, 348, 'reasoning must not be added again');
+  assert.equal(rec.output, 348, 'reasoning must not be added again');
 });

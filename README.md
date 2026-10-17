@@ -15,23 +15,23 @@ $ agentledger
 
   Metric         Tokens   Est. cost
   ─────────────  ───────  ─────────
-  Input tokens   223.31M  $608
-  Cache read     1.48B    $315
+  Input tokens   234.16M  $608
+  Cache read     1.50B    $315
   Cache write    366.4k   $0.0842
-  Output tokens  6.32M    $63.62
-  TOTAL          1.71B    $987
+  Output tokens  6.38M    $63.62
+  TOTAL          1.74B    $987
 
   Agent        Tokens   Est. cost  Records
   ───────────  ───────  ─────────  ───────
-  dsh          1.04B  $783       4577
-  codex        219.33M  $192       3053
+  dsh          1.07B  $819       4577
+  codex        219.45M  $193       3053
   opencode     241.30M  $25.42     3772
   claude-code  205.05M  $2.24     3531
   kilo         3.32M    $0.3186    103
 
-  ! 8 model(s) have no built-in price and used the
-    $3/$15 per-Mtok default ($782 of the total):
-      hy4-preview  (1391 records)
+  ! 10 model(s) have no built-in price and used the
+    $3/$15 per-Mtok default ($817 of the total):
+      hy4-preview  (1439 records)
       deepseek-v4.1-flash  (1384 records)
       ...
     Fix in one step: `agentledger prices --template` prints a
@@ -87,6 +87,15 @@ entry fails a build on a schedule instead of waiting for a manual
 ledger would have cost with no prompt caching); and the whole tool is ~1,500
 lines of zero-dependency JavaScript with no build step, no runtime fetch, and
 no network call of any kind.
+
+**Reasoning tokens are billed as output.** OpenCode records them in a separate
+`tokens.reasoning` field; verified on this machine that `total = input +
+output + reasoning + cache.read + cache.write` holds for all 2,176 rows that
+have reasoning, so they are additive and bill at the output rate. (Codex is
+the opposite: its `output_tokens` already includes reasoning, and adding the
+field again double-counted 244,601 tokens. Both cases are pinned by tests.
+ccusage excludes reasoning from OpenCode's output bucket, so it reports lower
+output there — 1,220,552 against agentledger's 1,695,212 for the same model.)
 
 **Measured against ccusage on the same machine** (ccusage 20.0.34, darwin
 arm64, run against the same `~/.claude/projects`, `~/.codex/sessions` and

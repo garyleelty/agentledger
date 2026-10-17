@@ -49,9 +49,13 @@ test('codex records carry the project and branch from session_meta', async () =>
   );
   const records = [];
   for await (const r of parseCodex(file)) records.push(r);
-  assert.equal(records.length, 1);
+  // First token_count is now yielded absolutely (Codex resumes with counters
+  // already advanced), so two events produce two records.
+  assert.equal(records.length, 2);
   assert.equal(records[0].project, '/work/beta');
   assert.equal(records[0].branch, 'main');
+  assert.equal(records[1].project, '/work/beta');
+  assert.equal(records[1].branch, 'main');
 });
 
 test('per-project costs sum back to the overall total', async () => {

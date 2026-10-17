@@ -144,20 +144,25 @@ function preferOver(candidate, existing) {
       // what put the codex lane at $200 against ccusage's $192.71.
       output: num(total.output_tokens),
     };
-    if (state.prev) {
-      yield {
-        agent: 'codex',
-        model: state.model || 'unknown',
-        session: state.session || path.basename(file),
-        timestamp: Date.parse(rec.timestamp || '') || null,
-        input: Math.max(0, cum.input - state.prev.input),
-        cacheRead: Math.max(0, cum.cacheRead - state.prev.cacheRead),
-        cacheWrite: 0,
-        output: Math.max(0, cum.output - state.prev.output),
-        project: state.project,
-        branch: state.branch,
-      };
-    }
+    // The first token_count event is NOT a zero baseline. Codex writes
+    // cumulative counters, but a resumed session opens with counters already
+    // advanced, so the first event can carry real usage. Six of eleven files
+    // on this machine did — 108,711 input and 2,244 output tokens were being
+    // discarded before the first delta was ever computed. Yield the absolute
+    // values for the first event, and deltas for every one after it.
+    const isFirst = state.prev === null;
+    yield {
+      agent: 'codex',
+      model: state.model || 'unknown',
+      session: state.session || path.basename(file),
+      timestamp: Date.parse(rec.timestamp || '') || null,
+      input: isFirst ? cum.input : Math.max(0, cum.input - state.prev.input),
+      cacheRead: isFirst ? cum.cacheRead : Math.max(0, cum.cacheRead - state.prev.cacheRead),
+      cacheWrite: 0,
+      output: isFirst ? cum.output : Math.max(0, cum.output - state.prev.output),
+      project: state.project,
+      branch: state.branch,
+    };
     state.prev = cum;
   }
 }
