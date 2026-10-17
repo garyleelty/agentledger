@@ -344,8 +344,15 @@ function reportSummary(records, meta, flags) {
   if (flags.json) return reportJson(records);
   const t = totals(records);
   if (records.length === 0) {
+    // First run for a fresh user. Listing raw paths with no next step is a
+    // dead end: they cannot tell whether they installed wrong, have no logs,
+    // or have logs somewhere unusual. `sources` answers "why is this lane
+    // empty?", so say so and say what to do.
     console.log('No agent sessions found yet.');
     console.log(`Looked in: ${SOURCES.map((s) => s.root).join(', ')}`);
+    console.log('');
+    console.log('Run `agentledger sources` to see which paths exist on this machine.');
+    console.log('If your logs live elsewhere:  agentledger -p /path/to/logs');
     return;
   }
   console.log('');

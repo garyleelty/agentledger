@@ -55,3 +55,13 @@ test('an empty home reports zero sources and says what to do', () => {
   assert.match(stdout, /0 of 6 sources have data/);
   assert.match(stdout, /point at it with -p/);
 });
+
+test('an empty ledger points at sources and -p, not just at paths', () => {
+  // A fresh user seeing only a list of paths cannot tell a bad install from
+  // "no logs yet" from "logs live elsewhere". The message must give the two
+  // ways forward.
+  const { stdout } = run(['summary'], '/nonexistent-home-for-tests');
+  assert.match(stdout, /No agent sessions found yet/);
+  assert.match(stdout, /agentledger sources/, 'must point at the diagnostic command');
+  assert.match(stdout, /agentledger -p \/path\/to\/logs/, 'must show how to scan elsewhere');
+});
