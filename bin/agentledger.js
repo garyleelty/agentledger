@@ -704,14 +704,20 @@ function reportPrices(flags, records) {
       }
     }
     console.log('');
-    console.log('  --template: fill in real rates below, save as prices.json,');
-    console.log('  then run any command with:  agentledger --prices prices.json');
+    console.log('  --template: fill in real rates below, save as prices.json, then run');
+    console.log('  any command with:   agentledger --prices prices.json');
+    console.log('');
+    console.log(`  Each model currently costs the $${DEFAULT_PRICING.input}/$${DEFAULT_PRICING.output} default`);
+    console.log('  (per Mtok, input/output) — that is what the totals above assume.');
+    console.log('  Set a field to 0 for a free lane. Fields may be omitted;');
+    console.log('  anything you leave null keeps the default.');
     console.log('');
     const obj = {};
     for (const [model] of unpriced) {
       const v = byModel.get(model);
       obj[model] = { input: null, output: null };
-      console.log(`  // ${model}: ${v.records} records, ${fmtTok(v.tokens)} tokens`);
+      console.log(`  // ${model}: ${v.records} records, ${fmtTok(v.tokens)} tokens` +
+        ` (now billed at $${DEFAULT_PRICING.input}/$${DEFAULT_PRICING.output})`);
     }
     console.log('');
     console.log(JSON.stringify(obj, null, 2));

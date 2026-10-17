@@ -81,6 +81,11 @@ test('prices --template emits a fill-in override file for the unpriced models', 
   const json = stdout.slice(stdout.indexOf('{'));
   const obj = JSON.parse(json);
   assert.deepEqual(obj['totally-made-up-model-9'], { input: null, output: null });
+  // The template must also state the rate currently being assumed, per model —
+  // a user cannot judge what to write without knowing what it costs them today.
+  assert.match(stdout, /Each model currently costs the \$3\/\$15 default/);
+  assert.match(stdout, /now billed at \$3\/\$15/);
+  assert.match(stdout, /Set a field to 0 for a free lane/);
 });
 
 test('the template round-trips: filling it in removes the warning', async () => {
