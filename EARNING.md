@@ -1006,3 +1006,17 @@ not hidden. Codex is the opposite (output already includes reasoning) and
 both cases are pinned by tests.
 
 104 tests green.
+
+## Round 42: documented the verification tools
+
+The two tools that make the numbers trustworthy were missing from both the
+README and the landing page — so the one thing agentledger can honestly claim
+over ccusage (independently cross-checked correctness) was invisible to anyone
+reading the project.
+
+Added a "Verifying the numbers" section naming all four bugs crosscheck found,
+plus a landing-page bullet. The framing is the part worth keeping: "the suite
+is green" only proves a program is consistent with itself; comparing against an
+independent implementation is what actually finds bugs.
+
+**$0.00 received. Stars: 0 vs 19,019.**
