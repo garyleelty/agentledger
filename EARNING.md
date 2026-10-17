@@ -1169,3 +1169,30 @@ which is why the audit was worth running rather than trusting the earlier fix
 to have covered the surface.
 
 112 tests green.
+
+## Round 49: the comparison credited ccusage with a feature it does not have
+
+Continuing the claim audit that found the wrong source counts, I checked the
+other assertion in the same sentence: "it prices reasoning tokens per model".
+It is false, and it flattered the competitor while hiding my own advantage.
+
+Verified two independent ways:
+
+- **kilo (no arithmetic needed):** ccusage's `outputTokens` = 39,597, which is
+  `sum(output)` exactly — `sum(reasoning)` is 133 and appears nowhere. My total
+  is 39,730 = output + reasoning.
+- **codex (cost solve):** reasoning is 244,601 tokens; solving ccusage's
+  $192.71 against its own token counts only closes when reasoning contributes
+  $0 and the cache rate is ~0.091x.
+
+I also corrected my own earlier reasoning along the way: a first solve said
+"reasoning billed", because I used a 0.1x cache rate that is *my* rate, not
+ccusage's. With its 0.091x the exclusion answer is the one that closes to
+$0.02. Two models, same conclusion.
+
+Note the asymmetry this fixes: ccusage's README lists "prices reasoning" and
+agentledger was repeating it. A claim inherited from a competitor's marketing
+is not evidence, and it was wrong about them and about me.
+
+Both README and landing page corrected, plus a guard test asserting the claim
+stays corrected. 117 green.

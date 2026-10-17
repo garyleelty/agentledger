@@ -73,9 +73,11 @@ while you are still working:
 ### Honest comparison
 
 [ccusage](https://github.com/ccusage/ccusage) is the incumbent and it covers
-far more agents than this (18 adapters against our 6): it prices reasoning
-tokens per model, and its statusline shows 5-hour billing blocks and burn
-rate. Its pricing also comes from LiteLLM's database, embedded at build
+far more agents than this (18 adapters against our 6). It reports reasoning
+token **counts** but does not bill them in the OpenCode or Kilo lanes — on the
+kilo store `sum(reasoning)` is 133 tokens and ccusage's output total is
+`sum(output)` alone, 39,597 against agentledger's 39,730 — and its statusline
+shows 5-hour billing blocks and burn rate. Its pricing also comes from LiteLLM's database, embedded at build
 time from a locked revision. If you want the most complete tool, use that
 one. What we share now: TTL-split cache writes, a statusline that prefers
 the host's own session cost over any estimate, and per-model overrides.

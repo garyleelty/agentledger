@@ -131,3 +131,15 @@ test("the README's ccusage adapter count matches the real repo", async () => {
     `README claims ${claimed}; recount ccusage/rust/adapters if this changed`,
   );
 });
+
+test('the README does not claim ccusage bills reasoning tokens', () => {
+  // This claim was false and I verified it two ways: ccusage's kilo
+  // outputTokens (39,597) equals sum(output) with reasoning excluded, and its
+  // codex cost excludes reasoning. A comparison section headed "honest" is
+  // exactly where a flattering error must not survive.
+  const readme = fs.readFileSync(path.join(root, 'README.md'), 'utf8');
+  assert.doesNotMatch(readme, /prices reasoning tokens per model/);
+  assert.doesNotMatch(readme, /prices reasoning tokens\./);
+  // the corrected claim must actually be present
+  assert.match(readme, /does not bill them in the OpenCode or Kilo lanes/);
+});
