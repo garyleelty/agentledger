@@ -33,7 +33,7 @@
     "test": "node --experimental-sqlite --test tests/*.test.js",
     "lint": "node --check src/*.js bin/*.js",
     "sync-docs": "node bin/agentledger.js aggregate > digests/samples/latest.json && node tools/sync-docs.mjs && node bin/digest.js digests/samples/latest.json docs/digest.html",
-    "verify": "npm run lint && npm run sync-docs && HOME=/nonexistent-for-tests npm test"
+    "verify": "npm run lint && node tools/sync-docs.mjs && HOME=/nonexistent-for-tests npm test"
   },
   "repository": {
     "type": "git",
