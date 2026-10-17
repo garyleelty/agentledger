@@ -1,25 +1,25 @@
 {
   "tool": "agentledger",
   "version": "0.3.0",
-  "generatedAt": "2026-10-17T16:32:28.542Z",
+  "generatedAt": "2026-10-17T16:40:19.173Z",
   "totals": {
     "tokens": {
-      "input": 242215206,
-      "cacheRead": 1536291981,
+      "input": 242377381,
+      "cacheRead": 1546364237,
       "cacheWrite": 366382,
-      "output": 6587951
+      "output": 6615815
     },
-    "costUSD": 951.20727,
-    "records": 13796
+    "costUSD": 949.024437,
+    "records": 13848
   },
   "byAgent": {
     "dsh": {
-      "input": 198671572,
-      "cacheRead": 913222160,
+      "input": 198833747,
+      "cacheRead": 923294416,
       "cacheWrite": 0,
-      "output": 3009486,
-      "records": 5368,
-      "costUSD": 730.481234
+      "output": 3037350,
+      "records": 5420,
+      "costUSD": 728.298402
     },
     "codex": {
       "input": 15835116,
@@ -72,12 +72,12 @@
       "costUSD": 192.394674
     },
     "step-5-preview": {
-      "input": 17662427,
-      "cacheRead": 145599680,
+      "input": 17669893,
+      "cacheRead": 152402048,
       "cacheWrite": 0,
-      "output": 228905,
-      "records": 774,
-      "costUSD": 100.10076
+      "output": 233921,
+      "records": 788,
+      "costUSD": 102.239108
     },
     "qfmodel": {
       "input": 2309261,
@@ -111,13 +111,13 @@
       "records": 228,
       "costUSD": 15.523748
     },
-    "deepseek/deepseek-v4.1-flash-1017": {
-      "input": 536372,
-      "cacheRead": 10323968,
+    "sn-sensenova-6-8-flash": {
+      "input": 872633,
+      "cacheRead": 6101760,
       "cacheWrite": 0,
-      "output": 117793,
-      "records": 86,
-      "costUSD": 6.473201
+      "output": 71256,
+      "records": 79,
+      "costUSD": 5.517267
     },
     "cline-free/mimo-v2.6-flash": {
       "input": 657425,
@@ -134,14 +134,6 @@
       "output": 874432,
       "records": 1384,
       "costUSD": 3.876323
-    },
-    "sn-sensenova-6-8-flash": {
-      "input": 717924,
-      "cacheRead": 2831872,
-      "cacheWrite": 0,
-      "output": 48408,
-      "records": 41,
-      "costUSD": 3.729454
     },
     "Cherry-New-API/kimi-k2.7-code": {
       "input": 777215,
@@ -190,6 +182,14 @@
       "output": 4737,
       "records": 78,
       "costUSD": 0.574958
+    },
+    "deepseek/deepseek-v4.1-flash-1017": {
+      "input": 536372,
+      "cacheRead": 10323968,
+      "cacheWrite": 0,
+      "output": 117793,
+      "records": 86,
+      "costUSD": 0.364207
     },
     "Cherry-Xiaomi-MiMo/mimo-v2.5-pro": {
       "input": 583207,
@@ -287,7 +287,7 @@
     },
     {
       "model": "step-5-preview",
-      "records": 774
+      "records": 788
     },
     {
       "model": "qfmodel",
@@ -298,16 +298,12 @@
       "records": 228
     },
     {
-      "model": "deepseek/deepseek-v4.1-flash-1017",
-      "records": 86
+      "model": "sn-sensenova-6-8-flash",
+      "records": 79
     },
     {
       "model": "cline-free/mimo-v2.6-flash",
       "records": 54
-    },
-    {
-      "model": "sn-sensenova-6-8-flash",
-      "records": 41
     },
     {
       "model": "<synthetic>",
@@ -318,7 +314,7 @@
       "records": 20
     }
   ],
-  "unpricedCostUSD": 724.711505,
+  "unpricedCostUSD": 722.164466,
   "defaultPricingUSD": {
     "input": 3,
     "output": 15

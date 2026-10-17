@@ -1078,3 +1078,24 @@ rather than a placeholder for a lookup I skipped.
 The line between "acted" and "declined" is now explicit and testable: MiMo had
 a tight 3-way cluster on the cache ratio (0.008-0.0083); deepseek-v4.1-flash
 had a 5-way cluster on in/out; hy4-preview and step-5-preview had none.
+
+## Round 45: the resolver's blind spot for provider-prefixed dated ids
+
+`deepseek/deepseek-v4.1-flash-1017` still showed as unpriced right after I
+priced `deepseek-v4.1-flash`. Not a data gap — a **resolver bug**.
+
+The slash-tail lookup (for provider-prefixed ids like
+`Cherry-New-API/gpt-5.5`) only did an **exact** table hit, while the full-id
+path got exact-then-prefix. So a gateway appending a dated build suffix
+(`-1017`) to a prefixed id silently fell through to the $3/$15 default —
+one line of the pricing path behaving differently from its neighbour, and
+misleading because the *bare* name resolved fine.
+
+Fixed by giving the tail the same exact-then-prefix treatment. Verified all
+11 prefixed ids in the ledger: 9 resolve correctly, and the 2 that still
+fall through (`cline-free/mimo-v2.6-flash`, `cline-free/step-5-preview`) are
+genuinely unknown models that stay disclosed — which is correct behaviour.
+
+$726 -> $721 placeholder; unpriced 9 -> 8. Audit 27/31. 106 tests green,
+including a regression test asserting the prefixed and bare forms resolve
+to the identical rate.

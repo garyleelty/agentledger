@@ -209,3 +209,17 @@ test('a :free model lane bills zero regardless of the paid model it names', asyn
   // and the paid spelling of the same base model still costs money
   assert.ok(resolvePricing('bytedance-seed/dola-seed-2.0-pro').input > 0);
 });
+
+test('a provider-qualified id with a dated suffix resolves like the bare name', async () => {
+  // Regression: `deepseek/deepseek-v4.1-flash-1017` fell through to the $3/$15
+  // default while the bare `deepseek-v4.1-flash-1017` resolved correctly. The
+  // slash-tail lookup did an exact table hit only, skipping the prefix pass
+  // that the full id gets. Gateways append dated build suffixes to prefixed
+  // ids constantly, so this silently mispriced real records.
+  const { resolvePricing } = await import('../src/pricing.js');
+  const withPrefix = resolvePricing('deepseek/deepseek-v4.1-flash-1017');
+  const bare = resolvePricing('deepseek-v4.1-flash-1017');
+  assert.equal(withPrefix.input, 0.3, 'the prefixed dated variant must not fall back to the default');
+  assert.deepEqual(withPrefix, bare, 'the prefix must not change the resolved rate');
+  assert.notEqual(withPrefix, undefined);
+});

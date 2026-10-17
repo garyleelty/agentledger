@@ -207,11 +207,19 @@ export function resolvePricing(model) {
   const stripped = key.replace(/-\d{8}$/, '');
   if (PRICING[stripped]) return PRICING[stripped];
   // Provider-qualified ids ("opencode/deepseek-v4-flash-free", "moonshotai/
-  // kimi-k2.7-code") are stored by the bare model name, so try the tail too.
+  // kimi-k2.7-code", "deepseek/deepseek-v4.1-flash-1017") are stored by the
+  // bare model name, so try the tail too. The tail needs the SAME treatment
+  // as the full id — exact, then prefix — because gateways append dated
+  // build suffixes. `deepseek/deepseek-v4.1-flash-1017` fell through to the
+  // $3/$15 default while the bare `deepseek-v4.1-flash-1017` resolved
+  // correctly; only the slash-tail path was missing the prefix pass.
   const slash = stripped.lastIndexOf('/');
   if (slash !== -1) {
     const tail = stripped.slice(slash + 1);
     if (PRICING[tail]) return PRICING[tail];
+    for (const name of Object.keys(PRICING)) {
+      if (tail.startsWith(name)) return PRICING[name];
+    }
   }
   for (const name of Object.keys(PRICING)) {
     if (stripped.startsWith(name)) return PRICING[name];
