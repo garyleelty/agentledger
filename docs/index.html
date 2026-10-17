@@ -117,6 +117,7 @@
     <li><strong>Fast</strong> — a full scan of 680M+ tokens takes about a second</li>
     <li><strong>Your rates, not mine</strong> — <code>--prices my-prices.json</code> overrides any model, partial entries merge over the built-in table; <code>prices --template</code> writes the file for you, naming exactly the models your ledger could not price</li>
     <li><strong>Honest about unknowns</strong> — a model with no built-in price is billed at a stated default and the report says so, with its dollar share, instead of quietly folding a placeholder into the total</li>
+    <li><strong>Checked against the world, not itself</strong> — <code>tools/crosscheck.mjs</code> diffs token totals against ccusage on the same logs (it found four real bugs), and <code>tools/audit_pricing.py</code> diffs every price against the LiteLLM database weekly in CI</li>
     <li><strong>Status bar</strong> — <code>agentledger statusline</code> in Claude Code's <code>statusLine</code> hook: live session cost, zero file reads on current payloads</li>
   </ul>
 

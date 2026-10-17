@@ -397,6 +397,40 @@ Costs are **estimates**. They do not include subscription plans (Claude Pro /
 Max, ChatGPT Plus), discounts, negotiated rates, or taxes. For API-billed usage
 they are normally within a few percent.
 
+## Verifying the numbers
+
+Two tools exist to check the tool against the world rather than against
+itself. Both are in `tools/` and both run offline.
+
+```bash
+python3 tools/audit_pricing.py /path/to/litellm.json   # prices vs LiteLLM
+node tools/crosscheck.mjs --ccusage /path/to/ccusage   # totals vs ccusage
+```
+
+**`audit_pricing.py`** diffs every built-in price against the authoritative
+LiteLLM model database and exits non-zero on disagreement. It runs weekly in
+CI. Its first run caught 7 wrong entries in this table, including an absolute
+price pasted into a *multiplier* field (gpt-5: cached reads overstated 25%).
+
+**`crosscheck.mjs`** runs agentledger and ccusage against the same logs and
+diffs token buckets and cost per lane. This is what found four real bugs that
+no amount of internal testing surfaced:
+
+| bug | what it did |
+| --- | --- |
+| duplicate Claude messages | 2,861 rows for 1,260 message ids — 2.2x over-count |
+| MiMo cache multiplier | 0.1x where LiteLLM says ~0.008x — 12x overcharge |
+| codex reasoning | `output_tokens` already includes reasoning; adding it double-counted 244,601 tokens |
+| codex baseline | first `token_count` is real usage, not zero — 108,711 tokens dropped |
+
+Token buckets must agree exactly (they are counted facts); cost is allowed a
+tolerance because two tools estimating models with no canonical price will
+legitimately differ.
+
+Neither tool is a substitute for thinking, but "the suite is green" only proves
+a program is consistent with itself. Comparing against an independent
+implementation is what actually finds bugs.
+
 ## Privacy
 
 `agentledger-cli` opens your log files in read mode and writes nothing. There is
