@@ -1046,3 +1046,35 @@ standing rule is not to guess from reseller-only entries where the vendor is
 unknown. `qfmodel`, `step-5-preview`, `sensenova` have no rows at all.
 
 **$0.00 received. Stars: 0 vs 19,019.**
+
+## Round 44: eliminated $124 of placeholder pricing with a documented consensus
+
+The DSH lane is agentledger's coverage advantage but also its weakness: $848
+of $1071 total was placeholder-priced. I went after the largest resolvable
+line.
+
+**Added `deepseek-v4.1-flash` at $0.30/$1.20, cache read 0.02x.** The evidence
+level is the same one I required for MiMo: 5 of 13 LiteLLM rows agree —
+`together_ai`, `tencent`, `azure_ai` as an exact triple on $0.30/$1.20/cRead
+0.006, plus `nebius` and `baseten` agreeing on in/out. `coralbricks`' $0.01 is
+a 30x outlier and is excluded. This is a gateway-agnostic vendor rate, not one
+reseller's markup. It was the second-largest unpriced model ($130 at default).
+
+Effect: placeholder $848 -> $724 across 9 unpriced models (was 10). Audit
+coverage 27/31.
+
+**Declined the rest, with reasons:**
+- `hy4-preview` ($535, the largest line): only one LiteLLM row, `aihubmix`,
+  a reseller. No vendor consensus exists.
+- `step-5-preview` ($99.65): zero LiteLLM rows for any spelling. Genuinely
+  unknown — a preview codename.
+- `qfmodel`, `qoder`, `sensenova`: no rows.
+
+I also verified DSH itself carries no authoritative cost data (searched all 46
+sessions for cost/price/usd keys: none; `our-free-model/catalog.json` holds
+only free-lane names), so the placeholder disclosure is the honest ceiling
+rather than a placeholder for a lookup I skipped.
+
+The line between "acted" and "declined" is now explicit and testable: MiMo had
+a tight 3-way cluster on the cache ratio (0.008-0.0083); deepseek-v4.1-flash
+had a 5-way cluster on in/out; hy4-preview and step-5-preview had none.

@@ -46,6 +46,7 @@ MAP = {
     "deepseek-reasoner": ["deepseek/deepseek-reasoner", "deepseek-reasoner"],
     "deepseek-v4-flash": ["deepseek/deepseek-v4-flash", "deepseek-v4-flash"],
     "deepseek-flash": ["deepseek-flash", "deepseek/deepseek-flash"],
+    "deepseek-v4.1-flash": ["together_ai/deepseek-ai/DeepSeek-V4.1-Flash", "tencent/deepseek-v4.1-flash"],
     "glm-5": ["zai/glm-5", "glm-5"],
     "glm-5.2": ["zai/glm-5.2", "glm-5.2"],
     "kimi-k2.7-code": ["moonshot/kimi-k2.7-code", "kimi-k2.7-code"],

@@ -157,6 +157,13 @@ export const PRICING = {
   'deepseek-v4-flash-free': { input: 0, output: 0, cacheReadMultiplier: 0, cacheWriteMultiplier: 0 },
   'hy3-free': { input: 0, output: 0, cacheReadMultiplier: 0, cacheWriteMultiplier: 0 },
   'deepseek-v4-flash': { input: 0.3, output: 1.2, cacheReadMultiplier: 0.02, cacheWriteMultiplier: 1.0 },
+  // deepseek-v4.1-flash: 5 of 13 LiteLLM rows agree on $0.30/$1.20
+  // (together_ai, tencent, azure_ai as an exact triple; nebius and baseten
+  // agree on in/out). coralbricks' $0.01 is a 30x outlier and is excluded.
+  // Cached read $0.006/M = 0.02x. This was the second-largest unpriced model
+  // on the DSH lane ($130 at the default), and it is a gateway-agnostic rate,
+  // not one reseller's markup.
+  'deepseek-v4.1-flash': { input: 0.3, output: 1.2, cacheReadMultiplier: 0.02, cacheWriteMultiplier: 1.0 },
 
   // ---- Chinese labs -----------------------------------------------------
   // Aligned to LiteLLM's official-provider entries (zai/*, moonshot/*).
