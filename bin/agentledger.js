@@ -648,6 +648,41 @@ function countMatching(dir, match, depth) {
 
 function reportPrices(flags, records) {
   const over = overriddenModels();
+
+  // `prices --json` was silently ignored — it printed the table like every
+  // other command honours --json. A scripted consumer (CI, a dashboard)
+  // parsing stdout would get a table and fail, with no error to point at.
+  const priceRow = (model) => {
+    const p = resolvePricing(model);
+    return {
+      model,
+      inputUSDPerMtok: p.input,
+      outputUSDPerMtok: p.output,
+      cacheReadMultiplier: p.cacheReadMultiplier,
+      cacheWriteMultiplier: p.cacheWriteMultiplier,
+      cacheWrite1hMultiplier: p.cacheWrite1hMultiplier ?? null,
+      overridden: over.has(model),
+    };
+  };
+  if (flags?.json) {
+    const models = Object.keys(PRICING).map(priceRow);
+    for (const key of over) {
+      if (!(key in PRICING)) models.push(priceRow(key));
+    }
+    console.log(JSON.stringify({
+      tool: 'agentledger',
+      version: version(),
+      defaultPricingUSD: {
+        input: DEFAULT_PRICING.input,
+        output: DEFAULT_PRICING.output,
+        cacheReadMultiplier: DEFAULT_PRICING.cacheReadMultiplier,
+        cacheWriteMultiplier: DEFAULT_PRICING.cacheWriteMultiplier,
+      },
+      models,
+    }, null, 2));
+    if (flags.template) reportPriceTemplate(records);
+    return;
+  }
   // Show what pricing ACTUALLY resolves to (resolvePricing), not the static
   // table — otherwise an override marks its row with * and still prints the
   // price it replaced. Caught by running it, of course.
@@ -684,44 +719,48 @@ function reportPrices(flags, records) {
   console.log('  Every row is cross-checked weekly against the LiteLLM model database');
   console.log('  (tools/audit_pricing.py, in CI). agentledger never contacts the network.');
 
-  if (flags?.template) {
-    // Turn the warning into a one-step fix: emit an override file naming
-    // exactly the models in THIS ledger that fell back to the default, with
-    // their token volumes so each blank line has a visible weight.
-    const unpriced = unpricedModels(records ?? []);
-    if (!unpriced.length) {
-      console.log('');
-      console.log('  --template: every model in this ledger already has a price.');
-      return;
-    }
-    const byModel = new Map();
-    for (const r of (records ?? [])) {
-      if (r.model && resolvePricing(r.model) === DEFAULT_PRICING) {
-        const cur = byModel.get(r.model) ?? { records: 0, tokens: 0 };
-        cur.records++;
-        cur.tokens += (r.input || 0) + (r.cacheRead || 0) + (r.cacheWrite || 0) + (r.output || 0);
-        byModel.set(r.model, cur);
-      }
-    }
+  if (flags?.template) reportPriceTemplate(records);
+}
+
+/** Print a fill-in override file for the models this ledger could not price. */
+function reportPriceTemplate(records) {
+  // Turn the warning into a one-step fix: emit an override file naming
+  // exactly the models in THIS ledger that fell back to the default, with
+  // their token volumes and the rate currently being assumed, so each blank
+  // line has a visible weight and a visible cost.
+  const unpriced = unpricedModels(records ?? []);
+  if (!unpriced.length) {
     console.log('');
-    console.log('  --template: fill in real rates below, save as prices.json, then run');
-    console.log('  any command with:   agentledger --prices prices.json');
-    console.log('');
-    console.log(`  Each model currently costs the $${DEFAULT_PRICING.input}/$${DEFAULT_PRICING.output} default`);
-    console.log('  (per Mtok, input/output) — that is what the totals above assume.');
-    console.log('  Set a field to 0 for a free lane. Fields may be omitted;');
-    console.log('  anything you leave null keeps the default.');
-    console.log('');
-    const obj = {};
-    for (const [model] of unpriced) {
-      const v = byModel.get(model);
-      obj[model] = { input: null, output: null };
-      console.log(`  // ${model}: ${v.records} records, ${fmtTok(v.tokens)} tokens` +
-        ` (now billed at $${DEFAULT_PRICING.input}/$${DEFAULT_PRICING.output})`);
-    }
-    console.log('');
-    console.log(JSON.stringify(obj, null, 2));
+    console.log('  --template: every model in this ledger already has a price.');
+    return;
   }
+  const byModel = new Map();
+  for (const r of (records ?? [])) {
+    if (r.model && resolvePricing(r.model) === DEFAULT_PRICING) {
+      const cur = byModel.get(r.model) ?? { records: 0, tokens: 0 };
+      cur.records++;
+      cur.tokens += (r.input || 0) + (r.cacheRead || 0) + (r.cacheWrite || 0) + (r.output || 0);
+      byModel.set(r.model, cur);
+    }
+  }
+  console.log('');
+  console.log('  --template: fill in real rates below, save as prices.json, then run');
+  console.log('  any command with:   agentledger --prices prices.json');
+  console.log('');
+  console.log(`  Each model currently costs the $${DEFAULT_PRICING.input}/$${DEFAULT_PRICING.output} default`);
+  console.log('  (per Mtok, input/output) — that is what the totals above assume.');
+  console.log('  Set a field to 0 for a free lane. Fields may be omitted;');
+  console.log('  anything you leave null keeps the default.');
+  console.log('');
+  const obj = {};
+  for (const [model] of unpriced) {
+    const v = byModel.get(model);
+    obj[model] = { input: null, output: null };
+    console.log(`  // ${model}: ${v.records} records, ${fmtTok(v.tokens)} tokens` +
+      ` (now billed at $${DEFAULT_PRICING.input}/$${DEFAULT_PRICING.output})`);
+  }
+  console.log('');
+  console.log(JSON.stringify(obj, null, 2));
 }
 
 function reportJson(records) {

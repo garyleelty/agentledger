@@ -107,3 +107,19 @@ test('prices --template says so when everything is already priced', () => {
   const { stdout } = run(['prices', '--template']); // fixture home is fully priced
   assert.match(stdout, /every model in this ledger already has a price/);
 });
+
+test('prices --json emits JSON, not the table', () => {
+  // `prices` was the one command that ignored --json: it printed the table
+  // like always. A scripted consumer parsing stdout would get a table and
+  // fail with nothing to point at, while every other command honoured it.
+  const { stdout } = run(['prices', '--json']);
+  const d = JSON.parse(stdout);
+  assert.ok(Array.isArray(d.models), 'models must be an array');
+  assert.ok(d.models.length > 0);
+  assert.equal(d.defaultPricingUSD.input, 3);
+  const gpt = d.models.find((m) => m.model === 'gpt-5.5');
+  assert.ok(gpt, 'gpt-5.5 must be listed');
+  assert.equal(gpt.inputUSDPerMtok, 5);
+  assert.equal(gpt.outputUSDPerMtok, 30);
+  assert.equal(gpt.overridden, false);
+});

@@ -1151,3 +1151,21 @@ an ESM module (ReferenceError), and a test asserting on HTML-escaped output it
 never actually read. Caught by running them, like everything else.
 
 111 tests green, 4 new.
+
+## Round 48: `prices --json` was silently ignored
+
+Audited `--json` support across all 15 commands. Every one honoured it except
+`prices`, which printed the table regardless. A scripted consumer (CI job,
+dashboard, shell pipeline) parsing stdout would receive a table and fail with
+nothing to point at — the failure would look like their bug, not this tool's.
+
+Fixed: `prices --json` now emits `{ tool, version, defaultPricingUSD, models[] }`
+with per-model input/output/cache multipliers and an `overridden` flag. The
+table and the `--template` output are unchanged, and both JSON + template can
+be combined.
+
+Note this is the second `--json` gap I have found (round 35 fixed `sources`),
+which is why the audit was worth running rather than trusting the earlier fix
+to have covered the surface.
+
+112 tests green.
