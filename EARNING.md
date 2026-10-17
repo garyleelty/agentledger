@@ -920,3 +920,26 @@ not arithmetic errors, and the README now says so.
 
 mimo-v2.5-pro is in the audit map, so its cache ratio is machine-checked from
 here on: 26 of 30 entries compared.
+
+### Round 40: third bug from the head-to-head — codex double-counted reasoning
+
+The codex lane read $200 against ccusage's $192.71 after the previous fixes.
+Investigating the gap found that `total_token_usage.output_tokens` **already
+includes** `reasoning_output_tokens`; the parser was adding them together.
+
+Proof from this machine's own logs (11 codex files):
+- 1,633 token_count events satisfy `total_tokens == input_tokens + output_tokens`
+- **0** events satisfy `total == input_tokens + output_tokens + reasoning_output_tokens`
+
+(1,426 "other" events are context-window markers with all-zero usage.)
+
+So every reasoning token was counted twice — 244,601 of them on gpt-5.5 alone,
+worth $7.34 at the output rate. Output dropped 951k -> 706.7k tokens and the
+lane now reads **$192 vs ccusage's $192.71**, with token counts essentially
+aligned (out 706,652 vs 708,786).
+
+Also fixed the test that locked in the bug: its fixture used
+`total_tokens: 1120 = 1000+100+20`, which asserted the *separate* reading the
+real format contradicts. Fabricated fixtures that encode a wrong assumption are
+worse than no fixture — corrected to real semantics plus a dedicated regression
+test naming the arithmetic.

@@ -56,11 +56,13 @@ test('parseCodex converts cumulative counters into deltas', async () => {
           type: 'token_count',
           info: {
             total_token_usage: {
+              // total == input + output: output_tokens already includes
+              // reasoning_output_tokens (verified against 1,633 real events)
               input_tokens: 1000,
               cached_input_tokens: 800,
               output_tokens: 100,
               reasoning_output_tokens: 20,
-              total_tokens: 1120,
+              total_tokens: 1100,
             },
           },
         },
@@ -76,7 +78,7 @@ test('parseCodex converts cumulative counters into deltas', async () => {
               cached_input_tokens: 2000,
               output_tokens: 300,
               reasoning_output_tokens: 60,
-              total_tokens: 3360,
+              total_tokens: 3300,
             },
           },
         },
@@ -92,7 +94,9 @@ test('parseCodex converts cumulative counters into deltas', async () => {
   // fresh input = (3000-2000) - (1000-800) = 800
   assert.equal(records[0].input, 800);
   assert.equal(records[0].cacheRead, 1200);
-  assert.equal(records[0].output, 240);
+  // output delta is 300-100 = 200; reasoning (60-20=40) is already
+  // inside those numbers and must NOT be added again.
+  assert.equal(records[0].output, 200);
 });
 
 test('parseGemini reads usageMetadata events', async () => {
@@ -274,4 +278,36 @@ test('non-Anthropic models have no TTL tier and are priced at their own rate', (
   assert.equal(g.cacheWrite1hMultiplier, undefined);
   const c = costOf({ model: 'gpt-5', input: 0, cacheRead: 0, cacheWrite: 1e6, output: 0 });
   assert.ok(Math.abs(c.cacheWrite - 1.25) < 1e-9, `1M gpt-5 cache-write tokens should cost $1.25, got ${c.cacheWrite}`);
+});
+
+test('parseCodex does not add reasoning tokens to output', async () => {
+  // Regression: `total_token_usage.output_tokens` already includes
+  // `reasoning_output_tokens`. Real logs prove it — 1,633 token_count events
+  // satisfy total == input + output, none satisfy total == in + out + reas.
+  // Adding them (as the parser did) double-counted every reasoning token and
+  // put the codex lane at $200 against ccusage's $192.71.
+  const dir = await mkdtemp(path.join(tmpdir(), 'aledger-codex-'));
+  const file = path.join(dir, 'rollout-r.jsonl');
+  await writeFile(file, [
+    JSON.stringify({ type: 'session_meta', payload: { id: 's1' } }),
+    JSON.stringify({ type: 'turn_context', payload: { model: 'gpt-5.5' } }),
+    JSON.stringify({ timestamp: '2026-01-01T00:00:00Z', type: 'event_msg',
+      payload: { type: 'token_count', info: { total_token_usage: {
+        input_tokens: 0, cached_input_tokens: 0, output_tokens: 0,
+        reasoning_output_tokens: 0, total_tokens: 0 } } } }),
+    JSON.stringify({ timestamp: '2026-01-01T00:00:01Z', type: 'event_msg',
+      payload: { type: 'token_count', info: { total_token_usage: {
+        // total = input + output exactly, so output must be taken as-is
+        input_tokens: 12851, cached_input_tokens: 2432, output_tokens: 348,
+        reasoning_output_tokens: 315, total_tokens: 13199 } } } }),
+  ].join('\n') + '\n');
+
+  const records = [];
+  for await (const r of parseCodex(file)) records.push(r);
+  assert.equal(records.length, 1);
+  // fresh input = (12851-2432) - 0
+  assert.equal(records[0].input, 10419);
+  assert.equal(records[0].cacheRead, 2432);
+  // output is the delta of output_tokens alone (348), NOT 348+315=663
+  assert.equal(records[0].output, 348, 'reasoning must not be added again');
 });

@@ -1,40 +1,40 @@
 {
   "tool": "agentledger",
   "version": "0.3.0",
-  "generatedAt": "2026-10-16T18:33:45.526Z",
+  "generatedAt": "2026-10-17T15:16:27.489Z",
   "totals": {
     "tokens": {
-      "input": 218963120,
-      "cacheRead": 1347037005,
+      "input": 223312310,
+      "cacheRead": 1478585357,
       "cacheWrite": 366382,
-      "output": 6102515
+      "output": 6319211
     },
-    "costUSD": 994.50319,
-    "records": 13103
+    "costUSD": 1003.774558,
+    "records": 13512
   },
   "byAgent": {
     "dsh": {
-      "input": 175738213,
-      "cacheRead": 725546064,
+      "input": 180025398,
+      "cacheRead": 856783632,
       "cacheWrite": 0,
-      "output": 2321641,
-      "records": 4713,
-      "costUSD": 766.832545
+      "output": 2767066,
+      "records": 5109,
+      "costUSD": 783.398875
     },
     "codex": {
       "input": 15768773,
       "cacheRead": 202858944,
       "cacheWrite": 0,
-      "output": 951773,
+      "output": 706652,
       "records": 3053,
-      "costUSD": 199.69205
+      "costUSD": 192.397088
     },
     "opencode": {
-      "input": 24917715,
-      "cacheRead": 213630984,
+      "input": 24979720,
+      "cacheRead": 213941768,
       "cacheWrite": 85801,
-      "output": 2277755,
-      "records": 3772,
+      "output": 2294147,
+      "records": 3785,
       "costUSD": 25.422329
     },
     "claude-code": {
@@ -56,28 +56,28 @@
   },
   "byModel": {
     "hy4-preview": {
-      "input": 146337614,
-      "cacheRead": 49105920,
+      "input": 150347337,
+      "cacheRead": 50727872,
       "cacheWrite": 0,
-      "output": 566856,
-      "records": 1377,
-      "costUSD": 462.247458
+      "output": 573593,
+      "records": 1391,
+      "costUSD": 474.864268
     },
     "gpt-5.5": {
       "input": 15018509,
       "cacheRead": 192190592,
       "cacheWrite": 0,
-      "output": 938535,
+      "output": 695428,
       "records": 3009,
-      "costUSD": 199.343891
+      "costUSD": 192.050681
     },
     "deepseek-v4.1-flash": {
-      "input": 2034559,
-      "cacheRead": 360826496,
+      "input": 2045596,
+      "cacheRead": 368887552,
       "cacheWrite": 0,
-      "output": 862663,
-      "records": 1365,
-      "costUSD": 127.291571
+      "output": 874432,
+      "records": 1384,
+      "costUSD": 129.919534
     },
     "step-5-preview": {
       "input": 17655038,
@@ -139,9 +139,17 @@
       "input": 3128122,
       "cacheRead": 212831872,
       "cacheWrite": 0,
-      "output": 524854,
+      "output": 522840,
       "records": 1471,
-      "costUSD": 2.585786
+      "costUSD": 2.584033
+    },
+    "deepseek-flash": {
+      "input": 424475,
+      "cacheRead": 153434368,
+      "cacheWrite": 0,
+      "output": 620352,
+      "records": 618,
+      "costUSD": 1.792371
     },
     "Cherry-httpsnew-api.abrdns.comconso/mimo-v2.5-pro": {
       "input": 1632517,
@@ -166,14 +174,6 @@
       "output": 4737,
       "records": 78,
       "costUSD": 0.574958
-    },
-    "deepseek-flash": {
-      "input": 158050,
-      "cacheRead": 31879808,
-      "cacheWrite": 0,
-      "output": 193433,
-      "records": 255,
-      "costUSD": 0.470813
     },
     "Cherry-Xiaomi-MiMo/mimo-v2.5-pro": {
       "input": 583207,
@@ -231,6 +231,22 @@
       "records": 241,
       "costUSD": 0
     },
+    "opencode/glm-5.3-flash-free": {
+      "input": 13751,
+      "cacheRead": 0,
+      "cacheWrite": 0,
+      "output": 318,
+      "records": 1,
+      "costUSD": 0
+    },
+    "opencode/deepseek-v4.1-flash-free": {
+      "input": 48254,
+      "cacheRead": 310784,
+      "cacheWrite": 0,
+      "output": 16074,
+      "records": 12,
+      "costUSD": 0
+    },
     "kilo/bytedance-seed/dola-seed-2.0-pro:free": {
       "input": 81210,
       "cacheRead": 65360,
@@ -251,11 +267,11 @@
   "unpricedModels": [
     {
       "model": "hy4-preview",
-      "records": 1377
+      "records": 1391
     },
     {
       "model": "deepseek-v4.1-flash",
-      "records": 1365
+      "records": 1384
     },
     {
       "model": "step-5-preview",
@@ -282,7 +298,7 @@
       "records": 20
     }
   ],
-  "unpricedCostUSD": 766.361732,
+  "unpricedCostUSD": 781.606504,
   "defaultPricingUSD": {
     "input": 3,
     "output": 15

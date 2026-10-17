@@ -136,7 +136,13 @@ function preferOver(candidate, existing) {
       input: Math.max(0, num(total.input_tokens) - num(total.cached_input_tokens)),
       cacheRead: num(total.cached_input_tokens),
       cacheWrite: 0,
-      output: num(total.output_tokens) + num(total.reasoning_output_tokens),
+      // output_tokens ALREADY includes reasoning_output_tokens. Verified on
+      // this machine: 1,633 token_count events satisfy
+      //   total_tokens == input_tokens + output_tokens
+      // and ZERO satisfy total == input + output + reasoning. Adding the two
+      // fields (as this did) double-counted every reasoning token, which is
+      // what put the codex lane at $200 against ccusage's $192.71.
+      output: num(total.output_tokens),
     };
     if (state.prev) {
       yield {

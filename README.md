@@ -15,24 +15,24 @@ $ agentledger
 
   Metric         Tokens   Est. cost
   ─────────────  ───────  ─────────
-  Input tokens   218.96M  $608
-  Cache read     1.35B    $315
+  Input tokens   223.31M  $608
+  Cache read     1.48B    $315
   Cache write    366.4k   $0.0842
-  Output tokens  6.10M    $63.62
-  TOTAL          1.57B    $987
+  Output tokens  6.32M    $63.62
+  TOTAL          1.71B    $987
 
   Agent        Tokens   Est. cost  Records
   ───────────  ───────  ─────────  ───────
-  dsh          903.61M  $767       4577
-  codex        219.58M  $200       3053
-  opencode     240.91M  $25.42     3772
+  dsh          1.04B  $783       4577
+  codex        219.33M  $192       3053
+  opencode     241.30M  $25.42     3772
   claude-code  205.05M  $2.24     3531
   kilo         3.32M    $0.3186    103
 
   ! 8 model(s) have no built-in price and used the
-    $3/$15 per-Mtok default ($766 of the total):
-      hy4-preview  (1377 records)
-      deepseek-v4.1-flash  (1365 records)
+    $3/$15 per-Mtok default ($782 of the total):
+      hy4-preview  (1391 records)
+      deepseek-v4.1-flash  (1384 records)
       ...
     Fix in one step: `agentledger prices --template` prints a
     fill-in override file for exactly these models.
