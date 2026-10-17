@@ -103,3 +103,31 @@ test('the README command list covers every implemented command', async () => {
     );
   }
 });
+
+test("the README's 'our N sources' claim matches the built-in SOURCES", async () => {
+  // The comparison section quoted "17 sources against our 5" — both numbers
+  // wrong (ccusage has 18 adapters, agentledger 6). It is the one place the
+  // tool describes itself against the incumbent, so it should be checked.
+  const { SOURCES } = await import('../src/ledger.js');
+  const readme = fs.readFileSync(path.join(root, 'README.md'), 'utf8');
+  const m = readme.match(/against our (\d+)/);
+  assert.ok(m, 'README must state its own source count against ccusage');
+  assert.equal(
+    Number(m[1]), SOURCES.length,
+    `README claims ${m[1]} sources, SOURCES has ${SOURCES.length}`,
+  );
+});
+
+test("the README's ccusage adapter count matches the real repo", async () => {
+  // ccusage's adapter list is the other half of the same sentence. Counted
+  // from the repository listing rather than remembered.
+  const readme = fs.readFileSync(path.join(root, 'README.md'), 'utf8');
+  const m = readme.match(/ccusage has (\d+) adapters/);
+  assert.ok(m, 'README must state ccusage adapter count');
+  const claimed = Number(m[1]);
+  // 18 as of 2026-10-18, verified against the rust/adapters listing.
+  assert.ok(
+    claimed >= 18 && claimed <= 25,
+    `README claims ${claimed}; recount ccusage/rust/adapters if this changed`,
+  );
+});

@@ -1,25 +1,25 @@
 {
   "tool": "agentledger",
   "version": "0.3.0",
-  "generatedAt": "2026-10-17T18:42:15.426Z",
+  "generatedAt": "2026-10-17T18:52:24.628Z",
   "totals": {
     "tokens": {
-      "input": 244290569,
-      "cacheRead": 1769809357,
+      "input": 244295223,
+      "cacheRead": 1775899085,
       "cacheWrite": 366382,
-      "output": 7012216
+      "output": 7015821
     },
-    "costUSD": 991.798836,
-    "records": 14705
+    "costUSD": 993.693792,
+    "records": 14716
   },
   "byAgent": {
     "dsh": {
-      "input": 200425165,
-      "cacheRead": 1143537616,
+      "input": 200429819,
+      "cacheRead": 1149627344,
       "cacheWrite": 0,
-      "output": 3375235,
-      "records": 6222,
-      "costUSD": 771.0728
+      "output": 3378840,
+      "records": 6233,
+      "costUSD": 772.967756
     },
     "codex": {
       "input": 15835116,
@@ -72,12 +72,12 @@
       "costUSD": 192.394674
     },
     "step-5-preview": {
-      "input": 17735485,
-      "cacheRead": 223097408,
+      "input": 17740139,
+      "cacheRead": 229187136,
       "cacheWrite": 0,
-      "output": 276906,
-      "records": 924,
-      "costUSD": 124.289267
+      "output": 280511,
+      "records": 935,
+      "costUSD": 126.184223
     },
     "qfmodel": {
       "input": 2309261,
@@ -295,7 +295,7 @@
     },
     {
       "model": "step-5-preview",
-      "records": 924
+      "records": 935
     },
     {
       "model": "qfmodel",
@@ -322,7 +322,7 @@
       "records": 20
     }
   ],
-  "unpricedCostUSD": 764.056747,
+  "unpricedCostUSD": 765.951703,
   "defaultPricingUSD": {
     "input": 3,
     "output": 15
