@@ -521,6 +521,20 @@ async function renderSharePage(records, flags) {
     },
     byAgent: by((r) => r.agent),
     byModel: by((r) => r.model),
+    // The share page is the one artifact that leaves the machine, so it must
+    // carry the placeholder disclosure that `summary` and `aggregate` already
+    // carry. Without it the page asserts a total it cannot back.
+    ...(() => {
+      const unpriced = unpricedModels(records);
+      if (!unpriced.length) return {};
+      const unpricedCost = records
+        .filter((r) => r.model && resolvePricing(r.model) === DEFAULT_PRICING)
+        .reduce((a, r) => a + (r.cost?.total ?? 0), 0);
+      return {
+        unpricedModels: unpriced.map(([model, n]) => ({ model, records: n })),
+        unpricedCostUSD: round(unpricedCost),
+      };
+    })(),
   };
 
   const { renderShare } = await import('./share.js');

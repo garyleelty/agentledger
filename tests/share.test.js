@@ -150,3 +150,39 @@ function run(args, home) {
   });
   return { status: r.status ?? 1, stdout: r.stdout ?? '', stderr: r.stderr ?? '' };
 }
+
+test('the share page carries the placeholder disclosure', async () => {
+  // The share page is the one artifact that leaves the machine. It showed a
+  // total of which most was placeholder-priced, with no hint — exactly the
+  // authoritative-looking number the disclosure exists to prevent.
+  const { mkdtemp, writeFile } = await import('node:fs/promises');
+  const { tmpdir } = await import('node:os');
+  const dir = await mkdtemp(path.join(tmpdir(), 'aledger-share-'));
+  const file = path.join(dir, 's.jsonl');
+  await writeFile(file, [
+    JSON.stringify({ type: 'user', cwd: '/x', message: { role: 'user' } }),
+    JSON.stringify({ type: 'assistant', timestamp: '2026-06-01T00:00:00Z',
+      message: { model: 'unpriced-model-xyz', usage: { input_tokens: 1e6, output_tokens: 1e6 } } }),
+  ].join('\n') + '\n');
+
+  const html = execFileSync(process.execPath, [cli, 'share', '-p', file], { encoding: 'utf8' });
+  assert.match(html, /class="warn"/, 'an unpriced ledger must warn on the share page');
+  assert.match(html, /of that total is an estimate at a default rate/);
+  assert.match(html, /unpriced-model-xyz/, 'the offending model should be named');
+  // and it must still not leak anything private
+  assert.doesNotMatch(html, /\/Users\/|\/x\b/);
+});
+
+test('a fully-priced ledger gets no warning on the share page', async () => {
+  const { mkdtemp, writeFile } = await import('node:fs/promises');
+  const { tmpdir } = await import('node:os');
+  const dir = await mkdtemp(path.join(tmpdir(), 'aledger-share-'));
+  const file = path.join(dir, 's.jsonl');
+  await writeFile(file, [
+    JSON.stringify({ type: 'user', cwd: '/x', message: { role: 'user' } }),
+    JSON.stringify({ type: 'assistant', timestamp: '2026-06-01T00:00:00Z',
+      message: { model: 'claude-sonnet-4-5', usage: { input_tokens: 1000, output_tokens: 100 } } }),
+  ].join('\n') + '\n');
+  const html = execFileSync(process.execPath, [cli, 'share', '-p', file], { encoding: 'utf8' });
+  assert.doesNotMatch(html, /class="warn"/, 'no false alarm when everything is priced');
+});

@@ -84,6 +84,12 @@ export function renderShare(ledger) {
   .wrap { max-width:720px; margin:0 auto; padding:48px 20px 64px; }
   h1 { font-size:26px; margin:0 0 4px; letter-spacing:-.5px; }
   .tag { color:var(--dim); font-size:14px; margin:0 0 30px; }
+  .warn {
+    background:#2a1f0d; border:1px solid #6b4c12; border-left:3px solid var(--warn,#e3a008);
+    border-radius:8px; padding:12px 14px; margin:0 0 22px; font-size:13.5px; line-height:1.5;
+    color:#e8d9b5;
+  }
+  .warn b { color:#f0c674; }
   .headline { font-size:44px; color:var(--accent); margin:0; letter-spacing:-1px; }
   .subhead { color:var(--dim); font-size:14px; margin:0 0 26px; }
   .panel { background:var(--panel); border:1px solid var(--line); border-radius:10px;
@@ -112,6 +118,20 @@ export function renderShare(ledger) {
 
   <p class="headline">${money(t.costUSD)}</p>
   <p class="subhead">across ${comma(records)} usage records and ${compact(totalTokens)} tokens</p>
+${
+  // A shareable page is the one surface that leaves the machine, so it must
+  // carry the same caveat the terminal does. This page showed a $1,048 total
+  // of which $828 was placeholder-priced, with no hint — exactly the
+  // authoritative-looking number the disclosure exists to prevent.
+  (ledger?.unpricedCostUSD ?? 0) > 0
+    ? `
+  <div class="warn">
+    <b>${money(ledger.unpricedCostUSD)} of that total is an estimate at a default rate.</b>
+    ${comma((ledger.unpricedModels ?? []).length)} model(s) on this machine have no public price
+    and were billed at the default. The token counts are real; treat the rest as indicative.
+  </div>`
+    : ''
+}
 
   <div class="panel">
     <div class="stat"><span>Prompt cache reads</span><b>${pct(cacheRead)}%</b></div>
