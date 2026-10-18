@@ -119,12 +119,19 @@ def main():
     print("  (EIP-55 checksum verified)")
 
     received = False
+    # Track whether each rail was actually measured. "Unreachable" and "zero"
+    # are different facts, and collapsing them is the failure mode this guards:
+    # printing "no funds yet" after a failed lookup states as a measurement what
+    # is really an outage, and someone reading it would stop sending.
+    measured_eth = False
+    measured_btc = False
 
     try:
         wei, via = get_balance_wei(ADDRESS)
     except RuntimeError as e:
         print(f"  ETH: could not reach any Ethereum RPC: {e}")
     else:
+        measured_eth = True
         eth = wei / 1e18
         print(f"  ETH  via {via}")
         print(f"       balance: {eth:.8f} ETH  ({wei} wei)")
@@ -139,12 +146,18 @@ def main():
     if sat is None:
         print("  BTC: could not reach any balance API")
     else:
+        measured_btc = True
         print(f"  BTC  balance: {sat} sat  ({sat / 1e8:.8f} BTC)")
         if sat > 0:
             received = True
 
     if received:
         print("\n  *** FUNDS RECEIVED ***")
+    elif not (measured_eth or measured_btc):
+        # Nothing was measured at all — say that, not "no funds".
+        print("\n  Balance unknown: no API was reachable from this machine.")
+        print("  The addresses above are checksum-verified; a tip sent to either")
+        print("  is not lost, it simply cannot be confirmed from here.")
     else:
         print("  no funds yet.")
     return 0

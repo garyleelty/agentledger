@@ -1,7 +1,7 @@
 # Promotion kit
 
-The machine this was built on cannot reach news.ycombinator.com, reddit.com,
-v2ex.com or linux.do (all DNS/connect blocked), so these posts could not be
+The machine this was built on cannot reach news.ycombinator.com, reddit.com,  
+v2ex.com or linux.do (all DNS/connect blocked), so these posts could not be  
 submitted automatically. They are written to be pasted as-is.
 
 Pick **one** channel first — Show HN is the highest-leverage one, but dev.to
@@ -75,7 +75,7 @@ subscription plan or a negotiated rate, and I say so in the README.
 MIT. No paid tier, no license keys, no telemetry.
 ```
 
-**Timing:** submit Tue–Thu, 8–10am US Eastern. Be around for 2 hours after;
+**Timing:** submit Tue–Thu, 8–10am US Eastern. Be around for 2 hours after;  
 most Show HNs die from unanswered questions in the first hour.
 
 ---
@@ -159,8 +159,8 @@ Pro/Max 之类），跟实际账单对不上。
 
 ## 4. If it gets traction
 
-Submit to `hesreallyhim/awesome-claude-code` via their issue form — but only
-once it has either 100 stars or 14+ days of commits. Their bot auto-closes
+Submit to `hesreallyhim/awesome-claude-code` via their issue form — but only  
+once it has either 100 stars or 14+ days of commits. Their bot auto-closes  
 submissions that fail this, and being closed looks worse than not applying.
 
 

@@ -202,6 +202,7 @@ agentledger-cli statusline      # one line for Claude Code's status bar
 agentledger-cli watch           # live totals, refreshes every 5s
 agentledger-cli prices          # the built-in pricing table
 agentledger-cli aggregate       # shareable totals + groupings, no session ids
+agentledger-cli share -o page.html   # the same, as a self-contained HTML page
 agentledger-cli json            # machine-readable dump
 ```
 
@@ -301,6 +302,22 @@ that leaves your machine:
 agentledger-cli aggregate > spend.json     # ~3 kB
 agentledger-cli json        > records.json  # one row per record, much larger
 ```
+
+### share
+
+The ledger is local, so there is nothing to link to — the only shareable
+artifact is a snapshot. `share` renders one as a single HTML file: inline CSS,
+no scripts, no external requests, opens straight from `file://` and survives a
+screenshot.
+
+```bash
+agentledger-cli share -o spend.html   # writes the file
+agentledger-cli share                 # or prints to stdout
+```
+
+Privacy rules are the digest's: aggregates only, never a session id, never a
+path. `tests/share.test.js` pins that, plus the offline guarantee (no `<script>`,
+no inline handler, no `url()`, no stylesheet link).
 
 Useful flags:
 

@@ -79,6 +79,11 @@ function parseFlags(args) {
       if (!raw || raw.startsWith('-')) throw new Error('--prices expects a JSON file path');
       out.prices = raw;
     }
+    else if (a === '-o' || a === '--out') {
+      const raw = args[++i];
+      if (!raw) throw new Error(`${a} needs a file path (e.g. -o out.html)`);
+      out.out = raw;
+    }
     else if (a === '--budget' || a === '-b') out.budget = money0(args[++i], a);
     else if (a === '--top' || a === '-n') out.top = positiveInt(args[++i], a);
     else if (a === '--days' || a === '-d') out.days = positiveInt(args[++i], a);
@@ -158,6 +163,7 @@ async function main() {
   switch (command) {
     case 'waste': return reportWaste(filtered, flags);
     case 'savings': return reportSavings(filtered, flags);
+    case 'share': return renderSharePage(filtered, flags);
     case 'by-project': return reportByProject(filtered, flags);
     case 'by-branch': return reportByBranch(filtered, flags);
     case 'by-model': return reportByModel(filtered, flags);
@@ -480,6 +486,53 @@ export function savingsOf(records) {
     totalTokens: t.input + t.cacheRead + t.cacheWrite + t.output,
     records: records.length,
   };
+}
+
+/**
+ * A shareable page: one file, inline CSS, no scripts, no network. It opens from
+ * disk and survives a screenshot, which is the only form of "link" that
+ * actually gets shared.
+ *
+ * The aggregate is built here rather than read from a file so
+ * `agentledger share -o out.html` is a single step from fresh logs. Privacy
+ * rules are the digests': aggregates only, never a session id, never a path.
+ */
+async function renderSharePage(records, flags) {
+  const t = totals(records);
+  const by = (keyFn) => Object.fromEntries(
+    [...groupBy(records, keyFn).entries()]
+      .map(([key, rs]) => {
+        const s = totals(rs);
+        return [key, {
+          input: s.input, cacheRead: s.cacheRead, cacheWrite: s.cacheWrite, output: s.output,
+          records: rs.length, costUSD: round(s.cost),
+        }];
+      })
+      .sort((a, b) => b[1].costUSD - a[1].costUSD),
+  );
+  const ledger = {
+    tool: 'agentledger',
+    version: version(),
+    generatedAt: new Date().toISOString(),
+    totals: {
+      tokens: { input: t.input, cacheRead: t.cacheRead, cacheWrite: t.cacheWrite, output: t.output },
+      costUSD: round(t.cost),
+      records: records.length,
+    },
+    byAgent: by((r) => r.agent),
+    byModel: by((r) => r.model),
+  };
+
+  const { renderShare } = await import('./share.js');
+  const html = renderShare(ledger);
+
+  if (flags.out) {
+    const { writeFileSync } = await import('node:fs');
+    writeFileSync(flags.out, html);
+    console.error(`wrote ${flags.out} (${html.length} bytes)`);
+    return;
+  }
+  process.stdout.write(html);
 }
 
 function reportWaste(records, flags) {
@@ -953,6 +1006,7 @@ Commands
   sources     Which agents are supported and where logs are read from
   prices      The built-in pricing table
   aggregate   Shareable totals + groupings (no session ids)
+  share       Render a self-contained HTML page (e.g. share -o page.html)
   budget      Spend against a limit (e.g. budget -b 100)
   json        Machine-readable dump of every record
   statusline  One line for Claude Code's status bar (reads hook JSON on stdin)
@@ -966,6 +1020,7 @@ Options
   -d, --days <n>       Days to show in by-day (default 30)
       --prices <file>  Override prices from a JSON map before reporting
       --json           Emit JSON instead of a table
+  -o, --out <file>     Write the share page to a file instead of stdout
   -h, --help           This help
 
 agentledger reads only local log files and never sends anything anywhere.
