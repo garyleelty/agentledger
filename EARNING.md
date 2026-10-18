@@ -1242,3 +1242,22 @@ against the source rather than trusted from the PR text.
 
 **$0.00 received.** Two PRs still open and mergeable: #872 (awesome-opencode)
 and #946 (awesome-ai-coding-tools). Both are waiting on maintainers.
+
+## Round 50: reconciled with the parallel session; verified its new work
+
+Local had diverged (my `verify` commit vs the parallel session's share page +
+tip.py fix, same root). Rebased mine onto theirs rather than force-pushing
+over work I did not write, then verified their additions independently rather
+than trusting "124 tests green":
+
+- `share` — generated a page and checked it for the thing that matters: it
+  leaks nothing. No session ids, no absolute paths, no `.jsonl`/`rollout-`
+  names, no external resources (single file, inline CSS, one attribution
+  link). 5.7 kB.
+- `tip.py` — confirmed it now distinguishes "could not reach an RPC" from
+  "no funds", which is the bug it was written to fix: a failed lookup must
+  not print as a zero balance.
+
+124 tests, CI green, docs gate PASS, tree clean.
+
+**$0.00 received. Stars: 0 vs 19,019.**
