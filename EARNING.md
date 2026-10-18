@@ -1196,3 +1196,49 @@ is not evidence, and it was wrong about them and about me.
 
 Both README and landing page corrected, plus a guard test asserting the claim
 stays corrected. 117 green.
+
+## Round 43: the share page, and a tip tool that called an outage "no funds"
+
+Two things finished this round.
+
+**`agentledger share -o page.html`.** The ledger is local, so there is nothing
+to link to — the only shareable artifact is a snapshot. `share` renders one as a
+single HTML file: inline CSS, no scripts, no external requests, opens from
+`file://` and survives a screenshot. The two properties that are load-bearing
+are the ones the tests pin: **offline** (no `<script>`, no inline handler, no
+`url()`, no stylesheet link — one attribution URL is the whole external surface)
+and **no leak** (aggregates only, never a session id, never a path — same rule
+as `aggregate`/digest, and tests/digest.test.js documents why the session id is
+sensitive). Also pinned: HTML escaping (a model name containing
+`<img onerror>` must not become a live tag), an empty ledger must not render
+`NaN`, and `-o` must actually write the file while keeping stdout clean.
+
+It was wired and working but missing from both `--help` and the README, i.e.
+present but undiscoverable. Both now list it.
+
+**`tools/tip.py` printed "no funds yet" when nothing was reachable.** The logic
+had a single `received` flag, set only on a *successful non-zero* lookup; when
+both chains failed, the `else` still said "no funds yet". This machine is
+exactly that case — every ETH RPC dies with
+`SSL: UNEXPECTED_EOF_WHILE_READING` and no BTC API answers at all — so the tool
+stated as a measurement what was really an outage, and a reader would stop
+sending. Now three states are distinguished: received / genuinely zero /
+**not measured at all**, the last saying "Balance unknown: no API was reachable"
+and noting the addresses are checksum-verified so a tip is not lost, just
+unconfirmable from here. This is what the tip test has asserted all along; the
+code had drifted from its own test.
+
+**Rebase lesson, again.** A parallel session had advanced the remote by 56
+commits (pricing consensus, crosscheck tooling, a `verify` script). Rebasing
+put my `-o/--out` flag in direct conflict with their `--template`/`--prices`
+block in `parseFlags` — same else-if chain. Resolved by keeping both, and the
+merged suite went from 67 to **124 tests, all green**, which is the real
+argument for the rebase over a merge or a force-push.
+
+**Verification:** 124 passed / 0 failed, `npm run lint` clean, every command
+named in the README cross-checked against `--help`, and PR #872's factual
+claims (zero dependencies, the six sources, every named command) checked
+against the source rather than trusted from the PR text.
+
+**$0.00 received.** Two PRs still open and mergeable: #872 (awesome-opencode)
+and #946 (awesome-ai-coding-tools). Both are waiting on maintainers.
