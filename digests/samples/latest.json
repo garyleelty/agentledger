@@ -1,25 +1,25 @@
 {
   "tool": "agentledger",
   "version": "0.3.0",
-  "generatedAt": "2026-10-19T15:28:20.918Z",
+  "generatedAt": "2026-10-19T16:19:07.937Z",
   "totals": {
     "tokens": {
-      "input": 300951708,
-      "cacheRead": 1938300429,
+      "input": 312276972,
+      "cacheRead": 1996573581,
       "cacheWrite": 366382,
-      "output": 7970549
+      "output": 8160595
     },
-    "costUSD": 1110.272247,
-    "records": 16626
+    "costUSD": 1163.145339,
+    "records": 16919
   },
   "byAgent": {
     "dsh": {
-      "input": 226445402,
-      "cacheRead": 1267290064,
+      "input": 237142351,
+      "cacheRead": 1325536080,
       "cacheWrite": 0,
-      "output": 3509238,
-      "records": 6740,
-      "costUSD": 888.269291
+      "output": 3588964,
+      "records": 7004,
+      "costUSD": 939.029833
     },
     "codex": {
       "input": 15835116,
@@ -44,6 +44,14 @@
       "output": 511616,
       "records": 1462,
       "costUSD": 2.237627
+    },
+    "cherry-studio": {
+      "input": 628315,
+      "cacheRead": 27136,
+      "cacheWrite": 0,
+      "output": 110320,
+      "records": 29,
+      "costUSD": 2.11255
     },
     "openclaw": {
       "input": 28319456,
@@ -72,28 +80,28 @@
   },
   "byModel": {
     "hy4-preview": {
-      "input": 174114965,
-      "cacheRead": 76380160,
+      "input": 184050157,
+      "cacheRead": 84197248,
       "cacheWrite": 0,
-      "output": 617333,
-      "records": 1509,
-      "costUSD": 554.518938
+      "output": 639835,
+      "records": 1554,
+      "costUSD": 587.00717
     },
     "step-5-preview": {
-      "input": 36825958,
-      "cacheRead": 336720960,
+      "input": 37587715,
+      "cacheRead": 387149888,
       "cacheWrite": 0,
-      "output": 400688,
-      "records": 1405,
-      "costUSD": 217.504482
+      "output": 457912,
+      "records": 1624,
+      "costUSD": 235.776791
     },
     "gpt-5.5": {
-      "input": 15070378,
+      "input": 15071921,
       "cacheRead": 192228608,
       "cacheWrite": 0,
-      "output": 697616,
-      "records": 3014,
-      "costUSD": 192.394674
+      "output": 697660,
+      "records": 3015,
+      "costUSD": 192.403709
     },
     "qfmodel": {
       "input": 2309261,
@@ -159,6 +167,14 @@
       "records": 1714,
       "costUSD": 4.75844
     },
+    "mimo-v2.5-pro": {
+      "input": 3563432,
+      "cacheRead": 212836224,
+      "cacheWrite": 0,
+      "output": 545102,
+      "records": 1476,
+      "costUSD": 2.792777
+    },
     "Cherry-New-API/kimi-k2.7-code": {
       "input": 777215,
       "cacheRead": 9212928,
@@ -166,14 +182,6 @@
       "output": 35073,
       "records": 57,
       "costUSD": 2.629103
-    },
-    "mimo-v2.5-pro": {
-      "input": 3142596,
-      "cacheRead": 212836224,
-      "cacheWrite": 0,
-      "output": 522896,
-      "records": 1472,
-      "costUSD": 2.590394
     },
     "deepseek-flash": {
       "input": 431720,
@@ -191,6 +199,14 @@
       "records": 110,
       "costUSD": 1.27692
     },
+    "unknown": {
+      "input": 115787,
+      "cacheRead": 0,
+      "cacheWrite": 0,
+      "output": 54419,
+      "records": 4,
+      "costUSD": 1.163646
+    },
     "Cherry-httpsnew-api.abrdns.comconso/mimo-v2.5-pro": {
       "input": 1632517,
       "cacheRead": 35148544,
@@ -206,6 +222,14 @@
       "output": 42545,
       "records": 72,
       "costUSD": 0.866302
+    },
+    "deepseek-v4-pro": {
+      "input": 86228,
+      "cacheRead": 0,
+      "cacheWrite": 0,
+      "output": 30144,
+      "records": 4,
+      "costUSD": 0.710844
     },
     "Cherry-New-API/glm-5.2": {
       "input": 74865,
@@ -246,6 +270,46 @@
       "output": 3539,
       "records": 7,
       "costUSD": 0.193642
+    },
+    "qwen": {
+      "input": 830,
+      "cacheRead": 128,
+      "cacheWrite": 0,
+      "output": 697,
+      "records": 6,
+      "costUSD": 0.012983
+    },
+    "deepseek-v4-pro-260425": {
+      "input": 13,
+      "cacheRead": 0,
+      "cacheWrite": 0,
+      "output": 754,
+      "records": 1,
+      "costUSD": 0.011349
+    },
+    "kimi-k2.7-code": {
+      "input": 1515,
+      "cacheRead": 0,
+      "cacheWrite": 0,
+      "output": 46,
+      "records": 1,
+      "costUSD": 0.001623
+    },
+    "gpt-5.4": {
+      "input": 123,
+      "cacheRead": 0,
+      "cacheWrite": 0,
+      "output": 44,
+      "records": 1,
+      "costUSD": 0.000594
+    },
+    "DeepSeek-V4.1-Flash": {
+      "input": 14,
+      "cacheRead": 0,
+      "cacheWrite": 0,
+      "output": 74,
+      "records": 2,
+      "costUSD": 0.000093
     },
     "<synthetic>": {
       "input": 0,
@@ -334,16 +398,24 @@
       "output": 595117,
       "records": 849,
       "costUSD": 0
+    },
+    "deepseek-v4.1-flash-free": {
+      "input": 1426,
+      "cacheRead": 27008,
+      "cacheWrite": 0,
+      "output": 1892,
+      "records": 5,
+      "costUSD": 0
     }
   },
   "unpricedModels": [
     {
-      "model": "hy4-preview",
-      "records": 1509
+      "model": "step-5-preview",
+      "records": 1624
     },
     {
-      "model": "step-5-preview",
-      "records": 1405
+      "model": "hy4-preview",
+      "records": 1554
     },
     {
       "model": "qfmodel",
@@ -368,9 +440,25 @@
     {
       "model": "hy4-preview-f",
       "records": 20
+    },
+    {
+      "model": "qwen",
+      "records": 6
+    },
+    {
+      "model": "deepseek-v4-pro",
+      "records": 4
+    },
+    {
+      "model": "unknown",
+      "records": 4
+    },
+    {
+      "model": "deepseek-v4-pro-260425",
+      "records": 1
     }
   ],
-  "unpricedCostUSD": 881.253238,
+  "unpricedCostUSD": 933.912602,
   "defaultPricingUSD": {
     "input": 3,
     "output": 15

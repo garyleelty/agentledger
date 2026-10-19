@@ -60,25 +60,26 @@
 <pre><span class="prompt">$</span> npm install -g git+https://github.com/garyleelty/agentledger.git
 <span class="prompt">$</span> agentledger
 
-  agentledger — 230 session files scanned
+  agentledger — 231 session files scanned
 
   Metric         Tokens   Est. cost
   ─────────────  ───────  ─────────
-  Input tokens   300.95M  <span class="hi">$617</span>
-  Cache read     1.94B    <span class="hi">$318</span>
-  Cache write    366.4k   $0.0842
-  Output tokens  7.97M    <span class="hi">$63.89</span>
-  <span class="ok">TOTAL          2.25B    $998</span>
+  Input tokens   312.28M  <span class="hi">$796</span>
+  Cache read     2.00B  <span class="hi">$313</span>
+  Cache write    366.4k  $0.0842
+  Output tokens  8.16M  <span class="hi">$54.87</span>
+  <span class="ok">TOTAL          2.32B    $1164</span>
 
   Agent        Tokens   Est. cost  Records
   ───────────  ───────  ─────────  ───────
-  dsh          1.48B    <span class="hi">$861</span>       6653
-  codex        219.45M  <span class="hi">$193</span>       3059
-  opencode     284.61M  $25.42     4219
-  claude-code  205.05M  $2.24      1462
-  openclaw     31.39M   $1.28      959
-  kilo         3.32M    $0.3186    103
-  pi           47.7k    $0.0000    5</pre>
+  dsh          1.57B    $939      7004
+  codex        219.45M  $193      3059
+  opencode     291.09M  $25.42    4298
+  claude-code  205.05M  $2.24     1462
+  cherry-studio 765.8k   $2.11      29
+  openclaw     31.39M   $1.28     959
+  kilo         3.32M    $0.3186   103
+  pi           47.7k    $0.0000   5</pre>
   </div>
 
   <p class="dim">A real run on the machine it was written on. Nothing had told the author
@@ -114,8 +115,8 @@
 
   <h2>What it does</h2>
   <ul>
-    <li><strong>Reads local logs only</strong> — <code>~/.claude/projects</code>, <code>~/.codex/sessions</code>, <code>~/.local/share/opencode</code>, <code>~/.local/share/kilo</code>, <code>~/.dsh/sessions</code>, <code>~/.openclaw/agents</code>, <code>~/.pi/agent/sessions</code>, <code>~/.gemini/tmp</code></li>
-    <li><strong>Cache buckets priced separately</strong> — 1.92B of my 2.22B tokens are cache reads, billed at 10-25% of input</li>
+    <li><strong>Reads local logs only</strong> — <code>~/.claude/projects</code>, <code>~/.codex/sessions</code>, <code>~/.local/share/opencode</code>, <code>~/.local/share/kilo</code>, <code>~/.dsh/sessions</code>, <code>~/.openclaw/agents</code>, <code>~/.pi/agent/sessions</code>, <code>~/Library/Application Support/CherryStudio/Data</code>, <code>~/.gemini/tmp</code></li>
+    <li><strong>Cache buckets priced separately</strong> — 2.00B of my 2.32B tokens are cache reads, billed at 10-25% of input</li>
     <li><strong>Never touches the network</strong> — no account, no key, no telemetry, ~2,500 lines you can audit in one sitting</li>
     <li><strong>Fast</strong> — a full scan of 680M+ tokens takes about a second</li>
     <li><strong>Your rates, not mine</strong> — <code>--prices my-prices.json</code> overrides any model, partial entries merge over the built-in table; <code>prices --template</code> writes the file for you, naming exactly the models your ledger could not price</li>
@@ -151,6 +152,7 @@
     <tr><td>DSH (DeepSeek Harness)</td><td><code>~/.dsh/sessions</code></td><td class="ok">supported</td></tr>
     <tr><td>OpenClaw</td><td><code>~/.openclaw/agents/*/sessions</code></td><td class="ok">supported</td></tr>
     <tr><td>pi-agent</td><td><code>~/.pi/agent/sessions</code></td><td class="ok">supported</td></tr>
+    <tr><td>Cherry Studio</td><td><code>~/Library/Application Support/CherryStudio/Data</code></td><td class="ok">supported</td></tr>
     <tr><td>Gemini CLI</td><td><code>~/.gemini/tmp</code></td><td class="ok">supported</td></tr>
     <tr><td>Cursor, Aider, Amp…</td><td><code>--path</code> + sniffing</td><td class="dim">partial</td></tr>
   </table>
@@ -168,7 +170,7 @@
 <pre>paid          <span class="hi">pre>paid          <span class="hi">000</span>
 without cache <span class="hi">$3853</span>
 saved         <span class="ok">$2854   74.1% cheaper</span>
-cache reads   <span class="hi">1.94B</span> of 2.25B total tokens   <span class="dim">(85%)</span>
+cache reads   <span class="hi">2.00B</span> of 2.32B total tokens   <span class="dim">(85%)</span>
 concentration  top 10 of 315 sessions = <span class="hi">75.3%</span> of all cache reads
 priciest      <span class="hi">$118</span>  one Codex session in one repo
 branch        <span class="hi">$206</span>  <span class="dim">the web branch alone</span></pre>

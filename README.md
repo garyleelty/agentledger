@@ -6,36 +6,37 @@
 
 `agentledger-cli` is a local-first ledger for AI coding agents. It reads the
 session logs that Claude Code, Codex, OpenCode, Kilo, DSH, OpenClaw, pi-agent,
-and Gemini CLI already write to your machine and turns them into tokens and
-dollars.
+Cherry Studio, and Gemini CLI already write to your machine and turns them
+into tokens and dollars.
 
 ```
 $ agentledger
 
-  agentledger — 230 session files scanned
+  agentledger — 231 session files scanned
 
   Metric         Tokens   Est. cost
   ─────────────  ───────  ─────────
-  Input tokens   300.95M  $608
-  Cache read     1.94B    $315
+  Input tokens   312.28M  $796
+  Cache read     2.00B    $312
   Cache write    366.4k   $0.0842
-  Output tokens  7.97M    $63.62
-  TOTAL          2.25B    $987
+  Output tokens  8.16M    $54.83
+  TOTAL          2.32B    $1163
 
   Agent        Tokens   Est. cost  Records
   ───────────  ───────  ─────────  ───────
-  dsh          1.50B    $888       6602
+  dsh          1.57B    $939       6994
   codex        219.45M  $193       3059
-  opencode     291.09M  $25.42     4219
+  opencode     291.09M  $25.42     4298
   claude-code  205.05M  $2.24      1462
+  cherry-studio 765.8k $2.11      29
   openclaw     31.39M   $1.28      959
   kilo         3.32M    $0.3186    103
   pi           47.7k    $0.0000    5
 
-  ! 8 model(s) have no built-in price and used the
-    $3/$15 per-Mtok default ($881 of the total):
-      hy4-preview  (1509 records)
-      step-5-preview  (1405 records)
+  ! 12 model(s) have no built-in price and used the
+    $3/$15 per-Mtok default ($934 of the total):
+      step-5-preview  (1624 records)
+      hy4-preview  (1554 records)
       ...
     Fix in one step: `agentledger prices --template` prints a
     fill-in override file for exactly these models.
@@ -53,12 +54,13 @@ while you are still working:
 
 - **Local only.** It reads `~/.claude/projects`, `~/.codex/sessions`,
   `~/.local/share/opencode`, `~/.dsh/sessions`, `~/.openclaw/agents`,
-  `~/.pi/agent/sessions`, and `~/.gemini/tmp`. Nothing is uploaded, no
-  account, no API key, no network call of any kind.
+  `~/.pi/agent/sessions`,
+  `~/Library/Application Support/CherryStudio/Data`, and `~/.gemini/tmp`.
+  Nothing is uploaded, no account, no API key, no network call of any kind.
 - **Cache buckets are priced separately.** Cache reads and cache writes bill at
   different rates from fresh input, and they are the majority of real traffic —
-  1.93B of the 2.23B tokens in my own logs are cache reads.
-- **Fast.** A full scan of ~2.2B tokens of logs takes about a second.
+  2.00B of the 2.32B tokens in my own logs are cache reads.
+- **Fast.** A full scan of ~2.3B tokens of logs takes about a second.
 - **Boring dependencies.** Node 22.5+ and the standard library. That's it.
 
 - **Cost attribution.** Codex records the working directory and branch in
@@ -77,7 +79,7 @@ while you are still working:
 ### Honest comparison
 
 [ccusage](https://github.com/ccusage/ccusage) is the incumbent and it covers
-more agents than this (19 adapters against our 8). It reports reasoning
+more agents than this (19 adapters against our 9). It reports reasoning
 token **counts** but does not bill them in the OpenCode or Kilo lanes — on the
 kilo store `sum(reasoning)` is 133 tokens and ccusage's output total is
 `sum(output)` alone, 39,597 against agentledger's 39,730 — and its statusline
@@ -409,6 +411,7 @@ blank line is worth before you go looking up rates.
 | OpenClaw | `~/.openclaw/agents/*/sessions/*.jsonl*` | ✅ |
 | pi-agent | `~/.pi/agent/sessions/**/*.jsonl` | ✅ |
 | Gemini CLI | `~/.gemini/tmp/**/logs.json` | ✅ |
+| Cherry Studio | `~/Library/Application Support/CherryStudio/Data/cherrystudio.sqlite` | ✅ |
 | Anything else | `--path` + format sniffing | partial |
 
 `agentledger sources` tells you which of those are actually present on your
@@ -416,25 +419,39 @@ machine, so an empty lane is never mistaken for a wrong path:
 
 ```
 $ agentledger sources
-  Agent        Log location             Here        Docs
-  claude-code  ~/.claude/projects       62 file(s)  https://docs.claude.com/...
-  codex        ~/.codex/sessions        11 file(s)  https://github.com/openai/codex
-  opencode     ~/.local/share/opencode  1 file(s)   https://opencode.ai/docs
-  kilo         ~/.local/share/kilo      1 file(s)   https://kilo.ai
-  dsh          ~/.dsh/sessions          49 file(s)  https://github.com/deepseek-ai/deepseek-harness
-  gemini-cli   ~/.gemini/tmp            not found   https://github.com/google-gemini/...
-  openclaw     ~/.openclaw/agents       101 file(s) https://github.com/clawdbot/clawdbot
-  pi           ~/.pi/agent/sessions     5 file(s)   https://github.com/earendil-works/pi-coding-agent
+  Agent          Log location                                     Here         Docs                                             
+  ─────────────  ───────────────────────────────────────────────  ───────────  ─────────────────────────────────────────────────
+  claude-code    ~/.claude/projects                               62 file(s)   https://docs.claude.com/en/docs/claude-code      
+  codex          ~/.codex/sessions                                11 file(s)   https://github.com/openai/codex                  
+  opencode       ~/.local/share/opencode                          1 file(s)    https://opencode.ai/docs                         
+  kilo           ~/.local/share/kilo                              1 file(s)    https://kilo.ai                                  
+  dsh            ~/.dsh/sessions                                  49 file(s)   https://github.com/deepseek-ai/deepseek-harness  
+  gemini-cli     ~/.gemini/tmp                                    not found    https://github.com/google-gemini/gemini-cli      
+  pi             ~/.pi/agent/sessions                             5 file(s)    https://github.com/earendil-works/pi-coding-agent
+  openclaw       ~/.openclaw/agents                               101 file(s)  https://github.com/clawdbot/clawdbot             
+  cherry-studio  ~/Library/Application Support/CherryStudio/Data  1 file(s)    https://www.cherry-ai.com/                       
 
-  7 of 8 sources have data on this machine.
+  8 of 9 sources have data on this machine.
 ```
 
 `agentledger-cli sources` prints this table with links.
 
-OpenCode is the only supported agent whose store is a SQLite database rather
-than append-only text. It is opened read-only — a running OpenCode is never
-blocked — and a locked or foreign database is skipped exactly the way a
-truncated log line is.
+OpenCode and Cherry Studio are the two supported agents whose store is a
+SQLite database rather than append-only text. Both are opened read-only — a
+running agent is never blocked — and a locked or foreign database is skipped
+exactly the way a truncated log line is.
+
+**Cherry Studio needs a dedup rule the others do not.** It is a GUI that
+hosts other agents, so it writes a usage row for requests the hosted agent
+also logs. On this machine 3 of its 32 rows are the same request as a pi-agent
+row with identical token counts (17,858 tokens that would otherwise be counted
+twice). The agent's own log wins; the host's copy is dropped. The match is on
+the whole-prompt token total within a 2-second window — the two stores write
+the same request 20-60ms apart, and their *buckets* disagree (pi reports input
+as fresh-only plus a separate cache read; the host reports the whole prompt,
+and keeps reasoning out of output), so an exact match finds nothing and an
+output-inclusive match misses every row that had reasoning. Cherry Studio's
+other 29 rows are its own — June and July sessions no other source covers.
 
 Two of the newer adapters share a shape and are worth naming, because both
 differences are invisible in a diff and each one silently loses real spend:

@@ -10,7 +10,13 @@ import { homedir } from 'node:os';
 import path from 'node:path';
 import fsp from 'node:fs/promises';
 import { PARSERS } from './parsers.js';
+import { PARSERS_CHERRY } from './parsers-cherry.js';
 import { costOf } from './pricing.js';
+
+// The CherryStudio lane lives in its own module because it is the only
+// parser that needs a documented dedup relationship with another source;
+// merging it here keeps that coupling visible instead of buried.
+const ALL_PARSERS = { ...PARSERS, ...PARSERS_CHERRY };
 
 /**
  * Where each supported agent keeps its logs.
@@ -28,14 +34,14 @@ export const SOURCES = [
     agent: 'codex',
     root: '~/.codex/sessions',
     match: (rel) => /\.jsonl$/.test(rel),
-    parser: PARSERS.codex,
+    parser: ALL_PARSERS.codex,
     docs: 'https://github.com/openai/codex',
   },
   {
     agent: 'opencode',
     root: '~/.local/share/opencode',
     match: (rel) => /(^|\/)opencode\.db$/.test(rel),
-    parser: PARSERS.opencode,
+    parser: ALL_PARSERS.opencode,
     docs: 'https://opencode.ai/docs',
   },
   {
@@ -44,7 +50,7 @@ export const SOURCES = [
     agent: 'kilo',
     root: '~/.local/share/kilo',
     match: (rel) => /(^|\/)kilo\.db$/.test(rel),
-    parser: PARSERS.kilo,
+    parser: ALL_PARSERS.kilo,
     docs: 'https://kilo.ai',
   },
   {
@@ -53,7 +59,7 @@ export const SOURCES = [
     agent: 'dsh',
     root: '~/.dsh/sessions',
     match: (rel) => /session\.v4\.jsonl\.zstd$/.test(rel),
-    parser: PARSERS.dsh,
+    parser: ALL_PARSERS.dsh,
     docs: 'https://github.com/deepseek-ai/deepseek-harness',
   },
   {
@@ -70,7 +76,7 @@ export const SOURCES = [
     agent: 'pi',
     root: '~/.pi/agent/sessions',
     match: (rel) => /(^|\/)[^/]+\.jsonl$/.test(rel),
-    parser: PARSERS.pi,
+    parser: ALL_PARSERS.pi,
     docs: 'https://github.com/earendil-works/pi-coding-agent',
   },
   {
@@ -85,8 +91,20 @@ export const SOURCES = [
     agent: 'openclaw',
     root: '~/.openclaw/agents',
     match: (rel) => /(^|\/)[^/]+\.jsonl(\.|$)/.test(rel),
-    parser: PARSERS.openclaw,
+    parser: ALL_PARSERS.openclaw,
     docs: 'https://github.com/clawdbot/clawdbot',
+  },
+  {
+    // CherryStudio is a GUI that hosts several agents, so it is the one
+    // source that can double-count: it writes its own `ai_usage_record` row
+    // for every request a hosted agent also logs. `dropHostedDuplicates`
+    // removes those, keyed on the agent's own log winning. The rest of its
+    // ledger (June/July sessions no other source covers) is additive.
+    agent: 'cherry-studio',
+    root: '~/Library/Application Support/CherryStudio/Data',
+    match: (rel) => /(^|\/)cherrystudio\.sqlite$/.test(rel),
+    parser: ALL_PARSERS['cherry-studio'],
+    docs: 'https://www.cherry-ai.com/',
   },
 ];
 
@@ -157,6 +175,19 @@ export async function collect(opts = {}) {
     const stat = await fsp.stat(abs).catch(() => null);
     const files = stat?.isDirectory() ? await walk(abs) : stat ? [abs] : [];
     for (const file of files) {
+      // A `.sqlite` file is a store, not a log — it needs a parser that
+      // knows the schema, not the text sniffer. Without this branch
+      // `--path ~/.../cherrystudio.sqlite` silently read zero records, which
+      // is the same failure shape as an empty lane: no error, no data.
+      if (/\.(sqlite|db)$/.test(file)) {
+        filesScanned++;
+        try {
+          for await (const rec of sniffDb(file)) records.push(rec);
+        } catch (err) {
+          skipped.push(`${file}: ${err.message}`);
+        }
+        continue;
+      }
       if (!/\.(jsonl|json)$/.test(file)) continue;
       filesScanned++;
       try {
@@ -167,7 +198,134 @@ export async function collect(opts = {}) {
     }
   }
 
-  return { records, filesScanned, skipped };
+  // LAST, after every source and every explicit path has contributed, so a
+  // record from `--path` is deduped against the built-in lanes too.
+  return { records: dropHostedDuplicates(records), filesScanned, skipped };
+}
+
+// The two stores write the same request at slightly different moments: the
+// agent logs at completion, the host when it persists its row. Measured on
+// this machine at 20-60ms apart, so a 2-second window is generous while still
+// far tighter than any two independent requests could plausibly collide on
+// the same token signature.
+const HOST_WINDOW_MS = 2000;
+
+/**
+ * Drop records a HOST recorded for a session another source already owns.
+ *
+ * CherryStudio can host pi-agent, and when it does it records the usage of
+ * requests that pi's own session log also records. Verified on this machine:
+ * of 8 CherryStudio rows in the pi window, 3 are the same request with
+ * byte-identical token counts (17:22:27 -> in 5851 / out 13 in BOTH stores)
+ * and 5 are CherryStudio's own requests that pi never logged. Summing both
+ * lanes double-counts those 3.
+ *
+ * The agent's own log wins, not the host's: pi's session file is the
+ * authoritative record of what it sent, and CherryStudio is a GUI observing
+ * it. The match is on the TOKEN SIGNATURE, with the timestamp only used as a
+ * proximity bound, because the two stores write the same request ~20-60ms
+ * apart (pi at completion, the host when it persists the row) — an exact
+ * millisecond match finds nothing, which is exactly the kind of silent no-op
+ * that looks like success.
+ *
+ * The signature is the whole-prompt token total — fresh input plus cache
+ * read — and NOTHING else. That is the one number both stores agree on even
+ * when they bucket differently: pi reports input as fresh-only plus a
+ * separate cacheRead, while CherryStudio reports input as the whole prompt
+ * already, and their output fields differ too (pi folds reasoning into
+ * output, the host keeps it separate, so 158 vs 204 for the same request).
+ * Matching on output as well silently misses every row that had reasoning.
+ *
+ * 17:22:53 is the counter-example that proves the input-only signature is
+ * still safe: pi 567 / 12032 against the host's 6364 / 6272 are the same
+ * shape of request counted two ways, with different whole-prompt totals
+ * (12,599 vs 6,364), so they are correctly NOT matched.
+ *
+ * This is deliberately NOT a general "drop anything that looks similar":
+ * only `cherry-studio` records carry `hostedBy`, and only those are
+ * candidates for removal. Everything else passes through untouched.
+ */
+function dropHostedDuplicates(records) {
+  // Whole-prompt totals from every non-host record, keyed by the signature.
+  const owned = new Map();
+  for (const r of records) {
+    if (r.agent === 'cherry-studio') continue;
+    if (typeof r.timestamp !== 'number') continue;
+    const k = wholePrompt(r);
+    if (!owned.has(k)) owned.set(k, []);
+    owned.get(k).push(r.timestamp);
+  }
+  if (owned.size === 0) return records;
+
+  const kept = [];
+  let dropped = 0;
+  for (const r of records) {
+    if (r.agent === 'cherry-studio' && typeof r.timestamp === 'number') {
+      const candidates = owned.get(wholePrompt(r));
+      if (candidates?.some((t) => Math.abs(t - r.timestamp) <= HOST_WINDOW_MS)) {
+        dropped++;
+        continue;
+      }
+    }
+    kept.push(r);
+  }
+  if (dropped > 0) {
+    // Attach the count where callers can see it, without changing the shape
+    // of every record.
+    Object.defineProperty(kept, 'hostedDuplicatesDropped', {
+      value: dropped, enumerable: false, configurable: true,
+    });
+  }
+  return kept;
+}
+
+/** Fresh + cached read = the whole prompt, the number both stores agree on. */
+function wholePrompt(r) {
+  return (r.input || 0) + (r.cacheRead || 0);
+}
+
+/**
+ * Pick a parser for an arbitrary SQLite file by inspecting its tables.
+ *
+ * Same contract as `sniff`, for the database-shaped sources: a `.sqlite` or
+ * `.db` file could be an OpenCode store, a Kilo store, a Cherry Studio store,
+ * or something this tool has never seen. The table list is the sniff, and a
+ * store this tool cannot read is skipped rather than guessed at — an
+ * unrecognised schema parsed with the wrong query yields wrong numbers, which
+ * is worse than none.
+ */
+async function* sniffDb(file) {
+  let DatabaseSync;
+  try {
+    ({ DatabaseSync } = await import('node:sqlite'));
+  } catch {
+    return; // Node < 22.5: no sqlite, no database lane
+  }
+  if (typeof DatabaseSync !== 'function') return;
+  let db;
+  try {
+    db = new DatabaseSync(file, { readOnly: true });
+  } catch {
+    return;
+  }
+  let tables = [];
+  try {
+    tables = db.prepare('SELECT name FROM sqlite_master WHERE type=?').all('table').map((r) => r.name);
+  } catch {
+    return; // not a database (or not a readable one)
+  } finally {
+    try { db.close(); } catch { /* already closed */ }
+  }
+  if (tables.includes('ai_usage_record')) {
+    yield* ALL_PARSERS['cherry-studio'](file);
+    return;
+  }
+  // OpenCode and Kilo both have a `message` table; the file name decides.
+  if (tables.includes('message')) {
+    if (/kilo\.db$/.test(file)) yield* ALL_PARSERS.kilo(file);
+    else yield* ALL_PARSERS.opencode(file);
+  }
+  // Anything else: unknown schema, no records. Silence, not a wrong number.
 }
 
 /** Pick a parser for an arbitrary file by inspecting the first record. */
