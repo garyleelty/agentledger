@@ -1342,3 +1342,71 @@ same check CI makes, run locally on the same bytes.
 **$0.00 received. Stars: 0 vs 19,019.** Two adapters and one real price
 closer, and the comparison section now says 19 against our 8 — the gap
 narrowed on the one axis that is measurable.
+
+## Round 52: Cherry Studio — the lane that can double-count, handled
+
+Cherry Studio is a GUI hosting several agents and keeps its own
+per-invocation usage ledger in `cherrystudio.sqlite` (table
+`ai_usage_record`). It is the only source here carrying the provider's own
+cost next to the token buckets, and the only one with a structural hazard:
+it writes a row for requests the hosted agent also logs.
+
+**The hazard is measured, not assumed.** Of its 32 rows, 3 are the same
+request as a pi-agent row with identical token counts — 17,858 tokens that
+would have been counted twice. The other 29 are Cherry Studio's own: June
+and July sessions no other source covers at all (mimo, deepseek-v4-pro,
+kimi, gpt-5.5/5.4 — 626k input tokens of history nothing else reads).
+Verified by checking every other lane's date coverage: opencode starts
+2026-04-12 and has nothing on 2026-06-27; claude-code has nothing either.
+
+**Three bucketing traps, each verified against the live store:**
+
+| trap | what the store does | what getting it wrong costs |
+|---|---|---|
+| `input_tokens` | the WHOLE prompt (`no_cache + cache_read`) | charges the cached part twice |
+| `reasoning_tokens` | a SUBSET of output (not additive) | double-counts, opposite of the OpenCode rule |
+| `model_id IS NULL` | 4 rows, 115,787 input tokens | dropping real spend to keep the table tidy |
+
+Evidence, not inference: `no_cache + cache_read == input` on every
+invocation row carrying the split; `reasoning <= output` on all 6 rows and
+`total == input + output` on all 41; the NULL-model rows' sessions are gone
+from `agent_session_message`, so the model is genuinely unrecoverable.
+
+**The dedup key took three attempts, and that is the whole lesson.**
+
+1. Exact millisecond match → dropped 0 of 3. The two stores write the same
+   request 20-60ms apart. A silent no-op that looks like success.
+2. Whole-prompt AND output match → dropped 1 of 3. pi folds reasoning into
+   output and the host does not (158 vs 204 for the same request), so every
+   row that had reasoning was missed.
+3. Whole-prompt alone, bounded by a 2s window → drops exactly 3, and
+   correctly does NOT match 17:22:53, where pi's 12,599 and the host's 6,364
+   are the same shape of request counted two different ways.
+
+**Two bugs of my own found by running things.**
+
+- The dedup ran BEFORE the `--path` loop, so every explicitly-passed record
+  was silently discarded. This is what broke `statusline` (it prices the
+  transcript it is handed via `--path`): the test went from 2 records to 0.
+  Caught by the suite, not by reading the diff — the ordering looked
+  harmless.
+- `--path some.sqlite` read zero records, because the extra-path loop only
+  accepted `.jsonl`/`.json`. Added `sniffDb`, which picks a parser from the
+  file's table list. An unrecognised schema yields nothing rather than a
+  wrong number — the same rule as every other unreadable store.
+
+**CI caught a Node-version bug I could not have caught here.** The round-51
+`createRequire()` in `sources.test.js` cannot load an ES module on 22.5
+(`ERR_REQUIRE_ESM`); it works on 24 and 26, which is all this machine runs.
+The node 22.5 leg failed while two legs passed — exactly the kind of split
+that only a matrix finds. Replaced with a dynamic import.
+
+**Verified against the pushed commit, since CI runners were not picking up
+jobs:** pulled the exact tarball of the pushed sha and ran all three CI
+legs locally — lint, 138 tests, and the docs-drift gate (regenerating
+README/landing from the committed sample produces zero diff).
+
+138 tests green (7 new). Crosscheck still token-exact on all six comparable
+lanes. 9 sources now, up from 6 two rounds ago.
+
+**$0.00 received. Stars: 0 vs 19,019.**
