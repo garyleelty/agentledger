@@ -1410,3 +1410,62 @@ README/landing from the committed sample produces zero diff).
 lanes. 9 sources now, up from 6 two rounds ago.
 
 **$0.00 received. Stars: 0 vs 19,019.**
+
+## Round 53: a real price for deepseek-v4-pro, and two 22.5-only CI failures
+
+**deepseek-v4-pro had a price; I had not looked.** Cherry Studio's June
+sessions are mostly this model and it was on the $3/$15 default like
+everything else with "no canonical price". It does have one: 11 of LiteLLM's
+27 rows agree exactly on $1.32/$3.96, and that is the cluster the BARE id
+itself carries (together_ai, tencent, novita, baseten, perplexity, wandb, and
+the un-prefixed `deepseek-v4-pro`). The other two clusters — 1.74/3.48 on
+azure_ai+tencent, 2.40/4.80 on dashscope+qwencloud — are 3 rows each, a
+vendor spread rather than a consensus, so they were not used. Cached read is
+0.0333x on 6 of the 10 rows in the winning cluster and on the bare id.
+
+Effect: the lane goes from $0.71 to $0.24, the unpriced list drops from 12 to
+10 models, and the audit goes from 28 to 29 of 33 entries checked. The dated
+spelling (`-260425`) and the capitalised one both resolve through the
+existing suffix-strip, so one entry covers all three spellings in the ledger.
+Verified the audit is not a no-op on the new entry: breaking the output rate
+in a scratch copy reports `MISMATCH deepseek-v4-pro.output` and exits 1.
+
+Still unpriced, reasons unchanged: step-5-preview, hy4-preview, qfmodel,
+sensenova, gfmodel, qwen. Zero LiteLLM rows for any spelling, or (hy4) a
+single reseller row with no vendor consensus.
+
+**Two Node-22.5-only failures the matrix caught and this machine could not.**
+That is now three in two rounds, and each one is worth recording because the
+pattern is the same: this machine runs Node 26, where a deprecated-or-newer
+API path works, and CI's floor leg is the only thing that sees the
+difference.
+
+1. `createRequire()` of an ES module — works on 24+, `ERR_REQUIRE_ESM` on
+   22.5. Replaced with a dynamic import.
+2. A spawned CLI child without `--experimental-sqlite` — the flag is
+   unnecessary from 23.8, so the child ran fine on 26 and came back with an
+   empty cherry lane on 22.5. Fixed by passing the parent's exec argv
+   through rather than hardcoding.
+
+Both were invisible locally and both failed only the 22.5 leg. The matrix is
+earning its keep; without it these ship.
+
+**CI green on 4d4e6135** — all three Node legs, the docs gate, and Pages
+deployed. Verified the live page serves the new content (Cherry Studio in
+the agents table, 231 files scanned, the new totals).
+
+**Where the goal stands after three rounds.** Sources went 6 -> 9. Two of the
+new lanes are token-identical to ccusage on the same files (pi: 19,254 /
+21,191 / 25,472; openclaw: 28,319,456 / 614,261 / 2,457,344 — every bucket
+exact), one is a source ccusage has no adapter for at all (DSH, 1.59B tokens),
+and one (Cherry Studio) covers months no other tool on this machine reads.
+Two real pricing errors were fixed with vendor-consensus evidence
+(glm-4.7:cloud at $6.46 of pure placeholder, deepseek-v4-pro at $0.71), and
+one structural double-count (17,858 tokens) was designed out rather than
+discovered later.
+
+What has NOT moved: stars, 0 vs 19,019, and $0.00 received. Distribution is
+still the unsolved half of this goal — the tool is now measurably better on
+the axes that can be measured, and nobody outside this machine knows.
+
+**$0.00 received. Stars: 0 vs 19,019.**
