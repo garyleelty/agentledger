@@ -16,15 +16,15 @@ $ agentledger
 
   Metric         Tokens   Est. cost
   ─────────────  ───────  ─────────
-  Input tokens   312.53M  $796
-  Cache read     2.02B    $318
+  Input tokens   312.69M  $796
+  Cache read     2.04B    $318
   Cache write    366.4k   $0.0842
-  Output tokens  8.18M    $54.73
-  TOTAL          2.34B    $1169
+  Output tokens  8.19M    $54.73
+  TOTAL          2.36B    $1169
 
   Agent        Tokens   Est. cost  Records
   ───────────  ───────  ─────────  ───────
-  dsh          1.59B    $946       6994
+  dsh          1.61B    $952       6994
   codex        219.45M  $193       3059
   opencode     291.09M  $25.42     4298
   claude-code  205.05M  $2.24      1462
@@ -34,8 +34,8 @@ $ agentledger
   pi           47.7k    $0.0000    5
 
   ! 10 model(s) have no built-in price and used the
-    $3/$15 per-Mtok default ($940 of the total):
-      step-5-preview  (1687 records)
+    $3/$15 per-Mtok default ($947 of the total):
+      step-5-preview  (1750 records)
       hy4-preview  (1554 records)
       ...
     Fix in one step: `agentledger prices --template` prints a
@@ -162,7 +162,7 @@ is part of Node itself.
 From a release tarball (no npm account, no registry, no build step):
 
 ```bash
-npm install -g https://github.com/garyleelty/agentledger/releases/download/v0.3.0/agentledger-cli-0.3.0.tgz
+npm install -g https://github.com/garyleelty/agentledger/releases/download/v0.4.0/agentledger-cli-0.4.0.tgz
 ```
 
 The tarball is attached to each release by the release workflow using the

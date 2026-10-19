@@ -1,6 +1,6 @@
 {
   "name": "agentledger-cli",
-  "version": "0.3.0",
+  "version": "0.4.0",
   "description": "Local-first cost ledger for AI coding agents (Claude Code, Codex, OpenCode, Kilo, DSH, OpenClaw, pi-agent, Gemini CLI). Read what your sessions really cost in tokens and money. No cloud, no API keys.",
   "keywords": [
     "ai",

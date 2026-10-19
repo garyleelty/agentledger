@@ -1,25 +1,25 @@
 {
   "tool": "agentledger",
-  "version": "0.3.0",
-  "generatedAt": "2026-10-19T16:35:32.930Z",
+  "version": "0.4.0",
+  "generatedAt": "2026-10-19T17:00:03.123Z",
   "totals": {
     "tokens": {
-      "input": 312526828,
-      "cacheRead": 2015297549,
+      "input": 312687572,
+      "cacheRead": 2035786253,
       "cacheWrite": 366382,
-      "output": 8176079
+      "output": 8190875
     },
-    "costUSD": 1169.258359,
-    "records": 16982
+    "costUSD": 1176.109142,
+    "records": 17045
   },
   "byAgent": {
     "dsh": {
-      "input": 237392207,
-      "cacheRead": 1344260048,
+      "input": 237552951,
+      "cacheRead": 1364748752,
       "cacheWrite": 0,
-      "output": 3604448,
-      "records": 7067,
-      "costUSD": 945.628851
+      "output": 3619244,
+      "records": 7130,
+      "costUSD": 952.479634
     },
     "codex": {
       "input": 15835116,
@@ -88,12 +88,12 @@
       "costUSD": 587.00717
     },
     "step-5-preview": {
-      "input": 37837571,
-      "cacheRead": 405873856,
+      "input": 37998315,
+      "cacheRead": 426362560,
       "cacheWrite": 0,
-      "output": 473396,
-      "records": 1687,
-      "costUSD": 242.37581
+      "output": 488192,
+      "records": 1750,
+      "costUSD": 249.226593
     },
     "gpt-5.5": {
       "input": 15071921,
@@ -411,7 +411,7 @@
   "unpricedModels": [
     {
       "model": "step-5-preview",
-      "records": 1687
+      "records": 1750
     },
     {
       "model": "hy4-preview",
@@ -450,7 +450,7 @@
       "records": 4
     }
   ],
-  "unpricedCostUSD": 939.789427,
+  "unpricedCostUSD": 946.64021,
   "defaultPricingUSD": {
     "input": 3,
     "output": 15
