@@ -1,25 +1,25 @@
 {
   "tool": "agentledger",
   "version": "0.3.0",
-  "generatedAt": "2026-10-19T16:19:07.937Z",
+  "generatedAt": "2026-10-19T16:35:32.930Z",
   "totals": {
     "tokens": {
-      "input": 312276972,
-      "cacheRead": 1996573581,
+      "input": 312526828,
+      "cacheRead": 2015297549,
       "cacheWrite": 366382,
-      "output": 8160595
+      "output": 8176079
     },
-    "costUSD": 1163.145339,
-    "records": 16919
+    "costUSD": 1169.258359,
+    "records": 16982
   },
   "byAgent": {
     "dsh": {
-      "input": 237142351,
-      "cacheRead": 1325536080,
+      "input": 237392207,
+      "cacheRead": 1344260048,
       "cacheWrite": 0,
-      "output": 3588964,
-      "records": 7004,
-      "costUSD": 939.029833
+      "output": 3604448,
+      "records": 7067,
+      "costUSD": 945.628851
     },
     "codex": {
       "input": 15835116,
@@ -51,7 +51,7 @@
       "cacheWrite": 0,
       "output": 110320,
       "records": 29,
-      "costUSD": 2.11255
+      "costUSD": 1.626551
     },
     "openclaw": {
       "input": 28319456,
@@ -88,12 +88,12 @@
       "costUSD": 587.00717
     },
     "step-5-preview": {
-      "input": 37587715,
-      "cacheRead": 387149888,
+      "input": 37837571,
+      "cacheRead": 405873856,
       "cacheWrite": 0,
-      "output": 457912,
-      "records": 1624,
-      "costUSD": 235.776791
+      "output": 473396,
+      "records": 1687,
+      "costUSD": 242.37581
     },
     "gpt-5.5": {
       "input": 15071921,
@@ -223,14 +223,6 @@
       "records": 72,
       "costUSD": 0.866302
     },
-    "deepseek-v4-pro": {
-      "input": 86228,
-      "cacheRead": 0,
-      "cacheWrite": 0,
-      "output": 30144,
-      "records": 4,
-      "costUSD": 0.710844
-    },
     "Cherry-New-API/glm-5.2": {
       "input": 74865,
       "cacheRead": 1725440,
@@ -263,6 +255,14 @@
       "records": 90,
       "costUSD": 0.318639
     },
+    "deepseek-v4-pro": {
+      "input": 86228,
+      "cacheRead": 0,
+      "cacheWrite": 0,
+      "output": 30144,
+      "records": 4,
+      "costUSD": 0.233191
+    },
     "Cherry-New-API/moonshotai/kimi-k2.7-code": {
       "input": 167902,
       "cacheRead": 105152,
@@ -285,7 +285,7 @@
       "cacheWrite": 0,
       "output": 754,
       "records": 1,
-      "costUSD": 0.011349
+      "costUSD": 0.003003
     },
     "kimi-k2.7-code": {
       "input": 1515,
@@ -411,7 +411,7 @@
   "unpricedModels": [
     {
       "model": "step-5-preview",
-      "records": 1624
+      "records": 1687
     },
     {
       "model": "hy4-preview",
@@ -446,19 +446,11 @@
       "records": 6
     },
     {
-      "model": "deepseek-v4-pro",
-      "records": 4
-    },
-    {
       "model": "unknown",
       "records": 4
-    },
-    {
-      "model": "deepseek-v4-pro-260425",
-      "records": 1
     }
   ],
-  "unpricedCostUSD": 933.912602,
+  "unpricedCostUSD": 939.789427,
   "defaultPricingUSD": {
     "input": 3,
     "output": 15

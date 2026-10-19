@@ -51,6 +51,8 @@ MAP = {
     # glm-4.7: six vendor rows agree exactly on 0.6/2.2 (see src/pricing.js).
     # zai is the vendor-canonical one, matching how glm-5.2 is resolved.
     "glm-4.7": ["zai/glm-4.7", "glm-4.7"],
+    # deepseek-v4-pro: the bare id itself is the 11-of-27 consensus cluster.
+    "deepseek-v4-pro": ["deepseek-v4-pro", "deepseek/deepseek-v4-pro"],
     "glm-5.2": ["zai/glm-5.2", "glm-5.2"],
     "kimi-k2.7-code": ["moonshot/kimi-k2.7-code", "kimi-k2.7-code"],
     "kimi-k2.5": ["moonshot/kimi-k2.5", "kimi-k2.5"],

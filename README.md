@@ -16,26 +16,26 @@ $ agentledger
 
   Metric         Tokens   Est. cost
   ─────────────  ───────  ─────────
-  Input tokens   312.28M  $796
-  Cache read     2.00B    $312
+  Input tokens   312.53M  $796
+  Cache read     2.02B    $318
   Cache write    366.4k   $0.0842
-  Output tokens  8.16M    $54.83
-  TOTAL          2.32B    $1163
+  Output tokens  8.18M    $54.73
+  TOTAL          2.34B    $1169
 
   Agent        Tokens   Est. cost  Records
   ───────────  ───────  ─────────  ───────
-  dsh          1.57B    $939       6994
+  dsh          1.59B    $946       6994
   codex        219.45M  $193       3059
   opencode     291.09M  $25.42     4298
   claude-code  205.05M  $2.24      1462
-  cherry-studio 765.8k $2.11      29
+  cherry-studio 765.8k $1.63      29
   openclaw     31.39M   $1.28      959
   kilo         3.32M    $0.3186    103
   pi           47.7k    $0.0000    5
 
-  ! 12 model(s) have no built-in price and used the
-    $3/$15 per-Mtok default ($934 of the total):
-      step-5-preview  (1624 records)
+  ! 10 model(s) have no built-in price and used the
+    $3/$15 per-Mtok default ($940 of the total):
+      step-5-preview  (1687 records)
       hy4-preview  (1554 records)
       ...
     Fix in one step: `agentledger prices --template` prints a

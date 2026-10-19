@@ -148,6 +148,15 @@ export const PRICING = {
   'deepseek-flash': { input: 0.3, output: 1.2, cacheReadMultiplier: 0.02, cacheWriteMultiplier: 1.0 },
   'deepseek-chat': { input: 0.28, output: 0.42, cacheReadMultiplier: 0.1, cacheWriteMultiplier: 1.0 },
   'deepseek-reasoner': { input: 0.28, output: 0.42, cacheReadMultiplier: 0.1, cacheWriteMultiplier: 1.0 },
+  // deepseek-v4-pro: 11 of LiteLLM's 27 rows for this id agree exactly on
+  // $1.32/$3.96, and that cluster is the one the BARE id itself carries
+  // (together_ai, tencent, novita, baseten, perplexity, wandb, and the
+  // un-prefixed `deepseek-v4-pro`). The 1.74/3.48 (azure_ai, tencent) and
+  // 2.40/4.80 (dashscope, qwencloud) clusters are 3 rows each — a vendor
+  // spread, not a consensus, so they are not used. Cached read is 0.0333x on
+  // 6 of the 10 rows in the winning cluster (0.1x on 3, 0.0985 on 1), and the
+  // bare id carries 0.0333, so that is the rate taken.
+  'deepseek-v4-pro': { input: 1.32, output: 3.96, cacheReadMultiplier: 0.0333, cacheWriteMultiplier: 1.0 },
 
   // ---- OpenCode's own lane --------------------------------------------
   // Promotional models bill $0. Leaving them out let them fall through to
