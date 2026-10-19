@@ -163,7 +163,16 @@ test('collect() drops host duplicates exactly once, and only those', async () =>
   ]);
 
   // Run the real CLI with both lanes so the dedup path is the shipped one.
+  // The child needs the SAME `--experimental-sqlite` the suite runs under:
+  // `node:sqlite` is unflagged from Node 23.8, but 22.5 — this project's floor
+  // — only exposes it with the flag, so spawning a bare node silently yields an
+  // empty cherry lane on exactly the version CI's matrix leg exercises. Pass
+  // the parent's exec argv through rather than hardcoding either way.
+  const childArgs = process.execArgv.some((a) => a.includes('experimental-sqlite'))
+    ? process.execArgv.filter((a) => a.includes('experimental-sqlite'))
+    : [];
   const out = execFileSync(process.execPath, [
+    ...childArgs,
     path.join(root, 'bin', 'agentledger.js'), 'json',
     '-a', 'pi', '-a', 'cherry-studio', '--path', cherry,
   ], { encoding: 'utf8', maxBuffer: 32 * 1024 * 1024, env: { ...process.env, HOME: home } });
