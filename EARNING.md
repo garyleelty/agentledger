@@ -1469,3 +1469,48 @@ still the unsolved half of this goal — the tool is now measurably better on
 the axes that can be measured, and nobody outside this machine knows.
 
 **$0.00 received. Stars: 0 vs 19,019.**
+
+## Round 54: the tarball channel was shipping a stale tool
+
+The one install path that needs nothing from anyone —
+`npm install -g <release-url>.tgz` — was still at 0.3.0. That is: no
+OpenClaw, no pi-agent, no Cherry Studio, and both placeholder-pricing
+fixes absent. A channel that works but ships the old tool is worse than no
+channel, because it converts interest into a mediocre first impression.
+
+**v0.4.0 cut and verified end to end.** The release workflow built and
+attached the tarball (47,235 bytes) with no npm account involved, and then
+— the step that makes it a fact rather than a claim — installed from that
+exact URL into a clean prefix and ran it:
+
+- `agentledger --version` -> 0.4.0
+- `sources` lists all 9, with 8 present on this machine
+- a full scan runs and reports the new lanes
+- `bin/agentledger.js` kept mode `-rwxr-xr-x` inside the package. This is
+  checked every time because the round-33b API push hardcoded 100644 and
+  silently un-executed the entry point: identical content, broken
+  permission, invisible in a text diff.
+
+**The awesome-opencode PR (#872) was stale too.** It described 4 sources.
+Updated the yaml on the PR branch to list all 9, with a commit message
+saying what changed rather than a silent amend. Still open and mergeable —
+that part is a maintainer's decision, not mine.
+
+**Checked what is actually blocked, and what is not:**
+
+| channel | state |
+|---|---|
+| release tarball | works, now current |
+| `git+https` via npm | works (no account) |
+| install.sh clone | works (no credentials) |
+| GitHub Pages | live, current |
+| npm registry | **blocked** — token 401, needs a human `npm login` |
+| dev.to / juejin | **blocked** — no API key / browser login |
+| HN, Reddit, V2EX, linux.do, medium, x | network-blocked from this machine |
+
+So four of the distribution paths need nothing from anyone, and they are
+all now current. The remaining five need a human credential, which is a
+different category of blocker from "I have not done it".
+
+**$0.00 received. Stars: 0 vs 19,019.** One download on the 0.3.0 asset so
+far, which is at least a stranger, and 0.4.0 is what they will get now.
