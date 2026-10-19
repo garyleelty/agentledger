@@ -1261,3 +1261,84 @@ than trusting "124 tests green":
 124 tests, CI green, docs gate PASS, tree clean.
 
 **$0.00 received. Stars: 0 vs 19,019.**
+
+## Round 51: two more adapters, and the counting that makes them credible
+
+The honest-comparison section has said "18 adapters against our 6" since
+round 34. Rather than argue that number again, this round went and found the
+two adapters with real data behind them on this machine — the ones where
+adding the lane is a fact, not a feature list.
+
+**Probed every ccusage adapter against this machine's logs first.** Of its 19,
+only six have data here: claude, codex, opencode, kilo, openclaw, pi. So
+pi-agent and OpenClaw were the two where a comparison was actually possible,
+and both were added.
+
+**pi-agent — token-identical.** in 19254 / out 2191 / cacheRead 25472, an
+exact match on every bucket against `ccusage pi monthly --json`.
+
+**OpenClaw — token-identical, but only after two non-obvious decisions:**
+
+1. **It keeps archives.** Alongside the live `<uuid>.jsonl` files it writes
+   `<uuid>.jsonl.reset.<ts>` and `<uuid>.jsonl.deleted.<ts>` siblings. On this
+   machine those hold **127 of 959 usage rows and 2.03M input tokens** — the
+   whole January glm-4.7 lane, from a session that was reset mid-run. A bare
+   `.jsonl` matcher drops them and the lane silently reads 26.29M instead of
+   28.32M. ccusage reads them (its strings carry `.jsonl.deleted.` and
+   `.jsonl.reset.`); that is where the exact match comes from.
+2. **It also writes `openclaw-agent.sqlite`** with a `transcript_events`
+   table holding the same events. Reading both double-counts every row, so
+   only the JSONL is read. ccusage reads the db; we read the superset.
+
+After both, the totals agree to the token: in 28,319,456 / out 614,261 /
+cacheRead 2,457,344.
+
+**`glm-4.7:cloud` was 2.08M tokens on the $3/$15 default** — $6.46 of pure
+placeholder in a lane that looked cheap. Six LiteLLM vendor rows agree
+exactly on $0.60/$2.20 (zai, novita x2, baseten, vertex_ai, zai.glm), cached
+read 0.1833x on three of them. Priced it: the lane drops to $1.28 and the
+pricing audit goes from 27 to 28 of 32 entries checked. Verified the audit
+is not a no-op by breaking the entry on purpose in a scratch copy — it
+reported the mismatch and exited 1.
+
+**crosscheck was hiding a distinction.** It printed openclaw as
+`DIFF ... cost $1.28 vs $0.00 (Infinity%)` and folded that into "differ on
+cost" alongside opencode's 14.3%. Those are opposite facts: opencode is two
+estimates disagreeing, openclaw is **ccusage having no price for either
+model in the lane** (neither `glm-4.7:cloud` nor `stepfun/...:free` is in
+its embedded table — confirmed with `strings` on the binary and with
+`--no-offline`). Both-free and their-zero-only are now separate cases, each
+stated. A percentage that says "Infinity%" explains nothing.
+
+**A test that was already stale.** `sources.test.js` asserted
+`d.sources.length === 6` and `/0 of 6 sources/`. Both hardcoded counts were
+wrong the moment pi shipped, and the second one failed the suite on the
+first run after — caught by running it, not by reading it. The count is now
+derived from `SOURCES`, so it cannot go stale again.
+
+131 tests green (5 new: the archive siblings, the sqlite exclusion, the
+reasoning-as-output rule, torn tails, and the matcher boundary cases).
+Lint clean, docs gate PASS on a fresh checkout of the pushed commit, audit
+exits 0.
+
+**Transport, again.** SSH has no key, git-over-HTTPS hangs mid-handshake.
+Pushed through the Data API with the keychain token, reusing the round-33b
+lessons mechanically this time: every blob takes its mode from
+`git ls-tree` (the API push that hardcoded 100644 once silently un-executed
+`bin/agentledger.js`), and the run ends by diffing the **remote** tree
+against local HEAD — 52 blobs, modes included, zero drift. The remote had
+advanced by a scheduled digest commit, so the push was re-parented onto the
+remote head rather than force-pushed over work I did not write.
+
+**CI is queued, not running.** Both runs sit with `runner_id: null` and no
+steps — GitHub-side runner availability, not a defect in the commit (the
+previous commit's CI is green). Because "CI is green" is the usual evidence
+and it is unavailable, I verified the pushed commit directly instead: pulled
+the exact tarball of the pushed sha and ran all three CI legs against it —
+lint, 131 tests, and the docs-drift gate (which passes: regenerating
+README/landing from the committed sample produces zero diff). That is the
+same check CI makes, run locally on the same bytes.
+
+**$0.00 received. Stars: 0 vs 19,019.** Two adapters and one real price
+closer, and the comparison section now says 19 against our 8 — the gap
+narrowed on the one axis that is measurable.
