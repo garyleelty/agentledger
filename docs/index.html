@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>agentledger — what did that agent actually cost you?</title>
-<meta name="description" content="Local-first cost ledger for AI coding agents. Read your Claude Code, Codex, OpenCode, Kilo and Gemini CLI session logs and see tokens and dollars. No cloud, no API keys.">
+<meta name="description" content="Local-first cost ledger for AI coding agents. Read your Claude Code, Codex, OpenCode, Kilo, DSH, OpenClaw, pi-agent and Gemini CLI session logs and see tokens and dollars. No cloud, no API keys.">
 <style>
   :root {
     --bg: #0b0d10; --panel: #14171c; --line: #23272e; --fg: #e6e8eb;
@@ -60,22 +60,25 @@
 <pre><span class="prompt">$</span> npm install -g git+https://github.com/garyleelty/agentledger.git
 <span class="prompt">$</span> agentledger
 
-  agentledger — 119 session files scanned
+  agentledger — 230 session files scanned
 
   Metric         Tokens   Est. cost
   ─────────────  ───────  ─────────
-  Input tokens   244.32M  <span class="hi">$617</span>
-  Cache read     1.81B    <span class="hi">$318</span>
+  Input tokens   300.95M  <span class="hi">$617</span>
+  Cache read     1.94B    <span class="hi">$318</span>
   Cache write    366.4k   $0.0842
-  Output tokens  7.03M    <span class="hi">$63.89</span>
-  <span class="ok">TOTAL          2.06B    $998</span>
+  Output tokens  7.97M    <span class="hi">$63.89</span>
+  <span class="ok">TOTAL          2.25B    $998</span>
 
   Agent        Tokens   Est. cost  Records
   ───────────  ───────  ─────────  ───────
-  codex        219.58M  <span class="hi">$200</span>       3053
-  opencode     240.83M  $28.64     3772
-  claude-code  218.19M  $15.70     3531
-  kilo         3.04M    $0.3186    103</pre>
+  dsh          1.48B    <span class="hi">$861</span>       6653
+  codex        219.45M  <span class="hi">$193</span>       3059
+  opencode     284.61M  $25.42     4219
+  claude-code  205.05M  $2.24      1462
+  openclaw     31.39M   $1.28      959
+  kilo         3.32M    $0.3186    103
+  pi           47.7k    $0.0000    5</pre>
   </div>
 
   <p class="dim">A real run on the machine it was written on. Nothing had told the author
@@ -111,9 +114,9 @@
 
   <h2>What it does</h2>
   <ul>
-    <li><strong>Reads local logs only</strong> — <code>~/.claude/projects</code>, <code>~/.codex/sessions</code>, <code>~/.local/share/opencode</code>, <code>~/.local/share/kilo</code>, <code>~/.gemini/tmp</code></li>
-    <li><strong>Cache buckets priced separately</strong> — 1.77B of my 2.02B tokens are cache reads, billed at 10-25% of input</li>
-    <li><strong>Never touches the network</strong> — no account, no key, no telemetry, ~2,100 lines you can audit in one sitting</li>
+    <li><strong>Reads local logs only</strong> — <code>~/.claude/projects</code>, <code>~/.codex/sessions</code>, <code>~/.local/share/opencode</code>, <code>~/.local/share/kilo</code>, <code>~/.dsh/sessions</code>, <code>~/.openclaw/agents</code>, <code>~/.pi/agent/sessions</code>, <code>~/.gemini/tmp</code></li>
+    <li><strong>Cache buckets priced separately</strong> — 1.92B of my 2.22B tokens are cache reads, billed at 10-25% of input</li>
+    <li><strong>Never touches the network</strong> — no account, no key, no telemetry, ~2,500 lines you can audit in one sitting</li>
     <li><strong>Fast</strong> — a full scan of 680M+ tokens takes about a second</li>
     <li><strong>Your rates, not mine</strong> — <code>--prices my-prices.json</code> overrides any model, partial entries merge over the built-in table; <code>prices --template</code> writes the file for you, naming exactly the models your ledger could not price</li>
     <li><strong>Honest about unknowns</strong> — a model with no built-in price is billed at a stated default and the report says so, with its dollar share, instead of quietly folding a placeholder into the total</li>
@@ -146,6 +149,8 @@
     <tr><td>OpenCode</td><td><code>~/.local/share/opencode/opencode.db</code></td><td class="ok">supported</td></tr>
     <tr><td>Kilo</td><td><code>~/.local/share/kilo</code></td><td class="ok">supported</td></tr>
     <tr><td>DSH (DeepSeek Harness)</td><td><code>~/.dsh/sessions</code></td><td class="ok">supported</td></tr>
+    <tr><td>OpenClaw</td><td><code>~/.openclaw/agents/*/sessions</code></td><td class="ok">supported</td></tr>
+    <tr><td>pi-agent</td><td><code>~/.pi/agent/sessions</code></td><td class="ok">supported</td></tr>
     <tr><td>Gemini CLI</td><td><code>~/.gemini/tmp</code></td><td class="ok">supported</td></tr>
     <tr><td>Cursor, Aider, Amp…</td><td><code>--path</code> + sniffing</td><td class="dim">partial</td></tr>
   </table>
@@ -163,7 +168,7 @@
 <pre>paid          <span class="hi">pre>paid          <span class="hi">000</span>
 without cache <span class="hi">$3853</span>
 saved         <span class="ok">$2854   74.1% cheaper</span>
-cache reads   <span class="hi">1.81B</span> of 2.06B total tokens   <span class="dim">(85%)</span>
+cache reads   <span class="hi">1.94B</span> of 2.25B total tokens   <span class="dim">(85%)</span>
 concentration  top 10 of 315 sessions = <span class="hi">75.3%</span> of all cache reads
 priciest      <span class="hi">$118</span>  one Codex session in one repo
 branch        <span class="hi">$206</span>  <span class="dim">the web branch alone</span></pre>
@@ -185,10 +190,17 @@ branch        <span class="hi">$206</span>  <span class="dim">the web branch alo
   cache-write TTLs are billed apart (x1.25 / x2) from the nested
   <code>cache_creation</code> block when logs carry it; every built-in price is
   reconciled against <strong>live</strong> LiteLLM in a weekly CI job, so a stale
-  entry fails a build on a schedule instead of waiting on a manual refresh; and
+  entry fails a build on a schedule instead of waiting on a manual refresh;
   <code>savings</code> prices the counterfactual — what this ledger would have cost
-  with no prompt caching.</p>
-  <p>The pitch that stays narrower and honest: ~2,100 lines, zero dependencies, no
+  with no prompt caching; and DSH (DeepSeek Harness) is a source it cannot read
+  at all, which on this machine is 1.48B tokens, more than every other agent
+  combined.</p>
+  <p>Two of its lanes report <strong>$0.00 for every model</strong>: OpenClaw's
+  <code>glm-4.7:cloud</code> and <code>stepfun/…:free</code> are both missing from
+  its embedded price table, so 31.39M tokens of real spend price to zero there.
+  agentledger prices <code>glm-4.7:cloud</code> from six LiteLLM vendor rows that
+  agree exactly on $0.60/$2.20.</p>
+  <p>The pitch that stays narrower and honest: ~2,500 lines, zero dependencies, no
   network, no build step. You can read the whole thing before you trust it with logs
   that are effectively your entire coding history.</p>
 

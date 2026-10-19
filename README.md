@@ -5,34 +5,37 @@
 **What did that agent actually cost you?**
 
 `agentledger-cli` is a local-first ledger for AI coding agents. It reads the
-session logs that Claude Code, Codex, OpenCode, Kilo, DSH, and Gemini CLI
-already write to your machine and turns them into tokens and dollars.
+session logs that Claude Code, Codex, OpenCode, Kilo, DSH, OpenClaw, pi-agent,
+and Gemini CLI already write to your machine and turns them into tokens and
+dollars.
 
 ```
 $ agentledger
 
-  agentledger — 119 session files scanned
+  agentledger — 230 session files scanned
 
   Metric         Tokens   Est. cost
   ─────────────  ───────  ─────────
-  Input tokens   244.32M  $608
-  Cache read     1.81B    $315
+  Input tokens   300.95M  $608
+  Cache read     1.94B    $315
   Cache write    366.4k   $0.0842
-  Output tokens  7.03M    $63.62
-  TOTAL          2.06B    $987
+  Output tokens  7.97M    $63.62
+  TOTAL          2.25B    $987
 
   Agent        Tokens   Est. cost  Records
   ───────────  ───────  ─────────  ───────
-  dsh          1.38B  $782       4577
-  codex        219.45M  $193       3053
-  opencode     246.32M  $25.42     3772
-  claude-code  205.05M  $2.24     3531
+  dsh          1.50B    $888       6602
+  codex        219.45M  $193       3059
+  opencode     291.09M  $25.42     4219
+  claude-code  205.05M  $2.24      1462
+  openclaw     31.39M   $1.28      959
   kilo         3.32M    $0.3186    103
+  pi           47.7k    $0.0000    5
 
   ! 8 model(s) have no built-in price and used the
-    $3/$15 per-Mtok default ($775 of the total):
-      hy4-preview  (1491 records)
-      step-5-preview  (988 records)
+    $3/$15 per-Mtok default ($881 of the total):
+      hy4-preview  (1509 records)
+      step-5-preview  (1405 records)
       ...
     Fix in one step: `agentledger prices --template` prints a
     fill-in override file for exactly these models.
@@ -49,12 +52,13 @@ time you see it you have already spent it. `agentledger-cli` gives you the numbe
 while you are still working:
 
 - **Local only.** It reads `~/.claude/projects`, `~/.codex/sessions`,
-  `~/.local/share/opencode`, and `~/.gemini/tmp`. Nothing is uploaded, no
+  `~/.local/share/opencode`, `~/.dsh/sessions`, `~/.openclaw/agents`,
+  `~/.pi/agent/sessions`, and `~/.gemini/tmp`. Nothing is uploaded, no
   account, no API key, no network call of any kind.
 - **Cache buckets are priced separately.** Cache reads and cache writes bill at
   different rates from fresh input, and they are the majority of real traffic —
-  631M of the 678M tokens in my own logs are cache reads.
-- **Fast.** A full scan of ~180M tokens of logs takes about a second.
+  1.93B of the 2.23B tokens in my own logs are cache reads.
+- **Fast.** A full scan of ~2.2B tokens of logs takes about a second.
 - **Boring dependencies.** Node 22.5+ and the standard library. That's it.
 
 - **Cost attribution.** Codex records the working directory and branch in
@@ -64,8 +68,8 @@ while you are still working:
   only what a model cost. Grouping is lossless — per-project costs sum back to
   the grand total, and a test asserts it.
 
-- **Waste you can act on.** Cache reads dominate real agent traffic — 631M of
-  678M tokens on the machine this was written on. `waste` ranks sessions by
+- **Waste you can act on.** Cache reads dominate real agent traffic — 1.93B of
+  2.23B tokens on the machine this was written on. `waste` ranks sessions by
   cache-read volume and states what share the top few hold, which points at
   context churn (a long session re-sending its prefix, or a tool returning
   large output every turn) rather than at "usage went up".
@@ -73,7 +77,7 @@ while you are still working:
 ### Honest comparison
 
 [ccusage](https://github.com/ccusage/ccusage) is the incumbent and it covers
-far more agents than this (18 adapters against our 6). It reports reasoning
+more agents than this (19 adapters against our 8). It reports reasoning
 token **counts** but does not bill them in the OpenCode or Kilo lanes — on the
 kilo store `sum(reasoning)` is 133 tokens and ccusage's output total is
 `sum(output)` alone, 39,597 against agentledger's 39,730 — and its statusline
@@ -86,26 +90,36 @@ Where this differs, as far as I can tell: agentledger's table is a checked-in
 static file that a CI job reconciles against **live** LiteLLM weekly — a stale
 entry fails a build on a schedule instead of waiting for a manual
 `update-litellm-pricing`; `savings` prices the counterfactual (what the same
-ledger would have cost with no prompt caching); and the whole tool is ~2,100
+ledger would have cost with no prompt caching); and the whole tool is ~2,500
 lines of zero-dependency JavaScript with no build step, no runtime fetch, and
 no network call of any kind.
 
-**One source ccusage cannot read at all.** ccusage has 18 adapters
+**One source ccusage cannot read at all.** ccusage has 19 adapters
 and **no `dsh` adapter** — `ccusage dsh` returns `Unknown command`. `crosscheck`
 reports this automatically rather than trusting prose:
 
 ```
-  ONLY DSH (DeepSeek Harness) — 1091363048 tokens, $843.38 (ccusage has no adapter)
+  ONLY DSH (DeepSeek Harness) — 1471043240 tokens, $856.72 (ccusage has no adapter)
 ```
 
 DSH
 (DeepSeek Harness) keeps multi-frame zstd sessions at
-`~/.dsh/sessions/*/session.v4.jsonl.zstd`; on this machine that is 46 sessions
-and ~1.1B tokens, more than every other agent combined. Caveat stated plainly:
+`~/.dsh/sessions/*/session.v4.jsonl.zstd`; on this machine that is 49 sessions
+and ~1.47B tokens, more than every other agent combined. Caveat stated plainly:
 most DSH models reach it through gateways with no canonical public price, so a
 large share of that lane is placeholder-priced and the report says so. The
 token *counts* are real; the dollars in that lane are estimates until you set
 real rates with `--prices`.
+
+**Two lanes where ccusage reports $0.00 for every model.** On this machine its
+OpenClaw lane reads 31.39M tokens and prices all of it at zero — neither
+`glm-4.7:cloud` nor `stepfun/step-3.5-flash:free` is in its embedded table.
+agentledger prices `glm-4.7:cloud` from six LiteLLM vendor rows that agree
+exactly on $0.60/$2.20 (`zai/glm-4.7`, `novita/zai-org/glm-4.7`,
+`novita/zai-org/glm-4.7-h`, `baseten/zai-org/GLM-4.7`,
+`vertex_ai/zai-org/glm-4.7-maas`, `zai.glm-4.7`), which is $1.28 of real spend
+on this machine's logs. `crosscheck` names that case instead of folding it
+into a percentage, because "they say $0" and "we disagree" are different facts.
 
 **Reasoning tokens are billed as output.** OpenCode records them in a separate
 `tokens.reasoning` field; verified on this machine that `total = input +
@@ -115,11 +129,15 @@ the opposite: its `output_tokens` already includes reasoning, and adding the
 field again double-counted 244,601 tokens. Both cases are pinned by tests.
 ccusage excludes reasoning from OpenCode's output bucket, so it reports lower
 output there — 1,220,552 against agentledger's 1,695,212 for the same model.)
+pi and OpenClaw keep the same field, and the same rule applies: pi's 800
+reasoning tokens bill as output where ccusage drops them.
 
 **Measured against ccusage on the same machine** (ccusage 20.0.34, darwin
-arm64, run against the same `~/.claude/projects`, `~/.codex/sessions` and
-`opencode.db`): token counts agree exactly for codex (219,388,883) and
-opencode (240,912,255), and for Claude Code after the fix below
+arm64, run against the same `~/.claude/projects`, `~/.codex/sessions`,
+`opencode.db`, `~/.pi/agent/sessions` and `~/.openclaw`): token counts agree
+exactly for codex (219,388,883), opencode (240,912,255), pi (19,254 /
+21,191 / 25,472) and openclaw (28,319,456 / 614,261 / 2,457,344), and for
+Claude Code after the fix below
 (in=2,373,420 / out=511,342 / cache read=202,163,520 for the largest model).
 That head-to-head is also how a real bug surfaced: Claude Code re-emits the
 same assistant message (resumed sessions, sidechain replays, retries) and this
@@ -215,11 +233,11 @@ answers the question you actually have while working — am I about to go over:
 $ agentledger budget -b 100
 
   budget    $100
-  spent     $966   ████████████████████████  966.4%
-  remaining $0.0000   OVER by $866
+  spent     $1090   ████████████████████████  1089.5%
+  remaining $0.0000   OVER by $990
 
-  run rate  $5.06/day  over 191.2 days of activity
-            already $866 over.
+  run rate  $4.13/day  over 264.0 days of activity
+            already $990 over.
 ```
 
 The run rate is measured over the span of data you actually have, not a
@@ -254,7 +272,7 @@ the host's own measurement beats any estimate, and no files are read, so the
 bar never stutters. On older payloads it prices just the session's transcript
 file, not the whole ledger. It always exits 0 and prints exactly one line: a
 statusline that can break your prompt bar is a statusline you delete, so the
-degradation paths are tested as hard as the happy one (82 tests, 6 of them
+degradation paths are tested as hard as the happy one (131 tests, 6 of them
 this contract).
 
 ### Savings
@@ -268,14 +286,14 @@ $ agentledger savings
 
   What prompt caching saved
 
-  paid                  $987
-  without cache        $3819
-  saved                $2832   74.2% cheaper
+  paid                  $1087
+  without cache        $3975
+  saved                $2888   72.7% cheaper
 
-  [██████████████████████░░░░░░░░]  74.2% saved
+  [██████████████████████░░░░░░░░]  72.7% saved
 
-  1.32B of 1.54B tokens came from cache
-  (93.1% of the total).
+  1.93B of 2.24B tokens came from cache
+  (86.5% of the total).
 ```
 
 That is the theorem behind the whole tool: cache reads are the overwhelming
@@ -388,6 +406,8 @@ blank line is worth before you go looking up rates.
 | OpenCode | `~/.local/share/opencode/opencode.db` | ✅ |
 | Kilo | `~/.local/share/kilo/kilo.db` | ✅ |
 | DSH (DeepSeek Harness) | `~/.dsh/sessions/*/session.v4.jsonl.zstd` | ✅ |
+| OpenClaw | `~/.openclaw/agents/*/sessions/*.jsonl*` | ✅ |
+| pi-agent | `~/.pi/agent/sessions/**/*.jsonl` | ✅ |
 | Gemini CLI | `~/.gemini/tmp/**/logs.json` | ✅ |
 | Anything else | `--path` + format sniffing | partial |
 
@@ -401,17 +421,35 @@ $ agentledger sources
   codex        ~/.codex/sessions        11 file(s)  https://github.com/openai/codex
   opencode     ~/.local/share/opencode  1 file(s)   https://opencode.ai/docs
   kilo         ~/.local/share/kilo      1 file(s)   https://kilo.ai
+  dsh          ~/.dsh/sessions          49 file(s)  https://github.com/deepseek-ai/deepseek-harness
   gemini-cli   ~/.gemini/tmp            not found   https://github.com/google-gemini/...
+  openclaw     ~/.openclaw/agents       101 file(s) https://github.com/clawdbot/clawdbot
+  pi           ~/.pi/agent/sessions     5 file(s)   https://github.com/earendil-works/pi-coding-agent
 
-  4 of 5 sources have data on this machine.
+  7 of 8 sources have data on this machine.
 ```
 
 `agentledger-cli sources` prints this table with links.
 
-OpenCode is the one supported agent whose store is a SQLite database rather
+OpenCode is the only supported agent whose store is a SQLite database rather
 than append-only text. It is opened read-only — a running OpenCode is never
 blocked — and a locked or foreign database is skipped exactly the way a
 truncated log line is.
+
+Two of the newer adapters share a shape and are worth naming, because both
+differences are invisible in a diff and each one silently loses real spend:
+
+- **OpenClaw keeps archives.** Alongside the live `<uuid>.jsonl` files it
+  writes `<uuid>.jsonl.reset.<ts>` and `<uuid>.jsonl.deleted.<ts>` siblings —
+  on this machine 127 of 959 usage rows and 2.03M input tokens, from sessions
+  that were reset mid-run. Matching only bare `.jsonl` would drop them. The
+  sibling `openclaw-agent.sqlite` (`transcript_events`) holds the same events,
+  so reading both would double-count; only the JSONL is read.
+- **pi-agent puts the model on the message.** DSH's usage record has no model
+  field at all and needs the preceding `request/header` carried forward; pi
+  and OpenClaw carry it on the same record as the usage, and a `model_change`
+  event can switch models mid-session, so the per-message value is read
+  directly.
 
 ## How costs are calculated
 
@@ -472,7 +510,7 @@ implementation is what actually finds bugs.
 
 `agentledger-cli` opens your log files in read mode and writes nothing. There is
 no telemetry, no update check, and no code path that can reach the network. You
-can verify this in a few minutes — the whole tool is ~2,100 lines with zero
+can verify this in a few minutes — the whole tool is ~2,500 lines with zero
 dependencies.
 
 ## Contributing

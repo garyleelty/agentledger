@@ -63,6 +63,31 @@ export const SOURCES = [
     parser: PARSERS['gemini-cli'],
     docs: 'https://github.com/google-gemini/gemini-cli',
   },
+  {
+    // pi-agent stores one JSONL per session under a cwd-slug directory. The
+    // `.jsonl.reset.<ts>` / `.jsonl.deleted.<ts>` siblings OpenClaw leaves
+    // behind are not a pi convention — pi only writes the session file.
+    agent: 'pi',
+    root: '~/.pi/agent/sessions',
+    match: (rel) => /(^|\/)[^/]+\.jsonl$/.test(rel),
+    parser: PARSERS.pi,
+    docs: 'https://github.com/earendil-works/pi-coding-agent',
+  },
+  {
+    // OpenClaw (clawdbot) keeps one JSONL per session under
+    // ~/.openclaw/agents/<agent>/sessions/, plus archived siblings named
+    // `<uuid>.jsonl.reset.<ts>` and `<uuid>.jsonl.deleted.<ts>`. Those
+    // archives hold real usage ccusage counts (2.03M input tokens on this
+    // machine, from a session that was reset mid-run), so the matcher
+    // accepts them rather than only a bare `.jsonl`. The sibling SQLite
+    // store (`openclaw-agent.sqlite`, table `transcript_events`) holds the
+    // same events — reading both would double-count.
+    agent: 'openclaw',
+    root: '~/.openclaw/agents',
+    match: (rel) => /(^|\/)[^/]+\.jsonl(\.|$)/.test(rel),
+    parser: PARSERS.openclaw,
+    docs: 'https://github.com/clawdbot/clawdbot',
+  },
 ];
 
 export const expandHome = (p) =>

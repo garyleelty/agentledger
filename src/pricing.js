@@ -172,6 +172,16 @@ export const PRICING = {
   // official $1.4/$4.4 the audit cross-checks against.
   'glm-5.2': { input: 1.4, output: 4.4, cacheReadMultiplier: 0.186, cacheWriteMultiplier: 1.0 },
   'glm-5': { input: 1.0, output: 3.2, cacheReadMultiplier: 0.2, cacheWriteMultiplier: 1.0 },
+  // glm-4.7: 6 of LiteLLM's vendor rows agree exactly on $0.60/$2.20
+  // (zai/glm-4.7, novita/zai-org/glm-4.7, novita/zai-org/glm-4.7-h,
+  // baseten/zai-org/GLM-4.7, vertex_ai/zai-org/glm-4.7-maas, zai.glm-4.7).
+  // Cached read $0.11/M = 0.1833x on three of them, 0.1x and 0.2x on the
+  // other two — the 0.1833 cluster is the majority, and it is the same
+  // multiplier zai/glm-5.2 carries. OpenClaw records this model as
+  // `glm-4.7:cloud`; the `:cloud` tail is a routing suffix, and the model
+  // behind it is the one priced here (2.08M tokens on this machine were
+  // sitting on the $3/$15 default before this entry).
+  'glm-4.7': { input: 0.6, output: 2.2, cacheReadMultiplier: 0.1833, cacheWriteMultiplier: 1.0 },
   'kimi-k2.7-code': { input: 0.95, output: 4.0, cacheReadMultiplier: 0.2, cacheWriteMultiplier: 1.0 },
   'kimi-k2.5': { input: 0.6, output: 3.0, cacheReadMultiplier: 0.167, cacheWriteMultiplier: 1.0 },
   // MiniMax M2.7 as carried by LiteLLM (novita/minimax/minimax-m2.7):

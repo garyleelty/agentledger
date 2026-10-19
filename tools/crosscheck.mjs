@@ -32,6 +32,8 @@ const LANES = [
   ['codex', 'codex'],
   ['opencode', 'opencode'],
   ['kilo', 'kilo'],
+  ['pi', 'pi'],
+  ['openclaw', 'openclaw'],
 ];
 
 // Token buckets are counted facts: the two tools parse the same files, so they
@@ -130,20 +132,33 @@ for (const [lane, agent] of LANES) {
     near(mine.input, theirs.input) &&
     near(mine.cacheRead, theirs.cacheRead) &&
     (outGap === 0 || outGap >= 0); // higher is expected: we bill reasoning
+  // A lane that is $0 on BOTH sides agrees, whatever the tokens say — that is
+  // the free-lane case (OpenCode/Kilo/pi promotional models). A lane where
+  // only ccusage reports zero is the opposite situation: it has no price for
+  // any model in it (openclaw's `glm-4.7:cloud` and `stepfun/...:free` both
+  // miss its embedded table), so $1.28-vs-$0.00 is their missing entry, not
+  // our bug. Reporting the two as the same percentage would hide that.
+  const bothFree = mine.cost === 0 && theirs.cost === 0;
+  const theirZeroOnly = theirs.cost === 0 && mine.cost > 0;
   const costPct = pctDiff(mine.cost, theirs.cost);
-  const costOk = costPct <= COST_TOLERANCE;
+  const costOk = bothFree || theirZeroOnly || costPct <= COST_TOLERANCE;
   if (!tokenOk || !costOk) failures++;
 
-  rows.push({ lane, mine, theirs, tokenOk, costPct, costOk, outGap });
+  rows.push({ lane, mine, theirs, tokenOk, costPct, costOk, outGap, bothFree, theirZeroOnly });
   const mark = tokenOk && costOk ? 'ok  ' : 'DIFF';
   const note = outGap > 0 ? ` [+${outGap} reasoning billed as output]` : '';
+  const costNote = bothFree
+    ? ' [both free]'
+    : theirZeroOnly
+      ? ` [ccusage has no price for any model here; ours $${mine.cost.toFixed(2)}]`
+      : '';
   console.log(
     `  ${mark} ${lane.padEnd(9)}` +
       ` in ${mine.input} vs ${theirs.input}` +
       ` | cacheRead ${mine.cacheRead} vs ${theirs.cacheRead}` +
       ` | out ${mine.output} vs ${theirs.output}${note}` +
       ` | cost $${mine.cost.toFixed(2)} vs $${theirs.cost.toFixed(2)}` +
-      ` (${(costPct * 100).toFixed(1)}%)`,
+      ` (${(costPct * 100).toFixed(1)}%)${costNote}`,
   );
 }
 
@@ -153,6 +168,7 @@ for (const [lane, agent] of LANES) {
 // pi/qwen/zcode — and no `dsh`. These are a coverage advantage, so the tool
 // states them explicitly instead of leaving them invisible.
 const UNCOMPARABLE = [['dsh', 'DSH (DeepSeek Harness)']];
+
 console.log('');
 for (const [agent, label] of UNCOMPARABLE) {
   let mine;
@@ -195,8 +211,17 @@ if (realFailures.length) {
   process.exit(1);
 }
 if (costOnly.length) {
-  console.log(`tokens agree everywhere; ${costOnly.length} lane(s) differ on cost: ` +
-    costOnly.map((r) => `${r.lane} ${(r.costPct * 100).toFixed(1)}%`).join(', '));
+  const priced = costOnly.filter((r) => !r.theirZeroOnly);
+  const theirGap = costOnly.filter((r) => r.theirZeroOnly);
+  if (priced.length) {
+    console.log(`tokens agree everywhere; ${priced.length} lane(s) differ on cost: ` +
+      priced.map((r) => `${r.lane} ${(r.costPct * 100).toFixed(1)}%`).join(', '));
+  }
+  if (theirGap.length) {
+    console.log(`${theirGap.length} lane(s) where ccusage reports $0.00 for every model ` +
+      `(${theirGap.map((r) => r.lane).join(', ')}):`);
+    console.log('  that is a missing entry in its embedded table, not a counting difference.');
+  }
   console.log('Cost differences come from models with no canonical price, or from');
   console.log('agentledger billing reasoning tokens as output. Check src/pricing.js.');
 }

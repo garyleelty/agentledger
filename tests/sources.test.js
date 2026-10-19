@@ -3,6 +3,7 @@ import assert from 'node:assert/strict';
 import { execFileSync } from 'node:child_process';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { createRequire } from 'node:module';
 
 /**
  * `sources` answers "why is this lane empty?" — a missing directory, an empty
@@ -13,6 +14,9 @@ import { fileURLToPath } from 'node:url';
 const root = path.dirname(path.dirname(fileURLToPath(import.meta.url)));
 const cli = path.join(root, 'bin', 'agentledger.js');
 const fixtureHome = path.join(root, 'tests', 'fixtures', 'home');
+// ESM has no require(); this is the supported bridge, and it keeps the source
+// count asserted below tied to the code instead of to a number in a test.
+const require = createRequire(import.meta.url);
 
 function run(args, home) {
   try {
@@ -39,7 +43,12 @@ test('sources --json is machine-readable and carries the same facts', () => {
   const { stdout } = run(['sources', '--json'], fixtureHome);
   const d = JSON.parse(stdout);
   assert.ok(Array.isArray(d.sources));
-  assert.equal(d.sources.length, 6, 'one row per supported source');
+  // Derived from SOURCES rather than a hardcoded number: this assertion was
+  // pinned to 6 while a seventh source shipped, which is the same class of
+  // staleness the docs guard exists for — the count is a fact about the code,
+  // so read it from the code.
+  const { SOURCES } = require('../src/ledger.js');
+  assert.equal(d.sources.length, SOURCES.length, 'one row per supported source');
   for (const s of d.sources) {
     assert.ok(typeof s.agent === 'string');
     assert.ok(typeof s.state === 'string');
@@ -52,7 +61,7 @@ test('sources --json is machine-readable and carries the same facts', () => {
 
 test('an empty home reports zero sources and says what to do', () => {
   const { stdout } = run(['sources'], '/nonexistent-home-for-tests');
-  assert.match(stdout, /0 of 6 sources have data/);
+  assert.match(stdout, /0 of \d+ sources have data/);
   assert.match(stdout, /point at it with -p/);
 });
 

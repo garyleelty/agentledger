@@ -48,6 +48,9 @@ MAP = {
     "deepseek-flash": ["deepseek-flash", "deepseek/deepseek-flash"],
     "deepseek-v4.1-flash": ["together_ai/deepseek-ai/DeepSeek-V4.1-Flash", "tencent/deepseek-v4.1-flash"],
     "glm-5": ["zai/glm-5", "glm-5"],
+    # glm-4.7: six vendor rows agree exactly on 0.6/2.2 (see src/pricing.js).
+    # zai is the vendor-canonical one, matching how glm-5.2 is resolved.
+    "glm-4.7": ["zai/glm-4.7", "glm-4.7"],
     "glm-5.2": ["zai/glm-5.2", "glm-5.2"],
     "kimi-k2.7-code": ["moonshot/kimi-k2.7-code", "kimi-k2.7-code"],
     "kimi-k2.5": ["moonshot/kimi-k2.5", "kimi-k2.5"],

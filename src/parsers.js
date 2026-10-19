@@ -282,6 +282,111 @@ export async function* parseGemini(file) {
   }
 }
 
+/* ------------------------------------------------------------------
+ * pi-agent (earendil-works/pi-coding-agent): ~/.pi/agent/sessions/
+ * <cwd-slug>/<ts>_<uuid>.jsonl — JSONL, one typed event per line.
+ *
+ * The file is a linked list of events (session, model_change,
+ * thinking_level_change, custom, message). Usage sits on assistant
+ * `message` records under `message.usage`: the four buckets are plain
+ * camelCase numbers, plus a separate `reasoning` count. Unlike DSH — where
+ * the model lives on the *preceding* event and has to be carried forward —
+ * pi puts the model on the same record as the usage, and a `model_change`
+ * event can switch models mid-session, so the per-message value is read
+ * directly and no state is tracked.
+ *
+ * `cwd` is on the opening `session` record only, never repeated on the
+ * messages (verified on this machine: 5 of 66 records carry it, all of them
+ * session openers), so it is tracked from that one event and applied to
+ * every turn after it — the same "carry it forward" pattern Claude Code and
+ * Codex use for attribution.
+ * ------------------------------------------------------------------ */
+export async function* parsePi(file) {
+  let project = null;
+  for await (const rec of jsonl(file)) {
+    if (!project && rec.cwd) project = rec.cwd;
+    if (rec.type !== 'message') continue;
+    const msg = rec.message;
+    if (!msg || typeof msg !== 'object') continue;
+    const u = msg.usage;
+    if (!u) continue;
+    const input = num(u.input);
+    const cacheRead = num(u.cacheRead);
+    const cacheWrite = num(u.cacheWrite);
+    const output = num(u.output);
+    // Reasoning tokens bill at the output rate on every provider that keeps
+    // them in their own field (same rule and same reason as the OpenCode
+    // lane). ccusage drops them from pi's output bucket; that is a documented
+    // policy difference, not a counting error.
+    const reasoning = num(u.reasoning);
+    if (input + cacheRead + cacheWrite + output + reasoning === 0) continue;
+    yield {
+      agent: 'pi',
+      model: msg.model || 'unknown',
+      session: rec.id || path.basename(file, '.jsonl'),
+      timestamp: rec.timestamp ? Date.parse(rec.timestamp) : null,
+      input,
+      cacheRead,
+      cacheWrite,
+      output: output + reasoning,
+      project,
+      branch: null,
+    };
+  }
+}
+
+/* ------------------------------------------------------------------
+ * OpenClaw (clawdbot): ~/.openclaw/agents/<name>/sessions/*.jsonl
+ *
+ * Same event-list shape as pi (a typed-event linked list with usage on
+ * assistant `message` records), but with two differences that matter:
+ *
+ *  1. The agent keeps ARCHIVED session files in the same directory under
+ *     names like `<uuid>.jsonl.reset.<ts>` and `<uuid>.jsonl.deleted.<ts>`.
+ *     On this machine those hold 127 of 959 usage rows and 2.03M input
+ *     tokens that ccusage counts — the matcher below therefore accepts any
+ *     `<name>.jsonl*` file rather than only a bare `.jsonl`.
+ *  2. OpenClaw ALSO writes a SQLite store (`openclaw-agent.sqlite`) with a
+ *     `transcript_events` table. The JSONL is the superset (the db holds the
+ *     same events), so reading both would double-count every row.
+ *
+ * The model is on the message, as in pi. `cwd` is on the opening `session`
+ * record only (5 of 66 records carry it on pi, 101 of 9,710 here — all of
+ * them session openers), so it is carried forward to every turn, the way
+ * Claude Code and Codex do attribution.
+ * ------------------------------------------------------------------ */
+export async function* parseOpenClaw(file) {
+  let project = null;
+  for await (const rec of jsonl(file)) {
+    if (!project && rec.cwd) project = rec.cwd;
+    if (rec.type !== 'message') continue;
+    const msg = rec.message;
+    if (!msg || typeof msg !== 'object') continue;
+    const u = msg.usage;
+    if (!u) continue;
+    const input = num(u.input);
+    const cacheRead = num(u.cacheRead);
+    const cacheWrite = num(u.cacheWrite);
+    const output = num(u.output);
+    const reasoning = num(u.reasoning);
+    if (input + cacheRead + cacheWrite + output + reasoning === 0) continue;
+    yield {
+      agent: 'openclaw',
+      model: msg.model || 'unknown',
+      // The archived files share the session id of the live one they replaced;
+      // the uuid is the first path segment before the first `.jsonl`.
+      session: path.basename(file).split('.jsonl')[0],
+      timestamp: rec.timestamp ? Date.parse(rec.timestamp) : null,
+      input,
+      cacheRead,
+      cacheWrite,
+      output: output + reasoning,
+      project,
+      branch: null,
+    };
+  }
+}
+
 /* ------------------------------------------------------------------ *
  * helpers
  * ------------------------------------------------------------------ */
@@ -406,4 +511,6 @@ export const PARSERS = {
   kilo: parseKilo,
   dsh: parseDsh,
   'gemini-cli': parseGemini,
+  pi: parsePi,
+  openclaw: parseOpenClaw,
 };
