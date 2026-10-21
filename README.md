@@ -79,11 +79,16 @@ while you are still working:
 ### Honest comparison
 
 [ccusage](https://github.com/ccusage/ccusage) is the incumbent and it covers
-more agents than this (19 adapters against our 9). It reports reasoning
-token **counts** but does not bill them in the OpenCode or Kilo lanes — on the
-kilo store `sum(reasoning)` is 133 tokens and ccusage's output total is
-`sum(output)` alone, 39,597 against agentledger's 39,730 — and its statusline
-shows 5-hour billing blocks and burn rate. Its pricing also comes from LiteLLM's database, embedded at build
+more agents than this. The honest count, rather than a flattering one:
+ccusage has **18** agent adapters (19 directories under `rust/adapters`, one
+of which is `common`, a shared helper rather than an agent), and **7 of those
+18 overlap** with the ones below. agentledger has **9** sources; **2** of them
+ccusage has no adapter for at all.
+
+It reports reasoning token **counts** but does not bill them in the OpenCode or Kilo lanes
+— on the kilo store `sum(reasoning)` is 133 tokens and ccusage's output total
+is `sum(output)` alone, 39,597 against agentledger's 39,730 — and its
+statusline shows 5-hour billing blocks and burn rate. Its pricing also comes from LiteLLM's database, embedded at build
 time from a locked revision. If you want the most complete tool, use that
 one. What we share now: TTL-split cache writes, a statusline that prefers
 the host's own session cost over any estimate, and per-model overrides.
@@ -92,13 +97,14 @@ Where this differs, as far as I can tell: agentledger's table is a checked-in
 static file that a CI job reconciles against **live** LiteLLM weekly — a stale
 entry fails a build on a schedule instead of waiting for a manual
 `update-litellm-pricing`; `savings` prices the counterfactual (what the same
-ledger would have cost with no prompt caching); and the whole tool is ~2,500
+ledger would have cost with no prompt caching); and the whole tool is ~3,100
 lines of zero-dependency JavaScript with no build step, no runtime fetch, and
 no network call of any kind.
 
-**One source ccusage cannot read at all.** ccusage has 19 adapters
-and **no `dsh` adapter** — `ccusage dsh` returns `Unknown command`. `crosscheck`
-reports this automatically rather than trusting prose:
+**Two sources ccusage cannot read at all.** ccusage has 18 adapters
+and **no `dsh` adapter** — `ccusage dsh` returns `Unknown command` — and no
+Cherry Studio adapter either; there is no `cherry` command in it at all.
+`crosscheck` reports the first automatically rather than trusting prose:
 
 ```
   ONLY DSH (DeepSeek Harness) — 1471043240 tokens, $856.72 (ccusage has no adapter)
@@ -106,14 +112,14 @@ reports this automatically rather than trusting prose:
 
 DSH
 (DeepSeek Harness) keeps multi-frame zstd sessions at
-`~/.dsh/sessions/*/session.v4.jsonl.zstd`; on this machine that is 49 sessions
-and ~1.47B tokens, more than every other agent combined. Caveat stated plainly:
+`~/.dsh/sessions/*/session.v4.jsonl.zstd`; on this machine that is 58 sessions
+and ~1.5B tokens, more than every other agent combined. Caveat stated plainly:
 most DSH models reach it through gateways with no canonical public price, so a
 large share of that lane is placeholder-priced and the report says so. The
 token *counts* are real; the dollars in that lane are estimates until you set
 real rates with `--prices`.
 
-**Two lanes where ccusage reports $0.00 for every model.** On this machine its
+**One lane where ccusage reports $0.00 for every model.** On this machine its
 OpenClaw lane reads 31.39M tokens and prices all of it at zero — neither
 `glm-4.7:cloud` nor `stepfun/step-3.5-flash:free` is in its embedded table.
 agentledger prices `glm-4.7:cloud` from six LiteLLM vendor rows that agree
@@ -227,6 +233,8 @@ agentledger-cli waste           # where the cache-read spend is concentrated
 agentledger-cli savings         # what prompt caching saved, priced against no cache
 agentledger-cli by-model        # which model is eating your budget
 agentledger-cli by-day -d 30    # daily spend curve
+agentledger-cli blocks          # billing blocks: the windows a quota resets in
+agentledger-cli by-day --until 2026-06-30   # one month, not all of it
 agentledger-cli sessions -n 20  # most expensive sessions
 agentledger-cli budget -b 100   # spend against a limit
 agentledger-cli statusline      # one line for Claude Code's status bar
@@ -354,9 +362,10 @@ Useful flags:
 
 | Flag | Meaning |
 | --- | --- |
-| `-a, --agent <name>` | only one agent (`claude-code`, `codex`, `opencode`, `kilo`, `dsh`, `gemini-cli`) |
+| `-a, --agent <name>` | only one agent (`claude-code`, `codex`, `opencode`, `kilo`, `dsh`, `gemini-cli`, `pi`, `openclaw`, `cherry-studio`) |
 | `-p, --path <dir>` | also scan a directory or single file |
 | `--since <date>` | only records at/after a date |
+| `--timezone <tz>` | the zone whose days the reports use (default: this machine's) |
 | `-n, --top <n>` | rows in ranked reports |
 | `--prices <file>` | override prices from a JSON map (see below) |
 | `--json` | JSON instead of a table |
@@ -409,6 +418,39 @@ agentledger --prices prices.json
 The template names exactly the models in *your* ledger that fell back to the
 default, each with its record count and token volume, so you can see what a
 blank line is worth before you go looking up rates.
+
+### Billing blocks
+
+`agentledger blocks` groups your usage into the rolling windows a
+subscription quota resets in — the thing ccusage calls session blocks, and
+the feature most Claude Code Max subscribers actually live in:
+
+```bash
+agentledger blocks                 # every window, oldest first
+agentledger blocks --block-hours 3 # a different window length
+agentledger blocks --json          # the same, as JSON
+```
+
+The window starts with activity: the first record, floored to the hour, and
+runs for five hours from there. That is ccusage's rule, and it is **not** the
+obvious one — "local midnight, then five-hour chunks" is a natural guess and
+it is wrong, which is why the rule was measured against the binary rather
+than assumed. On this machine the two agree exactly: same window starts,
+same entry counts, same token totals, block for block.
+
+Two things here are agentledger's own:
+
+- **It works for every agent, not just Claude Code.** A quota window is a
+  property of the subscription, not of the log format. ccusage's `blocks` is
+  Claude Code only; this computes it across all nine lanes.
+- **The active window comes with a burn rate and a projection** — how fast
+  the window is being spent and where it lands if the pace holds. That is
+  the number you want while a session is running, and it is the one ccusage
+  shows on its statusline and nowhere else.
+
+`<synthetic>` records are excluded: Claude Code writes placeholder turns
+under that model name with every bucket zero, and they are not usage. Kept
+in, they open windows that contain nothing.
 
 ## Supported agents
 
@@ -554,7 +596,7 @@ implementation is what actually finds bugs.
 
 `agentledger-cli` opens your log files in read mode and writes nothing. There is
 no telemetry, no update check, and no code path that can reach the network. You
-can verify this in a few minutes — the whole tool is ~2,500 lines with zero
+can verify this in a few minutes — the whole tool is ~3,100 lines with zero
 dependencies.
 
 ## Contributing

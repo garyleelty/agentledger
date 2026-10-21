@@ -108,9 +108,14 @@ test("the README's 'our N sources' claim matches the built-in SOURCES", async ()
   // The comparison section quoted "17 sources against our 5" — both numbers
   // wrong (ccusage has 18 adapters, agentledger 6). It is the one place the
   // tool describes itself against the incumbent, so it should be checked.
+  //
+  // The phrasing changed when the comparison was made honest about overlap:
+  // "against our N" flattered nobody and hid the fact that 7 of ccusage's 18
+  // adapters overlap with ours. It now reads "agentledger has N sources", and
+  // the test looks for that.
   const { SOURCES } = await import('../src/ledger.js');
   const readme = fs.readFileSync(path.join(root, 'README.md'), 'utf8');
-  const m = readme.match(/against our (\d+)/);
+  const m = readme.match(/agentledger has \*\*(\d+)\*\* sources/);
   assert.ok(m, 'README must state its own source count against ccusage');
   assert.equal(
     Number(m[1]), SOURCES.length,
@@ -125,10 +130,15 @@ test("the README's ccusage adapter count matches the real repo", async () => {
   const m = readme.match(/ccusage has (\d+) adapters/);
   assert.ok(m, 'README must state ccusage adapter count');
   const claimed = Number(m[1]);
-  // 18 as of 2026-10-18, verified against the rust/adapters listing.
-  assert.ok(
-    claimed >= 18 && claimed <= 25,
-    `README claims ${claimed}; recount ccusage/rust/adapters if this changed`,
+  // EXACT, not a range. The range (18..25) let a wrong "19" through for
+  // several rounds: ccusage has 18 agent adapters, and the 19th directory
+  // under rust/adapters is `common`, a shared helper rather than an agent.
+  // Recount by listing rust/adapters and excluding `common`, or by counting
+  // the agent namespaces in `ccusage --help` — both give 18.
+  assert.equal(
+    claimed, 18,
+    `README claims ${claimed} ccusage adapters; recount rust/adapters (excluding ` +
+    "`common`) and update this constant if it really changed",
   );
 });
 

@@ -14,6 +14,7 @@
 import { readFileSync, statSync, readdirSync } from 'node:fs';
 import { join as pathJoin, relative as pathRelative, basename as pathBasename } from 'node:path';
 import { collect, withCost, totals, groupBy, SOURCES, expandHome, dayKeyIn, startOfDayIn } from '../src/ledger.js';
+import { computeBlocks } from '../src/blocks.js';
 import { PRICING, DEFAULT_PRICING, resolvePricing, cacheWriteCost, loadPricingOverrides, overriddenModels } from '../src/pricing.js';
 
 // How many --prices overrides are active; read by reportPrices(). Declared
@@ -83,6 +84,31 @@ function zone(raw) {
   return raw;
 }
 
+/**
+ * A calendar date to the start of that day, in the machine's local zone.
+ *
+ * `Date.parse('2026-02-30')` does not fail — it rolls over to March 2, so
+ * a typo becomes a real date and the filter silently reports the wrong
+ * range. A date that does not exist on the calendar is an error, not a
+ * guess: the day must parse back to itself.
+ */
+function day(raw, flag) {
+  const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(String(raw).trim());
+  if (!m) {
+    const parsed = Date.parse(raw);
+    if (Number.isNaN(parsed)) {
+      throw new Error(`${flag} could not parse ${JSON.stringify(raw)} as a date (try 2026-06-01)`);
+    }
+    return parsed;
+  }
+  const [, y, mo, d] = m;
+  const probe = new Date(Number(y), Number(mo) - 1, Number(d));
+  if (probe.getFullYear() !== Number(y) || probe.getMonth() !== Number(mo) - 1 || probe.getDate() !== Number(d)) {
+    throw new Error(`${flag}: ${JSON.stringify(raw)} is not a real date (2026-02-30 is not)`);
+  }
+  return probe.getTime();
+}
+
 function parseFlags(args) {
   const out = { agent: [], path: [], json: false, template: false, top: 10, days: 30, since: null, budget: null, prices: null, timezone: null, blockHours: 5 };
   for (let i = 0; i < args.length; i++) {
@@ -117,16 +143,26 @@ function parseFlags(args) {
     }
     else if (a === '--top' || a === '-n') out.top = positiveInt(args[++i], a);
     else if (a === '--days' || a === '-d') out.days = positiveInt(args[++i], a);
+    else if (a === '--until' || a === '-u') {
+      const raw = args[++i];
+      if (!raw) throw new Error('--until expects a date');
+      const bound = day(raw, '--until');
+      // A bare date means "through the end of that day", so the bound is the
+      // start of the next one. A full timestamp means that instant.
+      const isBareDate = /^\d{4}-\d{2}-\d{2}$/.test(String(raw).trim());
+      out.until = bound;
+      if (isBareDate) {
+        const next = new Date(bound);
+        next.setDate(next.getDate() + 1);
+        out.untilExclusive = next.getTime();
+      }
+    }
     else if (a === '--since') {
       const raw = args[++i];
-      const parsed = Date.parse(raw);
       // Date.parse returns NaN for junk. `if (NaN)` is falsy, so the old code
       // skipped filtering entirely and printed the full ledger as if the user
       // had asked for it — the single most misleading failure this tool had.
-      if (Number.isNaN(parsed)) {
-        throw new Error(`--since could not parse ${JSON.stringify(raw)} as a date (try 2026-06-01)`);
-      }
-      out.since = parsed;
+      out.since = day(raw, '--since');
     }
     else if (a === '--help' || a === '-h') { out.help = true; }
     else if (a === '--version' || a === '-v') { out.version = true; }
@@ -189,6 +225,14 @@ async function main() {
   } else {
     var filtered = priced;
   }
+  // `--until` is INCLUSIVE of the day named, so the bound is the start of the
+  // NEXT day and the comparison is exclusive. Without a next day (the bound
+  // was given as a full timestamp rather than a date) the bound itself is
+  // exclusive.
+  if (flags.until) {
+    const to = flags.untilExclusive ?? flags.until;
+    filtered = filtered.filter((r) => (r.timestamp ?? 0) < to);
+  }
 
   switch (command) {
     case 'waste': return reportWaste(filtered, flags);
@@ -198,6 +242,7 @@ async function main() {
     case 'by-branch': return reportByBranch(filtered, flags);
     case 'by-model': return reportByModel(filtered, flags);
     case 'by-day': return reportByDay(filtered, flags);
+    case 'blocks': return reportBlocks(filtered, flags);
     case 'sessions': return reportSessions(filtered, flags);
     case 'budget':
       if (flags.budget === null) {
@@ -430,8 +475,13 @@ function reportSummary(records, meta, flags) {
 }
 
 function reportByModel(records, flags) {
-  if (flags.json) return reportJson(records);
-  const groups = [...groupBy(records, (r) => r.model).entries()].map(([model, rs]) => {
+  const byModel = [...groupBy(records, (r) => r.model).entries()];
+  if (flags.json) {
+    const rows = byModel.map(([model, rs]) => groupRow(model, rs))
+      .sort((a, b) => b.costUSD - a.costUSD);
+    return reportGroupJson('by-model', rows, records);
+  }
+  const groups = byModel.map(([model, rs]) => {
     const t = totals(rs);
     return [model, fmtTok(t.input + t.cacheRead + t.output), money(t.cost), String(rs.length)];
   });
@@ -580,10 +630,10 @@ async function renderSharePage(records, flags) {
 }
 
 function reportWaste(records, flags) {
-  if (flags.json) return reportJson(records);
   const t = totals(records);
   const totalCacheRead = t.cacheRead;
   if (totalCacheRead === 0) {
+    if (flags.json) return reportGroupJson('waste', [], records);
     console.log('No cache reads in these logs; nothing to diagnose.');
     return;
   }
@@ -601,6 +651,42 @@ function reportWaste(records, flags) {
   const top10 = perSession.slice(0, 10);
   const share = top10.reduce((a, x) => a + x.cacheRead, 0) / totalCacheRead;
 
+  // The JSON shape carries the diagnosis, not just the ranking: the share is
+  // the whole point of the report, and a consumer that had to recompute it
+  // from the rows was doing the work twice.
+  if (flags.json) {
+    const rows = perSession.map((x) => ({
+      key: x.key,
+      cacheRead: x.cacheRead,
+      costUSD: round(x.cost),
+      records: x.records,
+      project: x.project,
+      shareOfCacheReads: totalCacheRead ? round(x.cacheRead / totalCacheRead, 6) : 0,
+    }));
+    console.log(
+      JSON.stringify(
+        {
+          tool: 'agentledger',
+          version: version(),
+          generatedAt: new Date().toISOString(),
+          command: 'waste',
+          totals: {
+            cacheRead: totalCacheRead,
+            tokens: { input: t.input, cacheRead: t.cacheRead, cacheWrite: t.cacheWrite, output: t.output },
+            costUSD: round(t.cost),
+            records: t.records,
+          },
+          topSessionsShareOfCacheReads: round(share, 6),
+          sessions: perSession.length,
+          rows,
+        },
+        null,
+        2,
+      ),
+    );
+    return;
+  }
+
   console.log('');
   console.log(`  cache reads are the story: ${fmtTok(totalCacheRead)} of ${fmtTok(t.input + t.cacheRead + t.output)} total tokens`);
   console.log('');
@@ -616,13 +702,18 @@ function reportWaste(records, flags) {
 }
 
 function reportByProject(records, flags) {
-  const groups = [...groupBy(records, (r) => r.project || '(unknown)').entries()]
+  const byProject = [...groupBy(records, (r) => r.project || '(unknown)').entries()];
+  if (flags.json) {
+    const rows = byProject.map(([project, rs]) => groupRow(project, rs))
+      .sort((a, b) => b.costUSD - a.costUSD);
+    return reportGroupJson('by-project', rows, records);
+  }
+  const groups = byProject
     .map(([project, rs]) => {
       const t = totals(rs);
       return [project, fmtTok(t.input + t.cacheRead + t.output), money(t.cost), String(rs.length)];
     })
     .sort((a, b) => num(b[2]) - num(a[2]));
-  if (flags.json) return reportJson(records);
   if (groups.length === 0) {
     console.log('No project attribution found. Codex and Claude Code record the working');
     console.log('directory; older sessions may predate that field.');
@@ -634,13 +725,18 @@ function reportByProject(records, flags) {
 }
 
 function reportByBranch(records, flags) {
-  const groups = [...groupBy(records, (r) => (r.branch ? `${r.branch}` : '(no branch)')).entries()]
+  const byBranch = [...groupBy(records, (r) => (r.branch ? `${r.branch}` : '(no branch)')).entries()];
+  if (flags.json) {
+    const rows = byBranch.map(([branch, rs]) => groupRow(branch, rs))
+      .sort((a, b) => b.costUSD - a.costUSD);
+    return reportGroupJson('by-branch', rows, records);
+  }
+  const groups = byBranch
     .map(([branch, rs]) => {
       const t = totals(rs);
       return [branch, fmtTok(t.input + t.cacheRead + t.output), money(t.cost), String(rs.length)];
     })
     .sort((a, b) => num(b[2]) - num(a[2]));
-  if (flags.json) return reportJson(records);
   if (groups.length === 0) {
     console.log('No branch attribution found in these logs.');
     return;
@@ -650,14 +746,120 @@ function reportByBranch(records, flags) {
   console.log('  What each git branch cost you in agent time.');
 }
 
+/**
+ * Billing blocks: the rolling windows in which a subscription quota resets.
+ *
+ * ccusage has this as a Claude-Code-only report. agentledger computes it for
+ * EVERY lane, because a quota window is a property of the subscription, not
+ * of the tool: a DeepSeek or Kimi subscription that resets on a rolling
+ * window is billed the same way, and nobody has to teach a second tool
+ * where the log files are.
+ *
+ * The block algorithm is ccusage's, measured rather than assumed: a block
+ * starts with activity (its first record, floored to the hour) and runs
+ * `blockHours` from there. A "local midnight, then 5-hour chunks" grid was
+ * the natural guess and it is wrong — ccusage's own example block
+ * (13:00Z -> 18:00Z) is not on that grid.
+ *
+ * `<synthetic>` records are excluded. Claude Code writes placeholder turns
+ * under that model name with every bucket zero, and they are not usage: kept
+ * in, they open blocks that contain nothing. Verified against ccusage's own
+ * output on this machine: with them excluded, the block boundaries, entry
+ * counts and token totals match ccusage exactly, record for record.
+ */
+function reportBlocks(records, flags) {
+  const usable = records.filter((r) => r.model !== '<synthetic>');
+  const blocks = computeBlocks(usable.map(withCost), {
+    now: Date.now(),
+    timezone: flags.timezone,
+    blockHours: flags.blockHours,
+  });
+
+  // Gaps are idle stretches: they explain why two blocks are far apart, but
+  // they are not spend, so they are not rows of a spend report unless asked.
+  const real = blocks.filter((b) => !b.isGap);
+  const active = real.find((b) => b.isActive);
+
+  if (flags.json) {
+    console.log(
+      JSON.stringify(
+        {
+          tool: 'agentledger',
+          version: version(),
+          generatedAt: new Date().toISOString(),
+          command: 'blocks',
+          blockHours: flags.blockHours,
+          timezone: flags.timezone ?? Intl.DateTimeFormat().resolvedOptions().timeZone,
+          activeBlockId: active ? active.id : null,
+          blocks,
+        },
+        null,
+        2,
+      ),
+    );
+    return;
+  }
+
+  if (real.length === 0) {
+    console.log('No usage in these logs; no billing blocks to report.');
+    return;
+  }
+
+  // The share is relative to the largest block, which is the one that
+  // decides whether a window was blown.
+  const largest = Math.max(...real.map((b) => b.totalTokens)) || 1;
+  const rows = real.map((b) => {
+    const spent = b.totalTokens;
+    // `actualEndTime` is an ISO string, not epoch ms: subtracting it as a
+    // number gave NaN, and a NaN duration renders as a column of dashes.
+    const end = b.actualEndTime ? Date.parse(b.actualEndTime) : null;
+    const span = end && Number.isFinite(end) ? end - Date.parse(b.startTime) : 0;
+    const dur = span > 0 ? `${Math.floor(span / 3600000)}h ${Math.floor((span % 3600000) / 60000)}m` : '-';
+    const status = b.isActive ? 'ACTIVE' : dur;
+    return [
+      new Date(b.startTime).toISOString().replace('T', ' ').slice(0, 16),
+      status,
+      b.models.slice(0, 2).join(', ') + (b.models.length > 2 ? ` +${b.models.length - 2}` : ''),
+      fmtTok(spent),
+      `${((spent / largest) * 100).toFixed(1)}%`,
+      money(b.costUSD),
+    ];
+  });
+
+  printTable(['Block start (UTC)', 'Elapsed', 'Models', 'Tokens', 'Share', 'Est. cost'], rows);
+
+  console.log('');
+  if (active) {
+    const b = active.burnRate;
+    console.log(`  Active block: ${new Date(active.startTime).toISOString().slice(0, 16)}Z, ends ${new Date(active.endTime).toISOString().slice(0, 16)}Z.`);
+    if (b) {
+      console.log(`  Burn rate: ${Math.round(b.tokensPerMinute).toLocaleString()} tokens/min (${money(b.costPerHour)}/hr).`);
+    }
+    if (active.projection) {
+      console.log(`  Projected at window end: ${fmtTok(active.projection.totalTokens)} tokens, ${money(active.projection.totalCost)}.`);
+    }
+  } else {
+    console.log('  No active block: nothing is being used right now.');
+  }
+  const gapCount = blocks.length - real.length;
+  if (gapCount) console.log(`  ${gapCount} idle stretch(es) between blocks, not shown.`);
+  console.log('');
+}
+
 function reportByDay(records, flags) {
   const days = flags.days || 30;
   const tz = flags.timezone;
-  const groups = [...groupBy(records, (r) => dayKeyIn(r.timestamp, tz)).entries()]
+  const byDay = [...groupBy(records, (r) => dayKeyIn(r.timestamp, tz)).entries()];
+  if (flags.json) {
+    const rows = byDay.map(([day, rs]) => groupRow(day, rs))
+      .sort((a, b) => (a.key < b.key ? 1 : -1))
+      .slice(0, days);
+    return reportGroupJson('by-day', rows, records);
+  }
+  const groups = byDay
     .map(([day, rs]) => [day, fmtTok(sum(rs, 'input') + sum(rs, 'cacheRead') + sum(rs, 'output')), money(totals(rs).cost)])
     .sort((a, b) => (a[0] < b[0] ? 1 : -1))
     .slice(0, days);
-  if (flags.json) return reportJson(records);
   printTable(['Day', 'Tokens', 'Est. cost'], groups);
   const t = totals(records);
   console.log('');
@@ -665,13 +867,20 @@ function reportByDay(records, flags) {
 }
 
 function reportSessions(records, flags) {
-  const groups = [...groupBy(records, (r) => `${r.agent}/${r.session}`).entries()]
+  const bySession = [...groupBy(records, (r) => `${r.agent}/${r.session}`).entries()];
+  if (flags.json) {
+    const rows = bySession.map(([key, rs]) => ({
+      ...groupRow(key, rs),
+      started: new Date(Math.min(...rs.map((r) => r.timestamp || Date.now()))).toISOString(),
+    })).sort((a, b) => b.costUSD - a.costUSD);
+    return reportGroupJson('sessions', rows, records);
+  }
+  const groups = bySession
     .map(([key, rs]) => {
       const t = totals(rs);
       return [key, fmtTok(t.input + t.cacheRead + t.output), money(t.cost), new Date(Math.min(...rs.map((r) => r.timestamp || Date.now()))).toISOString().slice(0, 10)];
     })
     .sort((a, b) => num(b[2]) - num(a[2]));
-  if (flags.json) return reportJson(records);
   printTable(['Session', 'Tokens', 'Est. cost', 'Started'], groups.slice(0, flags.top || 10));
 }
 
@@ -861,6 +1070,49 @@ function reportPriceTemplate(records) {
   console.log(JSON.stringify(obj, null, 2));
 }
 
+/**
+ * JSON for a grouped report: the breakdown the command name implies.
+ *
+ * Six commands used to answer `--json` with the full record dump. Asking for
+ * "by-model JSON" got 18,017 rows and no model breakdown, so a script had to
+ * group them itself — the same work the command had already done, thrown
+ * away on the way out. This is the shape each of them should have had.
+ *
+ * The record dump is still one command away: `agentledger json`.
+ */
+function reportGroupJson(command, rows, records) {
+  const t = totals(records);
+  console.log(
+    JSON.stringify(
+      {
+        tool: 'agentledger',
+        version: version(),
+        generatedAt: new Date().toISOString(),
+        command,
+        totals: {
+          tokens: { input: t.input, cacheRead: t.cacheRead, cacheWrite: t.cacheWrite, output: t.output },
+          costUSD: round(t.cost),
+          records: t.records,
+        },
+        rows,
+      },
+      null,
+      2,
+    ),
+  );
+}
+
+/** One row of a grouped report: its key, its tokens, its cost, its record count. */
+function groupRow(key, rs) {
+  const t = totals(rs);
+  return {
+    key,
+    tokens: { input: t.input, cacheRead: t.cacheRead, cacheWrite: t.cacheWrite, output: t.output },
+    costUSD: round(t.cost),
+    records: rs.length,
+  };
+}
+
 function reportJson(records) {
   const t = totals(records);
   console.log(
@@ -1046,6 +1298,7 @@ Commands
   by-branch   Cost per git branch
   by-model    Per-model token and cost breakdown
   by-day      Daily spend for the last N days
+  blocks      Billing blocks: the windows a subscription quota resets in
   sessions    Most expensive sessions
   sources     Which agents are supported and where logs are read from
   prices      The built-in pricing table
@@ -1060,6 +1313,7 @@ Options
   -a, --agent <name>   Only read this agent (${agentNames})
   -p, --path <dir>     Also read logs from this directory or file
       --since <date>   Only records at/after this date (ISO or timestamp)
+      --until <date>   Only records before this date (inclusive of the day)
   -n, --top <n>        Rows to show in ranked reports (default 10)
   -d, --days <n>       Days to show in by-day (default 30)
       --prices <file>  Override prices from a JSON map before reporting

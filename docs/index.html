@@ -118,7 +118,7 @@
   <ul>
     <li><strong>Reads local logs only</strong> — <code>~/.claude/projects</code>, <code>~/.codex/sessions</code>, <code>~/.local/share/opencode</code>, <code>~/.local/share/kilo</code>, <code>~/.dsh/sessions</code>, <code>~/.openclaw/agents</code>, <code>~/.pi/agent/sessions</code>, <code>~/Library/Application Support/CherryStudio/Data</code>, <code>~/.gemini/tmp</code></li>
     <li><strong>Cache buckets priced separately</strong> — 2.00B of my 2.32B tokens are cache reads, billed at 10-25% of input</li>
-    <li><strong>Never touches the network</strong> — no account, no key, no telemetry, ~2,500 lines you can audit in one sitting</li>
+    <li><strong>Never touches the network</strong> — no account, no key, no telemetry, ~3,100 lines you can audit in one sitting</li>
     <li><strong>Fast</strong> — a full scan of 680M+ tokens takes about a second</li>
     <li><strong>Your rates, not mine</strong> — <code>--prices my-prices.json</code> overrides any model, partial entries merge over the built-in table; <code>prices --template</code> writes the file for you, naming exactly the models your ledger could not price</li>
     <li><strong>Honest about unknowns</strong> — a model with no built-in price is billed at a stated default and the report says so, with its dollar share, instead of quietly folding a placeholder into the total</li>
@@ -136,6 +136,7 @@
     <tr><td><code>agentledger by-branch</code></td><td>cost per git branch</td></tr>
     <tr><td><code>agentledger by-model</code></td><td>which model is eating the budget</td></tr>
     <tr><td><code>agentledger by-day -d 30</code></td><td>daily spend curve</td></tr>
+    <tr><td><code>agentledger blocks</code></td><td>billing blocks — the windows a subscription quota resets in</td></tr>
     <tr><td><code>agentledger sessions -n 20</code></td><td>most expensive sessions</td></tr>
     <tr><td><code>agentledger budget -b 100</code></td><td>spend against a limit, with a run rate</td></tr>
     <tr><td><code>agentledger watch</code></td><td>live totals</td></tr>
@@ -203,7 +204,7 @@ branch        <span class="hi">$206</span>  <span class="dim">the web branch alo
   its embedded price table, so 31.39M tokens of real spend price to zero there.
   agentledger prices <code>glm-4.7:cloud</code> from six LiteLLM vendor rows that
   agree exactly on $0.60/$2.20.</p>
-  <p>The pitch that stays narrower and honest: ~2,500 lines, zero dependencies, no
+  <p>The pitch that stays narrower and honest: ~3,100 lines, zero dependencies, no
   network, no build step. You can read the whole thing before you trust it with logs
   that are effectively your entire coding history.</p>
 

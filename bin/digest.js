@@ -16,6 +16,7 @@
  */
 
 import { readFileSync, writeFileSync } from 'node:fs';
+import { dayKeyIn } from '../src/ledger.js';
 
 const money = (n) => `$${Number(n || 0).toFixed(2)}`;
 const comma = (n) => Number(n || 0).toLocaleString('en-US');
@@ -57,7 +58,7 @@ export function renderDigest(ledger) {
   return [
     '# agentledger digest',
     '',
-    `Generated ${new Date().toISOString().slice(0, 10)} from ${comma(records)} usage records.`,
+    `Generated ${dayKeyIn(Date.now())} from ${comma(records)} usage records.`,
     '',
     '## Tokens and cost',
     '',
@@ -139,7 +140,7 @@ export function renderDigestHtml(ledger) {
 <body>
 <main>
 <h1>agentledger digest</h1>
-<p>Generated ${esc(new Date().toISOString().slice(0, 10))} from ${comma(records)} usage records on the maintainer's machine.</p>
+<p>Generated ${esc(dayKeyIn(Date.now()))} from ${comma(records)} usage records on the maintainer's machine.</p>
 
 <h2>Tokens and cost</h2>
 <table>
