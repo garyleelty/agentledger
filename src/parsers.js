@@ -77,6 +77,20 @@ export async function* parseClaudeCode(file) {
     }
     r.isSidechain = rec.isSidechain === true;
     r.messageId = msg.id || null;
+    // Claude Code writes its OWN pre-calculated cost on the line, next to
+    // `message` rather than inside it. agentledger prices everything from
+    // tokens against its own table, so this is a second, independent number
+    // for the same request — and the only one that comes from the vendor.
+    //
+    // It is carried, never used to price. A subscription user's bill is
+    // closer to what Claude Code wrote than to any list price, and a tool
+    // that quietly substituted one for the other would be hiding a
+    // disagreement it could have shown. The two are printed side by side
+    // instead. Older Claude Code versions do not write the field at all;
+    // this machine's 2.1.156 does not.
+    if (typeof rec.costUSD === 'number' && Number.isFinite(rec.costUSD)) {
+      r.storedCost = rec.costUSD;
+    }
 
     if (!r.messageId) {
       yield r; // no id to dedupe on: keep it rather than drop real usage

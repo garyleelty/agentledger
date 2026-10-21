@@ -242,6 +242,8 @@ async function main() {
     case 'by-branch': return reportByBranch(filtered, flags);
     case 'by-model': return reportByModel(filtered, flags);
     case 'by-day': return reportByDay(filtered, flags);
+    case 'by-week': return reportByPeriod(filtered, flags, 'by-week', (ts) => weekKeyIn(ts, flags.timezone), 'Week');
+    case 'by-month': return reportByPeriod(filtered, flags, 'by-month', (ts) => monthKeyIn(ts, flags.timezone), 'Month');
     case 'blocks': return reportBlocks(filtered, flags);
     case 'sessions': return reportSessions(filtered, flags);
     case 'budget':
@@ -448,6 +450,28 @@ function reportSummary(records, meta, flags) {
   ];
   printTable(['Metric', 'Tokens', 'Est. cost'], rows);
   console.log('');
+  // When the agent wrote its own cost, print BOTH numbers. ccusage picks one
+  // (`auto` mode prefers the stored cost, `calculate` prefers its own table);
+  // a disagreement between two independent calculations of the same bill is
+  // information, and hiding one of them is how a pricing table quietly
+  // drifts out of date.
+  const stored = records.filter((r) => typeof r.storedCost === 'number');
+  if (stored.length) {
+    const storedTotal = stored.reduce((a, r) => a + r.storedCost, 0);
+    const storedTokens = stored.reduce(
+      (a, r) => a + (r.input || 0) + (r.cacheRead || 0) + (r.cacheWrite || 0) + (r.output || 0),
+      0,
+    );
+    const sameScope = storedTokens === t.input + t.cacheRead + t.cacheWrite + t.output;
+    console.log(`  The agent's own total for the ${sameScope ? 'whole' : 'part of it it'} ledger: ${money(storedTotal)}`);
+    console.log(`  agentledger's estimate for the same ${sameScope ? 'scope' : 'scope is a different slice'}: ${money(totals(stored).cost)}`);
+    if (sameScope) {
+      const diff = storedTotal - totals(stored).cost;
+      const pct = storedTotal ? (diff / storedTotal) * 100 : 0;
+      console.log(`  Difference: ${money(diff)} (${pct.toFixed(1)}%) — same tokens, different price table.`);
+    }
+    console.log('');
+  }
   const byAgent = [...groupBy(records, (r) => r.agent).entries()]
     .map(([agent, rs]) => [agent, fmtTok(sum(rs, 'input') + sum(rs, 'cacheRead') + sum(rs, 'output')), money(totals(rs).cost), String(rs.length)])
     .sort((a, b) => num(b[2]) - num(a[2]));
@@ -846,6 +870,35 @@ function reportBlocks(records, flags) {
   console.log('');
 }
 
+/**
+ * A calendar key for a timestamp at a coarser grain than a day.
+ *
+ * `by-week` and `by-month` differ from `by-day` only in the key they group
+ * by, and both are "the same report, rolled up". The week starts on
+ * Monday — the ISO convention, and the one ccusage's `weekly` uses — and
+ * the month is the calendar month.
+ *
+ * The week is computed in the reporting zone, not in UTC, so a week is a
+ * local week. A Monday 00:30 in Shanghai is Sunday 16:30 UTC, and calling
+ * that Monday while every other Monday in the report is local is the kind
+ * of inconsistency this tool has already had one of.
+ */
+function weekKeyIn(ts, timeZone) {
+  if (!ts) return 'unknown';
+  // The local date, then the Monday on or before it.
+  const day = dayKeyIn(ts, timeZone);
+  const d = new Date(`${day}T00:00:00Z`);
+  const dow = (d.getUTCDay() + 6) % 7; // 0 = Monday
+  d.setUTCDate(d.getUTCDate() - dow);
+  return d.toISOString().slice(0, 10);
+}
+
+/** The calendar month a timestamp falls in, as YYYY-MM. */
+function monthKeyIn(ts, timeZone) {
+  if (!ts) return 'unknown';
+  return dayKeyIn(ts, timeZone).slice(0, 7);
+}
+
 function reportByDay(records, flags) {
   const days = flags.days || 30;
   const tz = flags.timezone;
@@ -864,6 +917,29 @@ function reportByDay(records, flags) {
   const t = totals(records);
   console.log('');
   console.log(`  ${money(t.cost)} across ${records.length} records`);
+}
+
+/**
+ * A period report: by-week and by-month are the same thing at a different
+ * grain, and they are built from the same code so they cannot drift apart.
+ */
+function reportByPeriod(records, flags, command, keyFn, label) {
+  const groups = [...groupBy(records, (r) => keyFn(r.timestamp)).entries()];
+  if (flags.json) {
+    const rows = groups.map(([key, rs]) => groupRow(key, rs))
+      .sort((a, b) => (a.key < b.key ? 1 : -1));
+    return reportGroupJson(command, rows, records);
+  }
+  const table = groups
+    .map(([key, rs]) => {
+      const t = totals(rs);
+      return [key, fmtTok(t.input + t.cacheRead + t.cacheWrite + t.output), money(t.cost), String(rs.length)];
+    })
+    .sort((a, b) => (a[0] < b[0] ? 1 : -1));
+  printTable([label, 'Tokens', 'Est. cost', 'Records'], table);
+  console.log('');
+  const t = totals(records);
+  console.log(`  ${money(t.cost)} across ${records.length} records in ${table.length} ${label.toLowerCase()}(s).`);
 }
 
 function reportSessions(records, flags) {
@@ -1134,6 +1210,10 @@ function reportJson(records) {
           timestamp: r.timestamp ? new Date(r.timestamp).toISOString() : null,
           tokens: { input: r.input, cacheRead: r.cacheRead, cacheWrite: r.cacheWrite, output: r.output },
           costUSD: round(r.cost?.total ?? 0),
+          // The agent's own figure, when it wrote one. `null` means the
+          // source does not record a cost of its own — not zero, which would
+          // be a claim.
+          storedCostUSD: typeof r.storedCost === 'number' ? round(r.storedCost) : null,
         })),
       },
       null,
@@ -1298,6 +1378,8 @@ Commands
   by-branch   Cost per git branch
   by-model    Per-model token and cost breakdown
   by-day      Daily spend for the last N days
+  by-week     The same, rolled up by week (weeks start on Monday)
+  by-month    The same, rolled up by month
   blocks      Billing blocks: the windows a subscription quota resets in
   sessions    Most expensive sessions
   sources     Which agents are supported and where logs are read from

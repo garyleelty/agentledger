@@ -233,6 +233,8 @@ agentledger-cli waste           # where the cache-read spend is concentrated
 agentledger-cli savings         # what prompt caching saved, priced against no cache
 agentledger-cli by-model        # which model is eating your budget
 agentledger-cli by-day -d 30    # daily spend curve
+agentledger-cli by-week         # the same, rolled up by week
+agentledger-cli by-month        # the same, rolled up by month
 agentledger-cli blocks          # billing blocks: the windows a quota resets in
 agentledger-cli by-day --until 2026-06-30   # one month, not all of it
 agentledger-cli sessions -n 20  # most expensive sessions
