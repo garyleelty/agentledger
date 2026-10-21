@@ -32,7 +32,12 @@ const argv = process.argv.slice(2);
 // instead of the one-line message every other failure gets.
 let command;
 let flags;
+// Whether the user actually named a command, as opposed to falling through
+// to the default one. `--sections` needs the difference: it is its own
+// report, and a command alongside it is a mistake rather than a modifier.
+let explicitCommand = false;
 try {
+  explicitCommand = !!(argv[0] && !argv[0].startsWith('-'));
   command = argv[0] && !argv[0].startsWith('-') ? argv.shift() : 'summary';
   flags = parseFlags(argv);
 } catch (err) {
@@ -112,13 +117,26 @@ function day(raw, flag) {
 }
 
 function parseFlags(args) {
-  const out = { agent: [], path: [], json: false, template: false, top: 10, days: 30, since: null, budget: null, prices: null, timezone: null, blockHours: 5 };
+  // `top` and `days` stay null until the user asks for a number. The commands
+  // have their own defaults (10 rows, 30 days) and read them as `flags.top ||
+  // 10`, so a null default changes nothing for them. The sections report
+  // needs the difference: there, a cap narrows the report to a window rather
+  // than choosing how many rows to print, and it has to know whether the user
+  // asked for the window or whether 30 is just the default.
+  const out = { agent: [], path: [], json: false, template: false, top: null, days: null, since: null, budget: null, prices: null, timezone: null, blockHours: 5, sections: null };
   for (let i = 0; i < args.length; i++) {
     const a = args[i];
     if (a === '--agent' || a === '-a') out.agent.push(args[++i]);
     else if (a === '--path' || a === '-p') out.path.push(args[++i]);
     else if (a === '--json') out.json = true;
     else if (a === '--template') out.template = true;
+    else if (a === '--sections') {
+      const raw = args[++i];
+      if (raw === undefined) {
+        throw new Error('--sections expects a comma-separated list of section names (e.g. --sections daily,weekly)');
+      }
+      out.sections = raw;
+    }
     else if (a === '--prices') {
       const raw = args[++i];
       if (!raw || raw.startsWith('-')) throw new Error('--prices expects a JSON file path');
@@ -247,6 +265,21 @@ async function main() {
     }
   }
 
+  // `--sections` names several reports at once, so there is no single command
+  // for it to modify. A command alongside it is a mistake, and silently
+  // ignoring the command would be the worst answer: the user would think
+  // they had asked for a by-day report and got something else.
+  if (flags.sections !== null && explicitCommand) {
+    throw new Error(
+      `--sections is its own report and cannot be combined with the ${command} command; ` +
+      `run \`agentledger --sections ${flags.sections}\``,
+    );
+  }
+  // The section names are checked before a single log file is opened: a typo
+  // should cost nothing, and a report that half-runs is worse than one that
+  // refuses to start.
+  const sections = flags.sections !== null ? parseSections(flags.sections) : null;
+
   // User price overrides load before any pricing happens, so every report —
   // including `prices` itself — reflects them. Validation is all-or-nothing:
   // a half-applied price file would still print an authoritative-looking
@@ -313,7 +346,11 @@ async function main() {
     case 'statusline': return statusline(flags);
     case 'watch': return watch(flags);
     case 'summary':
-    default: return reportSummary(filtered, { filesScanned, skipped }, flags);
+    default:
+      // `--sections` is its own report, and it is the one that reads the logs
+      // ONCE and prints several views of them.
+      if (sections) return reportSections(filtered, flags, sections, { filesScanned });
+      return reportSummary(filtered, { filesScanned, skipped }, flags);
   }
 }
 
@@ -988,21 +1025,71 @@ function monthKeyIn(ts, timeZone) {
   return dayKeyIn(ts, timeZone).slice(0, 7);
 }
 
+/**
+ * The groups behind a period report: one group per day, week or month,
+ * newest first.
+ *
+ * The by-day, by-week and by-month commands and the `--sections` report all
+ * come through this function, so a section and its command cannot drift
+ * apart — the two paths differ only in what they do with the groups.
+ */
+function periodGroups(records, keyFn) {
+  return [...groupBy(records, (r) => keyFn(r.timestamp)).entries()]
+    .sort((a, b) => (a[0] < b[0] ? 1 : -1));
+}
+
+/**
+ * The groups behind a session report: one per agent/session pair, most
+ * expensive first.
+ */
+function sessionGroups(records) {
+  return [...groupBy(records, (r) => `${r.agent}/${r.session}`).entries()]
+    .map(([key, rs]) => ({ key, rs, cost: totals(rs).cost }))
+    .sort((a, b) => b.cost - a.cost)
+    .map((g) => [g.key, g.rs]);
+}
+
+/** The rows of a session report: the group, plus when the session started. */
+function sessionRows(groups) {
+  return groups.map(([key, rs]) => ({
+    ...groupRow(key, rs),
+    started: new Date(Math.min(...rs.map((r) => r.timestamp || Date.now()))).toISOString(),
+  }));
+}
+
+/** The by-day table: a day, its tokens, its cost. */
+function printDayTable(groups) {
+  printTable(['Day', 'Tokens', 'Est. cost'], groups.map(([day, rs]) => [
+    day,
+    fmtTok(sum(rs, 'input') + sum(rs, 'cacheRead') + sum(rs, 'output')),
+    money(totals(rs).cost),
+  ]));
+}
+
+/** The by-week and by-month tables: a period, its tokens, its cost, its records. */
+function printPeriodTable(groups, label) {
+  printTable([label, 'Tokens', 'Est. cost', 'Records'], groups.map(([key, rs]) => {
+    const t = totals(rs);
+    return [key, fmtTok(t.input + t.cacheRead + t.cacheWrite + t.output), money(t.cost), String(rs.length)];
+  }));
+}
+
+/** The sessions table: a session, its tokens, its cost, when it started. */
+function printSessionTable(groups) {
+  printTable(['Session', 'Tokens', 'Est. cost', 'Started'], groups.map(([key, rs]) => {
+    const t = totals(rs);
+    return [key, fmtTok(t.input + t.cacheRead + t.output), money(t.cost), new Date(Math.min(...rs.map((r) => r.timestamp || Date.now()))).toISOString().slice(0, 10)];
+  }));
+}
+
 function reportByDay(records, flags) {
-  const days = flags.days || 30;
+  const days = flags.days ?? 30;
   const tz = flags.timezone;
-  const byDay = [...groupBy(records, (r) => dayKeyIn(r.timestamp, tz)).entries()];
+  const groups = periodGroups(records, (ts) => dayKeyIn(ts, tz)).slice(0, days);
   if (flags.json) {
-    const rows = byDay.map(([day, rs]) => groupRow(day, rs))
-      .sort((a, b) => (a.key < b.key ? 1 : -1))
-      .slice(0, days);
-    return reportGroupJson('by-day', rows, records);
+    return reportGroupJson('by-day', groups.map(([day, rs]) => groupRow(day, rs)), records);
   }
-  const groups = byDay
-    .map(([day, rs]) => [day, fmtTok(sum(rs, 'input') + sum(rs, 'cacheRead') + sum(rs, 'output')), money(totals(rs).cost)])
-    .sort((a, b) => (a[0] < b[0] ? 1 : -1))
-    .slice(0, days);
-  printTable(['Day', 'Tokens', 'Est. cost'], groups);
+  printDayTable(groups);
   const t = totals(records);
   console.log('');
   console.log(`  ${money(t.cost)} across ${records.length} records`);
@@ -1013,40 +1100,193 @@ function reportByDay(records, flags) {
  * grain, and they are built from the same code so they cannot drift apart.
  */
 function reportByPeriod(records, flags, command, keyFn, label) {
-  const groups = [...groupBy(records, (r) => keyFn(r.timestamp)).entries()];
+  const groups = periodGroups(records, keyFn);
   if (flags.json) {
-    const rows = groups.map(([key, rs]) => groupRow(key, rs))
-      .sort((a, b) => (a.key < b.key ? 1 : -1));
-    return reportGroupJson(command, rows, records);
+    return reportGroupJson(command, groups.map(([key, rs]) => groupRow(key, rs)), records);
   }
-  const table = groups
-    .map(([key, rs]) => {
-      const t = totals(rs);
-      return [key, fmtTok(t.input + t.cacheRead + t.cacheWrite + t.output), money(t.cost), String(rs.length)];
-    })
-    .sort((a, b) => (a[0] < b[0] ? 1 : -1));
-  printTable([label, 'Tokens', 'Est. cost', 'Records'], table);
+  printPeriodTable(groups, label);
   console.log('');
   const t = totals(records);
-  console.log(`  ${money(t.cost)} across ${records.length} records in ${table.length} ${label.toLowerCase()}(s).`);
+  console.log(`  ${money(t.cost)} across ${records.length} records in ${groups.length} ${label.toLowerCase()}(s).`);
 }
 
 function reportSessions(records, flags) {
-  const bySession = [...groupBy(records, (r) => `${r.agent}/${r.session}`).entries()];
+  const groups = sessionGroups(records);
   if (flags.json) {
-    const rows = bySession.map(([key, rs]) => ({
-      ...groupRow(key, rs),
-      started: new Date(Math.min(...rs.map((r) => r.timestamp || Date.now()))).toISOString(),
-    })).sort((a, b) => b.costUSD - a.costUSD);
-    return reportGroupJson('sessions', rows, records);
+    return reportGroupJson('sessions', sessionRows(groups), records);
   }
-  const groups = bySession
-    .map(([key, rs]) => {
-      const t = totals(rs);
-      return [key, fmtTok(t.input + t.cacheRead + t.output), money(t.cost), new Date(Math.min(...rs.map((r) => r.timestamp || Date.now()))).toISOString().slice(0, 10)];
-    })
-    .sort((a, b) => num(b[2]) - num(a[2]));
-  printTable(['Session', 'Tokens', 'Est. cost', 'Started'], groups.slice(0, flags.top || 10));
+  printSessionTable(groups.slice(0, flags.top || 10));
+}
+
+/* ------------------------------ sections ------------------------------ */
+
+/**
+ * The reports `--sections` can emit, and how each one is built.
+ *
+ * The names are ccusage's — daily, weekly, monthly, session — so a script
+ * written against one works against the other. Each one is a report this
+ * tool already has, grouped a different way: daily is by-day, weekly is
+ * by-week, monthly is by-month, and session is sessions. The table output
+ * names the agentledger command as well, so the mapping is never a guess.
+ *
+ * `groups` returns the [key, records] pairs, `rows` turns them into the
+ * JSON rows, and `print` draws the table. The by-day, by-week, by-month and
+ * sessions commands use the same builders, so a section and its command
+ * cannot disagree about the numbers.
+ */
+const SECTIONS = {
+  daily: {
+    blurb: 'spend per day (the by-day report)',
+    groups: (records, flags) => periodGroups(records, (ts) => dayKeyIn(ts, flags.timezone)),
+    // A cap here narrows the report to a WINDOW, not to a number of rows, so
+    // it applies only when the user asked for one: `--days 7` is the last
+    // seven days, and with no `--days` the section shows every day.
+    limit: (flags) => flags.days ?? undefined,
+    rows: periodRows,
+    print: printDayTable,
+  },
+  weekly: {
+    blurb: 'spend per week, weeks starting Monday (the by-week report)',
+    groups: (records, flags) => periodGroups(records, (ts) => weekKeyIn(ts, flags.timezone)),
+    limit: () => undefined,
+    rows: periodRows,
+    print: (groups) => printPeriodTable(groups, 'Week'),
+  },
+  monthly: {
+    blurb: 'spend per month (the by-month report)',
+    groups: (records, flags) => periodGroups(records, (ts) => monthKeyIn(ts, flags.timezone)),
+    limit: () => undefined,
+    rows: periodRows,
+    print: (groups) => printPeriodTable(groups, 'Month'),
+  },
+  session: {
+    blurb: 'the most expensive sessions (the sessions report)',
+    groups: (records) => sessionGroups(records),
+    limit: (flags) => flags.top ?? undefined,
+    rows: sessionRows,
+    print: printSessionTable,
+  },
+};
+
+/** The rows of a period section: one row per day, week or month. */
+const periodRows = (groups) => groups.map(([key, rs]) => groupRow(key, rs));
+
+/** The section names `--sections` accepts, in the order they are documented. */
+const SECTION_NAMES = ['daily', 'weekly', 'monthly', 'session'];
+
+/**
+ * Parse and validate a `--sections` list.
+ *
+ * A bad name is an error, the way an unknown `--agent` is: a typo that
+ * quietly produced a shorter report would be a report missing a section
+ * nobody asked to miss. The order the user wrote is the order they get.
+ */
+function parseSections(spec) {
+  const names = String(spec).split(',').map((s) => s.trim()).filter((s) => s.length);
+  if (!names.length) {
+    throw new Error(`--sections expects at least one section name (${SECTION_NAMES.join(', ')})`);
+  }
+  const unknown = names.filter((n) => !SECTION_NAMES.includes(n));
+  if (unknown.length) {
+    throw new Error(
+      `unknown section ${unknown.map((n) => JSON.stringify(n)).join(', ')}; ` +
+      `known sections: ${SECTION_NAMES.join(', ')}`,
+    );
+  }
+  const seen = new Set();
+  for (const n of names) {
+    if (seen.has(n)) throw new Error(`duplicate section ${JSON.stringify(n)} in --sections`);
+    seen.add(n);
+  }
+  return names;
+}
+
+/**
+ * One section, built once: its groups, its rows, and the records behind them.
+ *
+ * The records are kept because a section's totals must cover exactly the rows
+ * it shows. That is the whole point of keeping them: a section capped by
+ * `--days` or `--top` reports the totals of the window it is showing, not
+ * the totals of a ledger the user cannot see.
+ */
+function buildSection(name, records, flags) {
+  const spec = SECTIONS[name];
+  const all = spec.groups(records, flags);
+  const limit = spec.limit(flags);
+  const groups = limit === undefined ? all : all.slice(0, limit);
+  return {
+    name, groups,
+    rows: spec.rows(groups),
+    records: groups.flatMap(([, rs]) => rs),
+    print: () => spec.print(groups),
+    capped: groups.length < all.length,
+    all,
+  };
+}
+
+/**
+ * Several reports from ONE read of the logs.
+ *
+ * This is the one place ccusage was genuinely better: a user who wanted a
+ * daily view and a weekly view of the same ledger ran the tool twice, and
+ * read every log file twice — 298 files on this machine. Here the logs are
+ * read once and every section is a different grouping of the same records.
+ *
+ * Every section covers the whole ledger unless the user caps it, and a
+ * capped section's totals cover exactly the rows it shows.
+ */
+function reportSections(records, flags, names, meta = {}) {
+  const sections = names.map((name) => buildSection(name, records, flags));
+
+  if (flags.json) {
+    const doc = {
+      tool: 'agentledger',
+      version: version(),
+      generatedAt: new Date().toISOString(),
+      // How many files were opened, once. A report that reads the logs is
+      // worth saying how much of the logs it read.
+      filesScanned: meta.filesScanned ?? null,
+    };
+    for (const s of sections) doc[s.name] = sectionBody(s);
+    console.log(JSON.stringify(doc, null, 2));
+    return;
+  }
+
+  for (const s of sections) {
+    console.log('');
+    console.log(`  ${s.name} — ${SECTIONS[s.name].blurb}`);
+    if (!s.rows.length) {
+      console.log(`  ${EMPTY_LEDGER_NOTE}`);
+      console.log('');
+      continue;
+    }
+    s.print();
+    const t = totals(s.records);
+    console.log('');
+    console.log(`  ${money(t.cost)} across ${t.records} records`);
+    if (s.capped) {
+      console.log(`  (capped: showing ${s.groups.length} of ${s.all.length}; the totals above are that window)`);
+    }
+    console.log('');
+  }
+}
+
+/** What an empty section says, in a table and in JSON alike. */
+const EMPTY_LEDGER_NOTE =
+  'No usage records in this ledger. Run `agentledger sources` to see which lanes are readable on this machine.';
+
+/**
+ * The {totals, rows} body of one section. The totals are the totals of the
+ * records the rows cover, so the rows always add up to them. An empty
+ * section says so rather than handing back an empty array to interpret.
+ */
+function sectionBody(section) {
+  const body = reportBody(section.rows, section.records);
+  if (!section.rows.length) {
+    body.empty = true;
+    body.note = EMPTY_LEDGER_NOTE;
+  }
+  return body;
 }
 
 /**
@@ -1246,7 +1486,6 @@ function reportPriceTemplate(records) {
  * The record dump is still one command away: `agentledger json`.
  */
 function reportGroupJson(command, rows, records) {
-  const t = totals(records);
   console.log(
     JSON.stringify(
       {
@@ -1254,17 +1493,34 @@ function reportGroupJson(command, rows, records) {
         version: version(),
         generatedAt: new Date().toISOString(),
         command,
-        totals: {
-          tokens: { input: t.input, cacheRead: t.cacheRead, cacheWrite: t.cacheWrite, output: t.output },
-          costUSD: round(t.cost),
-          records: t.records,
-        },
-        rows,
+        ...reportBody(rows, records),
       },
       null,
       2,
     ),
   );
+}
+
+/**
+ * The {totals, rows} body every grouped report carries.
+ *
+ * The totals are the totals of the records the rows cover. A report whose
+ * rows are a window of the ledger (`by-day --days 7`) still reports the
+ * whole ledger's totals here, because that is what every grouped command has
+ * always done — but the sections report does not use this shape for a
+ * capped section, because there the rows and the totals must describe the
+ * same window.
+ */
+function reportBody(rows, records) {
+  const t = totals(records);
+  return {
+    totals: {
+      tokens: { input: t.input, cacheRead: t.cacheRead, cacheWrite: t.cacheWrite, output: t.output },
+      costUSD: round(t.cost),
+      records: t.records,
+    },
+    rows,
+  };
 }
 
 /** One row of a grouped report: its key, its tokens, its cost, its record count. */
@@ -1547,6 +1803,9 @@ Options
       --until <date>   Only records before this date (inclusive of the day)
   -n, --top <n>        Rows to show in ranked reports (default 10)
   -d, --days <n>       Days to show in by-day (default 30)
+      --sections <list> Several reports from ONE read of the logs:
+                       daily, weekly, monthly, session (comma-separated).
+                       Its own report — not a modifier of a command.
       --prices <file>  Override prices from a JSON map before reporting
       --timezone <tz>  IANA zone for day boundaries (default: the system zone)
       --json           Emit JSON instead of a table

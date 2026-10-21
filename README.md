@@ -82,6 +82,38 @@ while you are still working:
 
 ### Honest comparison
 
+**The field, first.** There are four tools worth knowing about, and this one
+is the smallest:
+
+| | agents | network calls | stars |
+|---|---|---|---|
+| [ccusage](https://github.com/ccusage/ccusage) | 18 | fetches prices (has `--offline`) | 19,019 |
+| [CodeBurn](https://github.com/getagentseal/codeburn) | 37 claimed | fetches LiteLLM daily | 11,541 |
+| [AgentsView](https://github.com/kenn-io/agentsview) | many | — | 6,224 |
+| **agentledger** | **12** | **none, ever** | **0** |
+
+So agentledger covers **fewer** agents than ccusage or CodeBurn, and has
+**none** of the stars. What it holds is narrower and, I think, real:
+
+- **It makes no network call of any kind** — no telemetry, no update check,
+  no pricing fetch. ccusage has an `--offline` flag, which is a flag you
+  only need if you make network calls by default, and CodeBurn's own
+  documentation says *"Prices are fetched from LiteLLM and cached locally
+  for 24 hours."* agentledger's numbers cannot change under you, and it
+  works on a plane.
+- **Zero dependencies, no build step, ~3,100 lines** of JavaScript. CodeBurn
+  is a TypeScript project; ccusage is a Rust binary.
+- **Five agents no other tool reads** — DSH, Cherry Studio, CodeBuddy CN,
+  Lingma and WorkBuddy.
+- **It tells you when it does not know.** A model with no verified price is
+  named in the output with the placeholder cost it was given, rather than
+  quietly priced at zero.
+
+What it does not have: a dashboard, a wider agent list, a hundred stars, or
+a name people already search for. If you want those, use the other one.
+
+#### Against ccusage, the incumbent
+
 [ccusage](https://github.com/ccusage/ccusage) is the incumbent and it covers
 more agents than this. The honest count, rather than a flattering one:
 ccusage has **18** agent adapters (19 directories under `rust/adapters`, one
