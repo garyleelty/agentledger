@@ -13,7 +13,7 @@
 
 import { readFileSync, statSync, readdirSync } from 'node:fs';
 import { join as pathJoin, relative as pathRelative, basename as pathBasename } from 'node:path';
-import { collect, withCost, totals, groupBy, SOURCES, expandHome } from '../src/ledger.js';
+import { collect, withCost, totals, groupBy, SOURCES, expandHome, dayKeyIn, startOfDayIn } from '../src/ledger.js';
 import { PRICING, DEFAULT_PRICING, resolvePricing, cacheWriteCost, loadPricingOverrides, overriddenModels } from '../src/pricing.js';
 
 // How many --prices overrides are active; read by reportPrices(). Declared
@@ -66,8 +66,25 @@ function money0(raw, flag) {
   return n;
 }
 
+/**
+ * Validate an IANA timezone name.
+ *
+ * An unknown zone name used to be a silent no-op: the report came out in
+ * UTC and looked like a real answer. `Intl` throws a RangeError for an
+ * unknown zone, which is exactly the signal wanted — but it has to be caught
+ * and re-thrown as a message the user can act on, not a stack trace.
+ */
+function zone(raw) {
+  try {
+    new Intl.DateTimeFormat('en-CA', { timeZone: raw });
+  } catch {
+    throw new Error(`--timezone: ${JSON.stringify(raw)} is not a known IANA zone (try: UTC, Asia/Shanghai, America/New_York)`);
+  }
+  return raw;
+}
+
 function parseFlags(args) {
-  const out = { agent: [], path: [], json: false, template: false, top: 10, days: 30, since: null, budget: null, prices: null };
+  const out = { agent: [], path: [], json: false, template: false, top: 10, days: 30, since: null, budget: null, prices: null, timezone: null, blockHours: 5 };
   for (let i = 0; i < args.length; i++) {
     const a = args[i];
     if (a === '--agent' || a === '-a') out.agent.push(args[++i]);
@@ -85,6 +102,19 @@ function parseFlags(args) {
       out.out = raw;
     }
     else if (a === '--budget' || a === '-b') out.budget = money0(args[++i], a);
+    else if (a === '--timezone' || a === '-z') {
+      const raw = args[++i];
+      if (!raw) throw new Error('--timezone expects an IANA zone name (e.g. Asia/Shanghai)');
+      out.timezone = zone(raw);
+    }
+    else if (a === '--block-hours') {
+      const raw = args[++i];
+      const n = Number(raw);
+      if (!Number.isFinite(n) || n <= 0) {
+        throw new Error(`--block-hours expects a positive number of hours, got ${JSON.stringify(raw)}`);
+      }
+      out.blockHours = n;
+    }
     else if (a === '--top' || a === '-n') out.top = positiveInt(args[++i], a);
     else if (a === '--days' || a === '-d') out.days = positiveInt(args[++i], a);
     else if (a === '--since') {
@@ -622,7 +652,8 @@ function reportByBranch(records, flags) {
 
 function reportByDay(records, flags) {
   const days = flags.days || 30;
-  const groups = [...groupBy(records, (r) => dayKey(r.timestamp)).entries()]
+  const tz = flags.timezone;
+  const groups = [...groupBy(records, (r) => dayKeyIn(r.timestamp, tz)).entries()]
     .map(([day, rs]) => [day, fmtTok(sum(rs, 'input') + sum(rs, 'cacheRead') + sum(rs, 'output')), money(totals(rs).cost)])
     .sort((a, b) => (a[0] < b[0] ? 1 : -1))
     .slice(0, days);
@@ -939,9 +970,9 @@ async function statusline(flags) {
 
   // No transcript (older Claude Code, another agent, or a manual run):
   // price today across the normal sources instead of printing nothing.
-  const startOfDay = new Date(); startOfDay.setHours(0, 0, 0, 0);
+  const startOfDay = startOfDayIn(Date.now(), flags.timezone);
   const { records } = await collect({ agents: flags.agent.length ? flags.agent : null, paths: flags.path });
-  const priced = records.map(withCost).filter((r) => (r.timestamp ?? 0) >= startOfDay.getTime());
+  const priced = records.map(withCost).filter((r) => (r.timestamp ?? 0) >= startOfDay);
   const t = totals(priced);
   if (flags.json) {
     process.stdout.write(JSON.stringify({ session: null, costUSD: round(t.cost), tokens: t.input + t.cacheRead + t.cacheWrite + t.output, records: t.records }) + '\n');
@@ -968,7 +999,6 @@ async function watch(flags) {
 
 const sum = (rs, k) => rs.reduce((a, r) => a + (r[k] || 0), 0);
 const num = (s) => Number(String(s).replace(/[^0-9.]/g, '')) || 0;
-const dayKey = (ts) => (ts ? new Date(ts).toISOString().slice(0, 10) : 'unknown');
 const round = (n) => Math.round(n * 1e6) / 1e6;
 const money = (n) => (n >= 100 ? `$${n.toFixed(0)}` : n >= 1 ? `$${n.toFixed(2)}` : `$${n.toFixed(4)}`);
 const fmtTok = (n) => {
@@ -1033,6 +1063,7 @@ Options
   -n, --top <n>        Rows to show in ranked reports (default 10)
   -d, --days <n>       Days to show in by-day (default 30)
       --prices <file>  Override prices from a JSON map before reporting
+      --timezone <tz>  IANA zone for day boundaries (default: the system zone)
       --json           Emit JSON instead of a table
   -o, --out <file>     Write the share page to a file instead of stdout
   -h, --help           This help

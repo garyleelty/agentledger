@@ -431,3 +431,76 @@ export function groupBy(records, keyFn) {
   }
   return map;
 }
+
+/**
+ * The calendar day a timestamp falls on, as YYYY-MM-DD.
+ *
+ * The timezone matters, and getting it wrong is not cosmetic. This tool
+ * counted a day two different ways: `by-day` bucketed on the UTC date while
+ * `budget` and `statusline` started the day at the machine's LOCAL midnight
+ * (`setHours(0,0,0,0)`). For a user 8 hours from UTC that is a day boundary
+ * 8 hours out — "today" in one report and "yesterday" in another, over the
+ * same ledger. One helper, used by both, is the fix.
+ *
+ * `timeZone` is an IANA name; undefined means the system's local zone.
+ * `en-CA` formats as YYYY-MM-DD, which is the shape the reports expect
+ * (and sorts correctly as a string).
+ */
+export function dayKeyIn(ts, timeZone) {
+  if (!ts) return 'unknown';
+  try {
+    return new Intl.DateTimeFormat('en-CA', {
+      timeZone, year: 'numeric', month: '2-digit', day: '2-digit',
+    }).format(new Date(ts));
+  } catch {
+    // An unknown IANA name must not take the report down; fall back to the
+    // system zone, which is what an unqualified `--timezone` would mean.
+    return new Intl.DateTimeFormat('en-CA', {
+      year: 'numeric', month: '2-digit', day: '2-digit',
+    }).format(new Date(ts));
+  }
+}
+
+/** The start of the current day in the given zone, as epoch milliseconds. */
+export function startOfDayIn(now, timeZone) {
+  if (!timeZone) {
+    const d = new Date(now);
+    d.setHours(0, 0, 0, 0);
+    return d.getTime();
+  }
+  const day = dayKeyIn(now, timeZone);
+  // The zone's offset is not fixed across the year (DST), so it cannot be
+  // applied as a constant. Compute the offset AT the candidate instant, then
+  // verify the result by re-formatting it: an offset that is off by an hour
+  // (the DST hour) shows up immediately as a different date, and the loop
+  // corrects it. This is the same "guess, then check" approach Intl itself
+  // uses, and it degrades to a correct answer rather than a plausible one.
+  let guess = Date.parse(`${day}T00:00:00Z`);
+  for (let i = 0; i < 4; i++) {
+    const offset = zoneOffsetMs(guess, timeZone);
+    const candidate = guess - offset;
+    if (dayKeyIn(candidate, timeZone) === day && candidate <= now) return candidate;
+    // Not there yet: the true midnight is later (a zone ahead of UTC) or the
+    // offset landed on the wrong side of a DST boundary. Step by an hour in
+    // the direction that can only help, then try again.
+    guess = candidate > now ? guess + 3600000 : guess - 3600000;
+  }
+  return now;
+}
+
+/** How far ahead of UTC a zone is at a given instant, in milliseconds. */
+function zoneOffsetMs(ts, timeZone) {
+  // Format the instant in the zone as if it were UTC, then compare with the
+  // instant itself. The difference IS the offset, DST included.
+  const parts = new Intl.DateTimeFormat('en-US', {
+    timeZone, hour12: false,
+    year: 'numeric', month: '2-digit', day: '2-digit',
+    hour: '2-digit', minute: '2-digit', second: '2-digit',
+  }).formatToParts(new Date(ts));
+  const get = (type) => Number(parts.find((p) => p.type === type)?.value);
+  const asUtc = Date.UTC(
+    get('year'), get('month') - 1, get('day'),
+    get('hour') % 24, get('minute'), get('second'),
+  );
+  return asUtc - Math.floor(ts / 1000) * 1000;
+}
