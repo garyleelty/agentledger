@@ -2025,3 +2025,115 @@ active maintainer — requires a project to be **at least 8 weeks old**. This
 repository is 9 days old. **47 days to go**, around 2026-12-07. It is the
 single best distribution move available when the date arrives, and it is
 the one thing on the list that only needs time.
+
+## Round 60: a competitor I did not know existed, and three lists that each want something different
+
+### CodeBurn
+
+The parity check against ccusage turned up a list entry for a tool called
+**CodeBurn**: *"Local-first cost and token tracking for AI coding agents
+(Claude Code, Codex, Cursor and 38 more)"*. **11,541 stars**, created
+2026-04-13, TypeScript, on npm as `npx codeburn`.
+
+It is not a small project. It has a dashboard, a `context` command that
+breaks the context window down into text / reasoning / tool calls, a
+`compare` command with cohorts and P90, an `optimize` command that
+detects re-reads and can write a marker block into your `CLAUDE.md`, a
+`quota` command that asks the provider what is left of your plan, a sync
+of Cursor's real usage from cursor.com, and a durable daily history kept
+for ten years. It fetches LiteLLM pricing on a 24-hour cache.
+
+So the field is: **ccusage 19,019 stars, CodeBurn 11,541, AgentsView
+6,128, agentledger 0.** The goal says ccusage, and ccusage stays the
+target, but a README that names only one competitor is not a fair map of
+the ground.
+
+Two things agentledger still holds on this field, and they are the
+honest ones:
+
+- **It makes no network calls at all.** CodeBurn fetches LiteLLM prices
+  and syncs Cursor from cursor.com; ccusage fetches prices too. agentledger
+  reads local files and nothing else, so it works on a plane and its
+  numbers do not change under it.
+- **It reads five agents nobody else reads** — DSH, Cherry Studio,
+  CodeBuddy CN, Lingma and WorkBuddy.
+
+And one thing it does not have: 37 agents is more than 12. The honest
+counting is that agentledger has *less* coverage and *more* accuracy per
+lane, and the README should say so rather than let a reader assume
+otherwise.
+
+### Three lists, three different gates
+
+**`tensorchord/Awesome-LLMOps`** (5,963 stars, 14 of the last 20 pull
+requests merged, last merge six days ago) — **submitted, PR #1014**. It
+has an **Observability** category, one line per project with a star
+badge, alphabetical order, no age threshold. The Data API cannot write
+into a repository you cannot push to, so the branch was built in a fork
+and the pull request opened from the fork — which is why `tools/pr-api.mjs`
+now takes a `--write-repo`.
+
+**`hesreallyhim/awesome-claude-code`** (56,185 stars — the biggest target
+found, and it merges 25 of the last 25 pull requests) — **not yet
+eligible, and it says exactly why.** Its ground rules are:
+
+> (i) Be at least 14 days old AND show signs of active development, OR
+> (ii) Have at least 100 stars. ... Resources that fail these criteria
+> will be closed automatically.
+
+agentledger is **9 days old with 0 stars**, so it fails both arms today
+and a pull request would be closed by the bot. The 14-day date is
+**2026-10-26 — four days away**, and the other arm is 100 stars. A
+reminder is set for that date.
+
+There is a second rule that matters more than the first:
+
+> **ALL RECOMMENDATIONS MUST BE MADE USING THE WEB UI ISSUE FORM
+> TEMPLATE, OR YOU RISK BEING RESTRICTED FROM INTERACTING WITH THIS
+> REPOSITORY TEMPORARILY.**
+> ... resource recommendations must be created by human beings.
+
+So this one is the user's to file, not mine to automate. The entry goes
+in the **Usage & Cost** section, first (agentledger sorts before
+AgentWatch), with a one-line description that reads as a description and
+not as a pitch, and the MIT LICENSE is already discoverable through the
+API, which is what the bot reports on.
+
+**`ankitvirdi4/awesome-llm-cost`** (13 stars, but the most exact
+category fit found anywhere: *"Tools, libraries, papers, and patterns for
+reducing the cost of running large language models"*) — **not eligible.**
+Its criterion 6 requires *"at least 6 months of public history"* and *"at
+least one signal of real world use"*. It says outright: *"Excellent
+brand new projects are still excellent; they belong here after burn in.
+Reopen the PR once the project has the history."* Six months from
+2026-10-12 is **2027-04-12**.
+
+`mahseema/awesome-ai-tools` (6,448 stars) was checked and **skipped**: it
+has merged **0 of the last 20** pull requests and has not been pushed to
+since 2025-12-31.
+
+### The release, and the repository's front door
+
+**v0.6.0** is cut and verified: the tarball installs into a clean prefix
+and reports 0.6.0 with twelve sources, the Homebrew formula points at it
+with the new sha256, `brew upgrade` → 0.6.0 and `brew test` → exit 0.
+
+**The README's opening paragraph named nine agents when there were
+twelve.** It is the first thing a visitor reads, and no gate looked at
+the prose, so CodeBuddy CN, Lingma and WorkBuddy were missing from it.
+Two stale numbers went with it: "231 session files scanned" was
+hand-pasted, and is now carried in the sample and refreshed. The opening
+is now checked by the test suite — every agent in `SOURCES` has to appear
+in it.
+
+**And the docs pipeline was publishing a total that was not the tool's
+total.** The sync tool refreshed the token column of the summary block
+and not the cost column, so the README said **$1169** while the tool
+said **$1227**, and the gate was green because the gate only checked the
+tokens. The metric block is now rebuilt from the sample rather than
+patched row by row — the row-by-row matching needed the padding to be
+exactly right, and the padding is a function of the values, which
+change, so a row that stopped matching simply kept its old numbers,
+silently. The aggregate and the share page now both carry
+`costByBucket`, and the gate checks **both columns** on the README and
+on the landing page.
