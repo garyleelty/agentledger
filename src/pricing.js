@@ -197,6 +197,23 @@ export const PRICING = {
   // $0.30 in / $1.20 out, cached read $0.06/M = 0.2x. Kilo routes through
   // minimax-cn and minimax providers; the bare name resolves for both.
   'minimax-m2.7': { input: 0.3, output: 1.2, cacheReadMultiplier: 0.2, cacheWriteMultiplier: 1.0 },
+  // GLM-5.1, as carried by LiteLLM. Six vendor rows agree EXACTLY on
+  // $1.40 in / $4.40 out with a $0.26/Mtok cached read — dashscope,
+  // qwencloud, qwen_ai_platform, friendliai, zai and together_ai. Two
+  // outliers (aihubmix at $0.06, deepinfra at $1.05) are reseller
+  // prices, not a second reading of the same thing, and are declined.
+  // Cached read $0.26 / $1.40 = 0.1857x.
+  //
+  // Found while adding the CodeBuddy CN lane, where GLM-5.1 is the
+  // model behind most of the real spend.
+  'glm-5.1': { input: 1.4, output: 4.4, cacheReadMultiplier: 0.1857, cacheWriteMultiplier: 1.0 },
+  // Kimi K2.6, as carried by LiteLLM. Four rows agree EXACTLY on
+  // $0.95 in / $4.00 out with a $0.16/Mtok cached read — azure_ai,
+  // cloudflare, moonshot and baseten — with aihubmix at the same $0.95 /
+  // $4.00 and a float-noise $0.1608 on the cache read. Cached read
+  // $0.16 / $0.95 = 0.1684x. The sibling K2.7 in this table is priced
+  // $0.95 / $4.00 from a wider ten-row cluster, so the two agree.
+  'kimi-k2.6': { input: 0.95, output: 4.0, cacheReadMultiplier: 0.1684, cacheWriteMultiplier: 1.0 },
 };
 
 /**

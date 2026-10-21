@@ -11,12 +11,13 @@ import path from 'node:path';
 import fsp from 'node:fs/promises';
 import { PARSERS } from './parsers.js';
 import { PARSERS_CHERRY } from './parsers-cherry.js';
+import { PARSERS_CODEBUDDY, CODEBUDDY_LOG_MATCH } from './parsers-codebuddy.js';
 import { costOf } from './pricing.js';
 
 // The CherryStudio lane lives in its own module because it is the only
 // parser that needs a documented dedup relationship with another source;
 // merging it here keeps that coupling visible instead of buried.
-const ALL_PARSERS = { ...PARSERS, ...PARSERS_CHERRY };
+const ALL_PARSERS = { ...PARSERS, ...PARSERS_CHERRY, ...PARSERS_CODEBUDDY };
 
 /**
  * Where each supported agent keeps its logs.
@@ -105,6 +106,22 @@ export const SOURCES = [
     match: (rel) => /(^|\/)cherrystudio\.sqlite$/.test(rel),
     parser: ALL_PARSERS['cherry-studio'],
     docs: 'https://www.cherry-ai.com/',
+  },
+  {
+    // CodeBuddy CN (腾讯云代码助手) is Tencent's AI coding IDE. Its usage is
+    // spread over three stores — the extension log carries the token
+    // buckets, the history index carries the clock and the request list,
+    // the message files carry the model, and the sessions database carries
+    // the working directory. The parser joins them; the source root is the
+    // log directory because that is the only one with the usage itself.
+    //
+    // ccusage has no adapter for this product at all. Its "codebuff"
+    // adapter is Manicode, a different tool with a different store.
+    agent: 'codebuddy',
+    root: '~/Library/Application Support/CodeBuddy CN/logs',
+    match: CODEBUDDY_LOG_MATCH,
+    parser: ALL_PARSERS.codebuddy,
+    docs: 'https://copilot.tencent.com/',
   },
 ];
 

@@ -167,7 +167,16 @@ for (const [lane, agent] of LANES) {
 // codex/copilot/droid/gemini/goose/grok/hermes/kilo/kimi/openclaw/opencode/
 // pi/qwen/zcode — and no `dsh`. These are a coverage advantage, so the tool
 // states them explicitly instead of leaving them invisible.
-const UNCOMPARABLE = [['dsh', 'DSH (DeepSeek Harness)']];
+// Lanes ccusage has no adapter for, so there is nothing to compare them
+// against — but their numbers are still worth printing, because "this tool
+// reads a source the other one cannot" is the whole claim. Cherry Studio
+// belongs here as much as DSH does: `ccusage cherry-studio` is not a
+// command, and the README says two sources, not one.
+const UNCOMPARABLE = [
+  ['dsh', 'DSH (DeepSeek Harness)'],
+  ['cherry-studio', 'Cherry Studio'],
+  ['codebuddy', 'CodeBuddy CN'],
+];
 
 console.log('');
 for (const [agent, label] of UNCOMPARABLE) {

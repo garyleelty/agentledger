@@ -16,25 +16,26 @@ $ agentledger
 
   Metric         Tokens   Est. cost
   ─────────────  ───────  ─────────
-  Input tokens   314.98M  $796
-  Cache read     2.17B    $318
+  Input tokens   320.38M  $796
+  Cache read     2.32B    $318
   Cache write    366.4k   $0.0842
-  Output tokens  8.87M    $54.73
-  TOTAL          2.50B    $1169
+  Output tokens  9.57M    $54.73
+  TOTAL          2.65B    $1169
 
   Agent        Tokens   Est. cost  Records
   ───────────  ───────  ─────────  ───────
-  dsh          1.74B    $954       6994
+  dsh          1.87B    $954       6994
   codex        219.45M  $193       3059
-  opencode     297.18M  $25.42     4298
+  opencode     302.53M  $25.42     4298
+  codebuddy    24.10M   $13.62     362
   claude-code  205.05M  $2.24      1462
   cherry-studio 765.8k $1.63      29
   openclaw     31.39M   $1.28      959
   kilo         3.32M    $0.3186    103
   pi           47.7k    $0.0000    5
 
-  ! 10 model(s) have no built-in price and used the
-    $3/$15 per-Mtok default ($949 of the total):
+  ! 11 model(s) have no built-in price and used the
+    $3/$15 per-Mtok default ($956 of the total):
       step-5-preview  (1766 records)
       hy4-preview  (1554 records)
       ...
@@ -82,7 +83,7 @@ while you are still working:
 more agents than this. The honest count, rather than a flattering one:
 ccusage has **18** agent adapters (19 directories under `rust/adapters`, one
 of which is `common`, a shared helper rather than an agent), and **7 of those
-18 overlap** with the ones below. agentledger has **9** sources; **2** of them
+18 overlap** with the ones below. agentledger has **10** sources; **3** of them
 ccusage has no adapter for at all.
 
 It reports reasoning token **counts** but does not bill them in the OpenCode or Kilo lanes
@@ -101,7 +102,7 @@ ledger would have cost with no prompt caching); and the whole tool is ~3,100
 lines of zero-dependency JavaScript with no build step, no runtime fetch, and
 no network call of any kind.
 
-**Two sources ccusage cannot read at all.** ccusage has 18 adapters
+**Three sources ccusage cannot read at all.** ccusage has 18 adapters
 and **no `dsh` adapter** — `ccusage dsh` returns `Unknown command` — and no
 Cherry Studio adapter either; there is no `cherry` command in it at all.
 `crosscheck` reports the first automatically rather than trusting prose:
@@ -173,7 +174,7 @@ brew install garyleelty/agentledger/agentledger
 
 A tap is just a GitHub repository, so this path needs no registry account and
 no token from anyone — not even from the project. Verified end to end: tapped,
-installed, and `agentledger --version` reports 0.4.0 with all nine sources
+installed, and `agentledger --version` reports 0.4.0 with every source
 listed.
 
 From a release tarball (no npm account, no registry, no build step):
@@ -364,13 +365,14 @@ Useful flags:
 
 | Flag | Meaning |
 | --- | --- |
-| `-a, --agent <name>` | only one agent (`claude-code`, `codex`, `opencode`, `kilo`, `dsh`, `gemini-cli`, `pi`, `openclaw`, `cherry-studio`) |
+| `-a, --agent <name>` | only one agent (`claude-code`, `codex`, `opencode`, `kilo`, `dsh`, `gemini-cli`, `pi`, `openclaw`, `cherry-studio`, `codebuddy`) |
 | `-p, --path <dir>` | also scan a directory or single file |
 | `--since <date>` | only records at/after a date |
+| `--until <date>` | only records before a date, inclusive of that day |
 | `--timezone <tz>` | the zone whose days the reports use (default: this machine's) |
 | `-n, --top <n>` | rows in ranked reports |
 | `--prices <file>` | override prices from a JSON map (see below) |
-| `--json` | JSON instead of a table |
+| `--json` | JSON instead of a table — for a grouped report, the breakdown it names, not a raw record dump |
 
 Examples:
 
@@ -467,6 +469,7 @@ in, they open windows that contain nothing.
 | pi-agent | `~/.pi/agent/sessions/**/*.jsonl` | ✅ |
 | Gemini CLI | `~/.gemini/tmp/**/logs.json` | ✅ |
 | Cherry Studio | `~/Library/Application Support/CherryStudio/Data/cherrystudio.sqlite` | ✅ |
+| CodeBuddy CN | `~/Library/Application Support/CodeBuddy CN/logs/**/腾讯云代码助手*.log` | ✅ |
 | Anything else | `--path` + format sniffing | partial |
 
 `agentledger sources` tells you which of those are actually present on your
@@ -485,11 +488,39 @@ $ agentledger sources
   pi             ~/.pi/agent/sessions                             5 file(s)    https://github.com/earendil-works/pi-coding-agent
   openclaw       ~/.openclaw/agents                               101 file(s)  https://github.com/clawdbot/clawdbot             
   cherry-studio  ~/Library/Application Support/CherryStudio/Data  1 file(s)    https://www.cherry-ai.com/                       
+  codebuddy      ~/Library/Application Support/CodeBuddy CN/logs  37 file(s)   https://copilot.tencent.com/                     
 
-  8 of 9 sources have data on this machine.
+  9 of 10 sources have data on this machine.
 ```
 
 `agentledger-cli sources` prints this table with links.
+
+**CodeBuddy CN hides its usage across three stores**, and two of the
+things that are easiest to get wrong there are invisible in a diff. Its
+extension log carries the token buckets, its history index carries the
+clock and the request list, its message files carry the model, and its
+sessions database carries the working directory. Any one of them alone
+reads zero records.
+
+- *`inputTokens` is the whole prompt, not the fresh input.* The log also
+  carries `cachedMissTokens` and `cacheTokens`, and
+  `inputTokens === cacheTokens + cachedMissTokens` (80395 === 8192 +
+  72203). Using `inputTokens` as the fresh input would have inflated this
+  lane's cost about thirtyfold.
+- *The log's timestamps are local, and the offset has to be recovered.* The
+  history index gives the same request's start as epoch milliseconds, so
+  the difference is the machine's offset. Read as UTC+8 the median gap is
+  14.1 seconds — an API call's round trip; read as UTC it is 28,814
+  seconds. The offset is taken as the **median** of those candidates,
+  because one real request's step is 4.5 hours from its start and would
+  drag a mean.
+- *Each step is a separate API call.* A request's prompt grows step by
+  step and a sub-agent request resets it, so the records are per step, not
+  per request. Reading the `AgentReporter` summary line as well would
+  double-count every request.
+- *`credit` is a quota, not money.* It does not scale with the token
+  counts or with the list price — the ratio between credit and cost ranged
+  4× to 126× for the same model. It is not used as a cost anywhere.
 
 OpenCode and Cherry Studio are the two supported agents whose store is a
 SQLite database rather than append-only text. Both are opened read-only — a

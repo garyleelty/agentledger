@@ -1,24 +1,24 @@
 {
   "tool": "agentledger",
   "version": "0.4.0",
-  "generatedAt": "2026-10-21T15:14:01.619Z",
+  "generatedAt": "2026-10-21T16:15:33.799Z",
   "totals": {
     "tokens": {
-      "input": 314975222,
-      "cacheRead": 2172791965,
+      "input": 320381359,
+      "cacheRead": 2323769436,
       "cacheWrite": 366382,
-      "output": 8870751
+      "output": 9569176
     },
-    "costUSD": 1177.98247,
-    "records": 17887
+    "costUSD": 1191.604334,
+    "records": 18948
   },
   "byAgent": {
     "dsh": {
-      "input": 238744978,
-      "cacheRead": 1496920416,
+      "input": 240856897,
+      "cacheRead": 1621991497,
       "cacheWrite": 0,
-      "output": 4136929,
-      "records": 7906,
+      "output": 4585266,
+      "records": 8568,
       "costUSD": 954.352963
     },
     "codex": {
@@ -30,12 +30,20 @@
       "costUSD": 192.747441
     },
     "opencode": {
-      "input": 28889677,
-      "cacheRead": 265459272,
+      "input": 29219571,
+      "cacheRead": 270441544,
       "cacheWrite": 85801,
-      "output": 2745998,
-      "records": 4363,
+      "output": 2787873,
+      "records": 4400,
       "costUSD": 25.422329
+    },
+    "codebuddy": {
+      "input": 2964324,
+      "cacheRead": 20924118,
+      "cacheWrite": 0,
+      "output": 208213,
+      "records": 362,
+      "costUSD": 13.621864
     },
     "claude-code": {
       "input": 2377858,
@@ -159,6 +167,14 @@
       "records": 73,
       "costUSD": 9.985491
     },
+    "hy3-preview-agent": {
+      "input": 1689690,
+      "cacheRead": 1683584,
+      "cacheWrite": 0,
+      "output": 46678,
+      "records": 86,
+      "costUSD": 6.274315
+    },
     "deepseek-v4.1-flash": {
       "input": 2401029,
       "cacheRead": 472280064,
@@ -166,6 +182,14 @@
       "output": 1003709,
       "records": 1714,
       "costUSD": 4.75844
+    },
+    "glm-5.1": {
+      "input": 756396,
+      "cacheRead": 12580864,
+      "cacheWrite": 0,
+      "output": 71635,
+      "records": 149,
+      "costUSD": 4.644921
     },
     "mimo-v2.5-pro": {
       "input": 3563432,
@@ -183,6 +207,14 @@
       "records": 57,
       "costUSD": 2.629103
     },
+    "unknown": {
+      "input": 304061,
+      "cacheRead": 331611,
+      "cacheWrite": 0,
+      "output": 73411,
+      "records": 28,
+      "costUSD": 2.112831
+    },
     "deepseek-flash": {
       "input": 431720,
       "cacheRead": 163320320,
@@ -199,13 +231,13 @@
       "records": 110,
       "costUSD": 1.27692
     },
-    "unknown": {
-      "input": 115787,
-      "cacheRead": 0,
+    "glm-5v-turbo": {
+      "input": 165917,
+      "cacheRead": 4264443,
       "cacheWrite": 0,
-      "output": 54419,
-      "records": 4,
-      "costUSD": 1.163646
+      "output": 43722,
+      "records": 68,
+      "costUSD": 1.158716
     },
     "Cherry-httpsnew-api.abrdns.comconso/mimo-v2.5-pro": {
       "input": 1632517,
@@ -222,6 +254,14 @@
       "output": 42545,
       "records": 72,
       "costUSD": 0.866302
+    },
+    "kimi-k2.6": {
+      "input": 164047,
+      "cacheRead": 2063616,
+      "cacheWrite": 0,
+      "output": 27186,
+      "records": 35,
+      "costUSD": 0.594726
     },
     "Cherry-New-API/glm-5.2": {
       "input": 74865,
@@ -352,11 +392,11 @@
       "costUSD": 0
     },
     "opencode/deepseek-v4.1-flash-free": {
-      "input": 2177089,
-      "cacheRead": 14443136,
+      "input": 2506983,
+      "cacheRead": 19425408,
       "cacheWrite": 0,
-      "output": 263292,
-      "records": 196,
+      "output": 305167,
+      "records": 233,
       "costUSD": 0
     },
     "kilo/bytedance-seed/dola-seed-2.0-pro:free": {
@@ -368,11 +408,11 @@
       "costUSD": 0
     },
     "minimax/minimax-m3.1-flash:free": {
-      "input": 1135210,
-      "cacheRead": 126744656,
+      "input": 3247129,
+      "cacheRead": 251815737,
       "cacheWrite": 0,
-      "output": 512700,
-      "records": 760,
+      "output": 961037,
+      "records": 1422,
       "costUSD": 0
     },
     "stepfun/step-5-preview-free": {
@@ -442,8 +482,16 @@
       "records": 191
     },
     {
+      "model": "hy3-preview-agent",
+      "records": 86
+    },
+    {
       "model": "cline-free/mimo-v2.6-flash",
       "records": 73
+    },
+    {
+      "model": "unknown",
+      "records": 28
     },
     {
       "model": "hy4-preview-f",
@@ -452,13 +500,9 @@
     {
       "model": "qwen",
       "records": 6
-    },
-    {
-      "model": "unknown",
-      "records": 4
     }
   ],
-  "unpricedCostUSD": 948.513539,
+  "unpricedCostUSD": 955.737039,
   "defaultPricingUSD": {
     "input": 3,
     "output": 15

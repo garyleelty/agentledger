@@ -1304,13 +1304,73 @@ async function statusline(flags) {
   // price today across the normal sources instead of printing nothing.
   const startOfDay = startOfDayIn(Date.now(), flags.timezone);
   const { records } = await collect({ agents: flags.agent.length ? flags.agent : null, paths: flags.path });
-  const priced = records.map(withCost).filter((r) => (r.timestamp ?? 0) >= startOfDay);
+  const all = records.map(withCost);
+  const priced = all.filter((r) => (r.timestamp ?? 0) >= startOfDay);
   const t = totals(priced);
+
+  // The active billing block, with the time left in it and the burn rate.
+  //
+  // This is the part of ccusage's statusline that agentledger used to
+  // concede outright. Two things make it better here: it is computed
+  // across EVERY lane, not just Claude Code, so a subscription that is
+  // not Claude's still gets a window; and the block is a real window with
+  // a real end, not an estimate.
+  const block = activeBlock(all, flags);
+  const blockPart = block
+    ? ` · block ${money(block.costUSD)} (${block.remainingLabel})`
+    : '';
   if (flags.json) {
-    process.stdout.write(JSON.stringify({ session: null, costUSD: round(t.cost), tokens: t.input + t.cacheRead + t.cacheWrite + t.output, records: t.records }) + '\n');
+    process.stdout.write(JSON.stringify({
+      session: null,
+      costUSD: round(t.cost),
+      tokens: t.input + t.cacheRead + t.cacheWrite + t.output,
+      records: t.records,
+      block: block
+        ? {
+            id: block.id,
+            costUSD: round(block.costUSD),
+            tokens: block.totalTokens,
+            remainingMinutes: block.remainingMinutes,
+            burnRateCostPerHour: round(block.burnRate?.costPerHour ?? 0),
+            burnRateTokensPerMinute: round(block.burnRate?.tokensPerMinute ?? 0),
+          }
+        : null,
+    }) + '\n');
     return;
   }
-  console.log(t.records ? `agentledger · today ${money(t.cost)} · ${fmtTok(t.input + t.cacheRead + t.cacheWrite + t.output)} tok` : 'agentledger · no usage today');
+  console.log(
+    t.records
+      ? `agentledger · today ${money(t.cost)} · ${fmtTok(t.input + t.cacheRead + t.cacheWrite + t.output)} tok${blockPart}`
+      : `agentledger · no usage today${blockPart}`,
+  );
+}
+
+/**
+ * The billing block that is running right now, if any.
+ *
+ * Returns null when nothing has been used recently enough to open a
+ * block. `<synthetic>` records are excluded for the same reason the
+ * `blocks` command excludes them: they are not usage, and they would
+ * open a window that contains nothing.
+ */
+function activeBlock(priced, flags) {
+  const blocks = computeBlocks(
+    priced.filter((r) => r.model !== '<synthetic>'),
+    { now: Date.now(), timezone: flags.timezone, blockHours: flags.blockHours },
+  );
+  const active = blocks.find((b) => b.isActive && !b.isGap);
+  if (!active) return null;
+  const remainingMinutes = Math.max(0, Math.round((Date.parse(active.endTime) - Date.now()) / 60000));
+  const h = Math.floor(remainingMinutes / 60);
+  const m = remainingMinutes % 60;
+  return {
+    id: active.id,
+    costUSD: active.costUSD,
+    totalTokens: active.totalTokens,
+    burnRate: active.burnRate,
+    remainingMinutes,
+    remainingLabel: remainingMinutes > 0 ? `${h}h ${m}m left` : 'ending now',
+  };
 }
 
 async function watch(flags) {
