@@ -12,6 +12,8 @@
  */
 
 import { readFileSync, statSync, readdirSync } from 'node:fs';
+import { spawnSync } from 'node:child_process';
+import { fileURLToPath } from 'node:url';
 import { join as pathJoin, relative as pathRelative, basename as pathBasename } from 'node:path';
 import { collect, withCost, totals, groupBy, SOURCES, expandHome, dayKeyIn, startOfDayIn } from '../src/ledger.js';
 import { computeBlocks } from '../src/blocks.js';
@@ -176,9 +178,62 @@ function parseFlags(args) {
   return out;
 }
 
+/**
+ * Start over with `--experimental-sqlite` if this Node needs it.
+ *
+ * `node:sqlite` landed in Node 22.5 behind a flag and was unflagged in
+ * 23.8 — with a backport into the 22.x line partway through. On a Node
+ * where it is still flagged, importing it THROWS, and every parser that
+ * opens a database catches that and returns zero records. The result is
+ * the worst failure this tool can have: on Node 22.5.0 exactly, five of
+ * the eleven lanes — OpenCode, Kilo, Cherry Studio, CodeBuddy and Lingma
+ * — read nothing, and the report says so with a total that looks
+ * complete.
+ *
+ * So the tool restarts itself with the flag. The alternative is to tell
+ * the user to add a flag to every invocation, which is not a thing a
+ * tool should require of someone who just wants their number.
+ *
+ * The re-exec is skipped when the flag is already there, when
+ * NODE_OPTIONS carries it, when `node:sqlite` imports fine anyway, and
+ * when a guard env var says this process has already restarted once.
+ */
+function needsSqliteFlag() {
+  if (process.execArgv.some((a) => a.includes('experimental-sqlite'))) return false;
+  if ((process.env.NODE_OPTIONS || '').includes('experimental-sqlite')) return false;
+  if (process.env.ALEDGER_REEXEC === '1') return false;
+  return true;
+}
+
+async function sqliteUnavailable() {
+  try {
+    await import('node:sqlite');
+    return false;
+  } catch {
+    return true;
+  }
+}
+
+async function restartWithSqlite() {
+  const self = fileURLToPath(import.meta.url);
+  const r = spawnSync(
+    process.execPath,
+    ['--experimental-sqlite', self, ...process.argv.slice(2)],
+    { stdio: 'inherit', env: { ...process.env, ALEDGER_REEXEC: '1' } },
+  );
+  // A signal (Ctrl-C) is not an exit code; report it as one so the shell
+  // sees the same thing it would have seen without the restart.
+  if (r.error) throw r.error;
+  process.exit(r.status === null ? 1 : r.status);
+}
+
 async function main() {
   if (flags.help) return printHelp();
   if (flags.version) return console.log(version());
+
+  if (needsSqliteFlag() && (await sqliteUnavailable())) {
+    return restartWithSqlite();
+  }
 
   // A mistyped agent name used to fall through to "No agent sessions found
   // yet." — indistinguishable from having no logs, and it hid the typo.

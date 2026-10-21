@@ -21,8 +21,18 @@ const cli = path.join(root, 'bin', 'agentledger.js');
  * Both read zero records and said nothing.
  */
 
+// The child needs the SAME `--experimental-sqlite` the suite runs under:
+// `node:sqlite` is unflagged from Node 23.8, but 22.5 — this project's
+// floor — only exposes it with the flag, so spawning a bare node silently
+// yields an empty database lane on exactly the version CI's matrix leg
+// exercises. Pass the parent's exec argv through rather than hardcoding
+// either way.
+const childArgs = process.execArgv.some((a) => a.includes('experimental-sqlite'))
+  ? process.execArgv.filter((a) => a.includes('experimental-sqlite'))
+  : [];
+
 function run(args, home) {
-  return execFileSync(process.execPath, [cli, ...args], {
+  return execFileSync(process.execPath, [...childArgs, cli, ...args], {
     encoding: 'utf8',
     maxBuffer: 64 * 1024 * 1024,
     env: { ...process.env, HOME: home },
@@ -72,7 +82,7 @@ test('--path on a Lingma store reads it instead of finding no parser', () => {
       "", 1776699045449);
     db.close();
   `;
-  execFileSync(process.execPath, ['-e', script, file], { encoding: 'utf8' });
+  execFileSync(process.execPath, [...childArgs, '-e', script, file], { encoding: 'utf8' });
   const d = JSON.parse(run(['json', '--path', file], home));
   const lg = d.records.filter((r) => r.agent === 'lingma');
   assert.equal(lg.length, 1, 'the store must produce a record, not silence');
