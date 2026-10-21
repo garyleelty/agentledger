@@ -228,13 +228,23 @@ const HOST_WINDOW_MS = 2000;
  * millisecond match finds nothing, which is exactly the kind of silent no-op
  * that looks like success.
  *
- * The signature is the whole-prompt token total — fresh input plus cache
- * read — and NOTHING else. That is the one number both stores agree on even
- * when they bucket differently: pi reports input as fresh-only plus a
- * separate cacheRead, while CherryStudio reports input as the whole prompt
+ * The signature is the whole-prompt token total PLUS the model's family, and
+ * nothing else. The whole-prompt total is the one number both stores agree
+ * on even when they bucket differently: pi reports input as fresh-only plus
+ * a separate cacheRead, while CherryStudio reports input as the whole prompt
  * already, and their output fields differ too (pi folds reasoning into
  * output, the host keeps it separate, so 158 vs 204 for the same request).
  * Matching on output as well silently misses every row that had reasoning.
+ *
+ * The model family is in the key because whole-prompt totals collide: on
+ * this machine 402 of the 14,959 distinct whole-prompt values are shared
+ * by two or more non-host records, and 739 of those pairs fall inside the
+ * 2-second window. Without the model in the key, a Cherry Studio row that
+ * happened to send the same-sized prompt as an unrelated request nearby
+ * would be silently dropped. With it, the three real duplicates still match
+ * (their models are the same family behind a provider prefix —
+ * `new-api:deepseek-v4.1-flash-free` vs `deepseek-v4.1-flash-free`) and a
+ * collision across models cannot match at all.
  *
  * 17:22:53 is the counter-example that proves the input-only signature is
  * still safe: pi 567 / 12032 against the host's 6364 / 6272 are the same
@@ -242,8 +252,8 @@ const HOST_WINDOW_MS = 2000;
  * (12,599 vs 6,364), so they are correctly NOT matched.
  *
  * This is deliberately NOT a general "drop anything that looks similar":
- * only `cherry-studio` records carry `hostedBy`, and only those are
- * candidates for removal. Everything else passes through untouched.
+ * only `cherry-studio` records are candidates for removal. Everything else
+ * passes through untouched.
  */
 function dropHostedDuplicates(records) {
   // Whole-prompt totals from every non-host record, keyed by the signature.
@@ -251,7 +261,7 @@ function dropHostedDuplicates(records) {
   for (const r of records) {
     if (r.agent === 'cherry-studio') continue;
     if (typeof r.timestamp !== 'number') continue;
-    const k = wholePrompt(r);
+    const k = signature(r);
     if (!owned.has(k)) owned.set(k, []);
     owned.get(k).push(r.timestamp);
   }
@@ -261,7 +271,7 @@ function dropHostedDuplicates(records) {
   let dropped = 0;
   for (const r of records) {
     if (r.agent === 'cherry-studio' && typeof r.timestamp === 'number') {
-      const candidates = owned.get(wholePrompt(r));
+      const candidates = owned.get(signature(r));
       if (candidates?.some((t) => Math.abs(t - r.timestamp) <= HOST_WINDOW_MS)) {
         dropped++;
         continue;
@@ -282,6 +292,37 @@ function dropHostedDuplicates(records) {
 /** Fresh + cached read = the whole prompt, the number both stores agree on. */
 function wholePrompt(r) {
   return (r.input || 0) + (r.cacheRead || 0);
+}
+
+/**
+ * The dedup key: whole-prompt tokens plus the model's family.
+ *
+ * The family is the model id with any provider prefix removed, so
+ * `new-api:deepseek-v4.1-flash-free` and `deepseek-v4.1-flash-free` are the
+ * same model behind two naming conventions — which is exactly how the host
+ * and the agent record the same request. Two different models never share a
+ * family, so a same-sized prompt from a different model cannot collide.
+ *
+ * The prefix separator is not fixed: pi writes `new-api:model` (a colon),
+ * OpenCode writes `provider/model` (a slash), Cherry Studio writes the bare
+ * name. All three spellings have to reduce to the same family, and the
+ * families have to be taken from the LAST segment so a colon-separated
+ * prefix is stripped the same way a slash-separated one is.
+ */
+function signature(r) {
+  return `${wholePrompt(r)}|${modelFamily(r.model)}`;
+}
+
+/** The model id without its provider prefix, lowercased. */
+function modelFamily(model) {
+  if (!model) return '';
+  const s = String(model).toLowerCase();
+  // The last separator wins: `new-api:deepseek-v4.1-flash-free` -> the tail
+  // after the colon, `opencode/deepseek-v4-flash` -> after the slash. A model
+  // id may contain both (`Cherry-New-API/gpt-5.5` has a slash only), and in
+  // every observed spelling the provider prefix comes first.
+  const cut = Math.max(s.lastIndexOf('/'), s.lastIndexOf(':'));
+  return cut === -1 ? s : s.slice(cut + 1);
 }
 
 /**

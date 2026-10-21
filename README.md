@@ -16,17 +16,17 @@ $ agentledger
 
   Metric         Tokens   Est. cost
   ─────────────  ───────  ─────────
-  Input tokens   312.69M  $796
-  Cache read     2.04B    $318
+  Input tokens   314.52M  $796
+  Cache read     2.15B    $318
   Cache write    366.4k   $0.0842
-  Output tokens  8.19M    $54.73
-  TOTAL          2.36B    $1169
+  Output tokens  8.83M    $54.73
+  TOTAL          2.47B    $1169
 
   Agent        Tokens   Est. cost  Records
   ───────────  ───────  ─────────  ───────
-  dsh          1.61B    $952       6994
+  dsh          1.72B    $954       6994
   codex        219.45M  $193       3059
-  opencode     291.09M  $25.42     4298
+  opencode     295.84M  $25.42     4298
   claude-code  205.05M  $2.24      1462
   cherry-studio 765.8k $1.63      29
   openclaw     31.39M   $1.28      959
@@ -34,8 +34,8 @@ $ agentledger
   pi           47.7k    $0.0000    5
 
   ! 10 model(s) have no built-in price and used the
-    $3/$15 per-Mtok default ($947 of the total):
-      step-5-preview  (1750 records)
+    $3/$15 per-Mtok default ($949 of the total):
+      step-5-preview  (1766 records)
       hy4-preview  (1554 records)
       ...
     Fix in one step: `agentledger prices --template` prints a
@@ -443,15 +443,31 @@ exactly the way a truncated log line is.
 
 **Cherry Studio needs a dedup rule the others do not.** It is a GUI that
 hosts other agents, so it writes a usage row for requests the hosted agent
-also logs. On this machine 3 of its 32 rows are the same request as a pi-agent
+also logs. On this machine 3 of its 33 rows are the same request as a pi-agent
 row with identical token counts (17,858 tokens that would otherwise be counted
 twice). The agent's own log wins; the host's copy is dropped. The match is on
-the whole-prompt token total within a 2-second window — the two stores write
-the same request 20-60ms apart, and their *buckets* disagree (pi reports input
-as fresh-only plus a separate cache read; the host reports the whole prompt,
-and keeps reasoning out of output), so an exact match finds nothing and an
-output-inclusive match misses every row that had reasoning. Cherry Studio's
-other 29 rows are its own — June and July sessions no other source covers.
+the **whole-prompt token total plus the model's family**, within a 2-second
+window. Each half was forced by a measurement:
+
+- *Whole-prompt, not input and not output.* The two stores write the same
+  request 20-60ms apart, so an exact-timestamp match finds nothing — a
+  silent no-op that looks like success. And they bucket differently: pi
+  reports input as fresh-only plus a separate cache read, the host reports
+  the whole prompt, and the host keeps reasoning out of output while pi
+  folds it in (158 vs 204 for the same request). So matching on output
+  misses every row that had reasoning.
+- *The model's family, because whole-prompt totals collide.* 402 of the
+  14,959 distinct whole-prompt values on this machine are shared by two or
+  more records, and 739 of those pairs fall inside the 2-second window. A
+  prompt-size-only key would therefore be one collision away from deleting
+  a legitimate row. The family is the model id with its provider prefix
+  removed — `new-api:deepseek-v4.1-flash-free` and
+  `deepseek-v4.1-flash-free` are the same model behind two naming
+  conventions — so a same-sized prompt from a *different* model can never
+  match.
+
+Cherry Studio's other 30 rows are its own — June and July sessions no other
+source covers.
 
 Two of the newer adapters share a shape and are worth naming, because both
 differences are invisible in a diff and each one silently loses real spend:

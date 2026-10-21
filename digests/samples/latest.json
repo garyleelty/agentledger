@@ -1,25 +1,25 @@
 {
   "tool": "agentledger",
   "version": "0.4.0",
-  "generatedAt": "2026-10-19T17:00:03.123Z",
+  "generatedAt": "2026-10-21T15:08:52.646Z",
   "totals": {
     "tokens": {
-      "input": 312687572,
-      "cacheRead": 2035786253,
+      "input": 314517403,
+      "cacheRead": 2150314253,
       "cacheWrite": 366382,
-      "output": 8190875
+      "output": 8833329
     },
-    "costUSD": 1176.109142,
-    "records": 17045
+    "costUSD": 1177.98247,
+    "records": 17797
   },
   "byAgent": {
     "dsh": {
-      "input": 237552951,
-      "cacheRead": 1364748752,
+      "input": 238723214,
+      "cacheRead": 1475338576,
       "cacheWrite": 0,
-      "output": 3619244,
-      "records": 7130,
-      "costUSD": 952.479634
+      "output": 4113009,
+      "records": 7829,
+      "costUSD": 954.352963
     },
     "codex": {
       "input": 15835116,
@@ -30,11 +30,11 @@
       "costUSD": 192.747441
     },
     "opencode": {
-      "input": 27794061,
-      "cacheRead": 260625224,
+      "input": 28453622,
+      "cacheRead": 264563400,
       "cacheWrite": 85801,
-      "output": 2583817,
-      "records": 4298,
+      "output": 2732496,
+      "records": 4350,
       "costUSD": 25.422329
     },
     "claude-code": {
@@ -46,11 +46,11 @@
       "costUSD": 2.237627
     },
     "cherry-studio": {
-      "input": 628315,
+      "input": 628322,
       "cacheRead": 27136,
       "cacheWrite": 0,
-      "output": 110320,
-      "records": 29,
+      "output": 110330,
+      "records": 30,
       "costUSD": 1.626551
     },
     "openclaw": {
@@ -88,12 +88,12 @@
       "costUSD": 587.00717
     },
     "step-5-preview": {
-      "input": 37998315,
-      "cacheRead": 426362560,
+      "input": 38055132,
+      "cacheRead": 431789568,
       "cacheWrite": 0,
-      "output": 488192,
-      "records": 1750,
-      "costUSD": 249.226593
+      "output": 493177,
+      "records": 1766,
+      "costUSD": 251.099921
     },
     "gpt-5.5": {
       "input": 15071921,
@@ -352,11 +352,11 @@
       "costUSD": 0
     },
     "opencode/deepseek-v4.1-flash-free": {
-      "input": 1081473,
-      "cacheRead": 9609088,
+      "input": 1741034,
+      "cacheRead": 13547264,
       "cacheWrite": 0,
-      "output": 101111,
-      "records": 131,
+      "output": 249790,
+      "records": 183,
       "costUSD": 0
     },
     "kilo/bytedance-seed/dola-seed-2.0-pro:free": {
@@ -365,6 +365,14 @@
       "cacheWrite": 0,
       "output": 2787,
       "records": 13,
+      "costUSD": 0
+    },
+    "minimax/minimax-m3.1-flash:free": {
+      "input": 1113446,
+      "cacheRead": 105162816,
+      "cacheWrite": 0,
+      "output": 488780,
+      "records": 683,
       "costUSD": 0
     },
     "stepfun/step-5-preview-free": {
@@ -400,18 +408,18 @@
       "costUSD": 0
     },
     "deepseek-v4.1-flash-free": {
-      "input": 1426,
+      "input": 1433,
       "cacheRead": 27008,
       "cacheWrite": 0,
-      "output": 1892,
-      "records": 5,
+      "output": 1902,
+      "records": 6,
       "costUSD": 0
     }
   },
   "unpricedModels": [
     {
       "model": "step-5-preview",
-      "records": 1750
+      "records": 1766
     },
     {
       "model": "hy4-preview",
@@ -450,7 +458,7 @@
       "records": 4
     }
   ],
-  "unpricedCostUSD": 946.64021,
+  "unpricedCostUSD": 948.513539,
   "defaultPricingUSD": {
     "input": 3,
     "output": 15

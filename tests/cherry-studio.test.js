@@ -184,6 +184,48 @@ test('collect() drops host duplicates exactly once, and only those', async () =>
   assert.equal(cherryRecs[0].tokens.input, 92, 'the surviving host row is the different request');
 });
 
+test('a host row of a DIFFERENT model with the same prompt size survives', async () => {
+  // The dedup key is the whole-prompt total PLUS the model family, and the
+  // second half is load-bearing: whole-prompt totals collide (402 of 14,959
+  // distinct values on this machine are shared by two or more records), so
+  // a host row that happened to send the same-sized prompt as an unrelated
+  // request nearby would be silently deleted by a prompt-size-only key.
+  //
+  // This is the false positive, constructed: same token counts, 30ms apart,
+  // different models. It must be KEPT.
+  const home = await mkdtemp(path.join(tmpdir(), 'aledger-home-'));
+  const sessDir = path.join(home, '.pi', 'agent', 'sessions', '--work--');
+  await mkdir(sessDir, { recursive: true });
+  const t0 = 1792257747314;
+  await writeFile(
+    path.join(sessDir, '2026-10-17T17-22-27.314Z_uuid.jsonl'),
+    [
+      JSON.stringify({ type: 'session', id: 's1', timestamp: new Date(t0).toISOString(), cwd: '/work' }),
+      // whole prompt 5851, but this is a DIFFERENT model than the host row
+      JSON.stringify({
+        type: 'message', id: 'a1', timestamp: new Date(t0).toISOString(),
+        message: { role: 'assistant', model: 'new-api:some-other-model-free', usage: { input: 5851, output: 13, cacheRead: 0, cacheWrite: 0, reasoning: 0 } },
+      }),
+    ].join('\n') + '\n',
+  );
+
+  const cherry = await makeDb([
+    { input: 5851, output: 13, noCache: 5851, cacheRead: 0, model: 'deepseek-v4.1-flash-free', createdAt: t0 + 30 },
+  ]);
+
+  const childArgs = process.execArgv.some((a) => a.includes('experimental-sqlite'))
+    ? process.execArgv.filter((a) => a.includes('experimental-sqlite'))
+    : [];
+  const out = execFileSync(process.execPath, [
+    ...childArgs,
+    path.join(root, 'bin', 'agentledger.js'), 'json',
+    '-a', 'pi', '-a', 'cherry-studio', '--path', cherry,
+  ], { encoding: 'utf8', maxBuffer: 32 * 1024 * 1024, env: { ...process.env, HOME: home } });
+  const d = JSON.parse(out);
+  const cherryRecs = d.records.filter((r) => r.agent === 'cherry-studio');
+  assert.equal(cherryRecs.length, 1, 'a different model is not a duplicate, however similar the size');
+});
+
 test('a host row with no counterpart is kept', async () => {
   // The June/July Cherry Studio sessions no other source covers must survive.
   const cherry = await makeDb([
