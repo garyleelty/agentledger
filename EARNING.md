@@ -1734,3 +1734,104 @@ workflow`, with no `write:packages`.
 
 **$0.00 received. Stars: 0 vs 19,019.** That half of the goal is still
 open and is not moving on this machine.
+
+## Round 57: a third source ccusage cannot read, found by auditing the eleven it can
+
+The round-56 audit said the adapter gap was not closable on this machine:
+ten of ccusage's eleven extra agents have no data here, and the eleventh
+(Qwen) has the right file layout but zero usage records, because both its
+sessions died on `401 invalid access token`.
+
+That audit also flagged a near-miss: this machine has Tencent's **CodeBuddy
+CN** (腾讯云代码助手), which is a *different product* from ccusage's
+"codebuff" (Manicode). Nobody had looked at it properly.
+
+### It has real usage, and ccusage has no adapter for it
+
+The usage is spread over **four** stores, and no single one of them is
+enough:
+
+| store | what it carries |
+|---|---|
+| `CodeBuddy CN/logs/**/腾讯云代码助手*.log` | the token buckets, per API call |
+| `CodeBuddyExtension/Data/*/.../history/*/*/index.json` | the request list and the clock |
+| `.../history/*/*/messages/*.json` | the model (in an `extra` field that is a JSON **string**) |
+| `CodeBuddy CN/codebuddy-sessions.vscdb` | the working directory per conversation |
+
+The join key across all four is the request id. Verified: 40 of 40 requests
+resolve to a model, and the sessions database resolves 15 conversations to
+their cwd.
+
+**Measured: 24.10M tokens, $13.62 estimated, 362 records across 37 log
+files.** Every total was reproduced twice by independent scripts, once
+before the parser existed and once after.
+
+### Three things there that a diff cannot show
+
+- **`inputTokens` is the WHOLE prompt.** The log also carries
+  `cachedMissTokens` and `cacheTokens`, and
+  `inputTokens === cacheTokens + cachedMissTokens` (80395 === 8192 +
+  72203). Treating `inputTokens` as the fresh input would have inflated
+  this lane's cost about **thirtyfold**.
+- **The log's timestamps are local**, and the offset has to be recovered
+  from the history index's epoch-ms `startedAt`. Read as UTC+8 the median
+  gap to the request's start is **14.1 seconds** — an API call's round
+  trip. Read as UTC it is **28,814 seconds**. That 14s-versus-8h gap is
+  the proof, and it is the only reason the timestamps are right.
+- **`credit` is a quota, not money.** It does not scale with the token
+  counts or with the list price: the ratio between credit and cost ranged
+  **4× to 126×** for the same model. It is not used as a cost anywhere, and
+  it is not a `storedCost` either.
+
+The offset is taken as the **median** of the per-request candidates, not a
+mean: one real request on this machine has a step 4.5 hours from its start
+and would drag a mean off by hours.
+
+### Pricing for the lane
+
+`glm-5.1` and `kimi-k2.6` both have a tight cluster of LiteLLM vendor rows
+that agree exactly, so they are priced. `glm-5v-turbo`'s only two rows
+disagree ($0.704 vs $1.20) and it is **not** priced from LiteLLM — it
+resolves through the table's existing family-prefix rule to the `glm-5`
+row, which is pre-existing behaviour. `hy3-preview-agent` (the second
+largest spend in the lane) has no LiteLLM row under any spelling and is
+left unpriced, disclosed as unpriced.
+
+Both new prices are now checked by the weekly audit: **31 of 35** entries
+compared against live LiteLLM, up from 29.
+
+### Where the tool stands against ccusage now
+
+| | agentledger | ccusage |
+|---|---|---|
+| agent adapters | 10 | 18 |
+| of those, only agentledger can read | **3** (dsh, cherry-studio, codebuddy) | 0 |
+| token counts on the 6 shared lanes | agree exactly | — |
+| reasoning tokens | billed as output | dropped |
+| OpenClaw lane | $1.28 | $0.00 |
+| billing blocks | every lane | Claude Code only |
+| weekly / monthly roll-ups | ✅ | ✅ |
+| timezone-aware days | ✅ | ✅ |
+| `--json` returns the breakdown the command names | ✅ | partly |
+| the agent's own cost shown beside the estimate | ✅ | `--debug` only |
+| Homebrew install | ✅ | ✅ |
+| npm registry | ✖ (no credential) | ✅ |
+| lines of code, dependencies, network calls | ~3,300, 0, 0 | Rust binary, fetches LiteLLM at runtime |
+
+### Distribution, honestly
+
+Both awesome-list PRs are open and now current — updated with the tenth
+agent, the Homebrew install line and the OpenClaw pricing fact, so a
+maintainer who checks the link finds a working tool rather than a promise:
+
+- `awesome-opencode/awesome-opencode#872` (YAML entry, the format that
+  list requires)
+- `ai-for-developers/awesome-ai-coding-tools#946` (README line)
+
+**Stars: 0 vs 19,019. $0.00 received.** The Homebrew tap is the channel
+that needs no credential from anyone, and it is live and verified. The npm
+registry is still closed: the local token is 401 dead, the keychain has no
+npm entry, and the repository has **zero** Actions secrets, so the publish
+workflow's `npm publish` step skips. GitHub Packages is closed too — the
+keychain token carries `read:user, repo, user:email, workflow` and no
+`write:packages`.
