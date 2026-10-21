@@ -215,10 +215,24 @@ node bin/agentledger.js
 ```
 
 > **The registry package is not published yet.** `npx agentledger-cli` fails
-> with a 404 because `agentledger-cli` is not on npm; publishing still needs a
-> token with 2FA bypass. The `git+https` form above is the way to install
-> through npm until that lands. This README will lead with `npx agentledger-cli`
-> once the package is actually there.
+> with a 404 because `agentledger-cli` is not on npm; publishing needs a
+> maintainer token with 2FA bypass, which this project's CI does not have.
+> The `git+https` form above is the way to install through npm until that
+> lands, and the Homebrew tap needs no npm at all. This README will lead with
+> `npx agentledger-cli` once the package is actually there.
+>
+> **Want it on npm under your own name?** The package is plain JavaScript
+> with no build step, so from a clone:
+>
+> ```bash
+> npm install -g .            # installs `agentledger` and `aledger`
+> ```
+>
+> or publish your own fork:
+>
+> ```bash
+> npm publish --access public
+> ```
 
 Requires **Node 22.5+** — the OpenCode lane reads a SQLite database and
 `node:sqlite`'s `DatabaseSync` landed in 22.5.
