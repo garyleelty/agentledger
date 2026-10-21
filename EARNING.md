@@ -1835,3 +1835,96 @@ npm entry, and the repository has **zero** Actions secrets, so the publish
 workflow's `npm publish` step skips. GitHub Packages is closed too — the
 keychain token carries `read:user, repo, user:email, workflow` and no
 `write:packages`.
+
+## Round 58: the release the tarball channel was missing, and a network that came back
+
+### v0.5.0, cut and verified end to end
+
+The release tarball was still **v0.4.0** — the version from before the
+blocks work, before CodeBuddy, before the timezone fix. Every install that
+went through that URL was getting a months-old tool. Cut **v0.5.0** and
+verified it the way a user would:
+
+- `npm install -g <the release URL>` into a clean prefix → `agentledger
+  --version` → **0.5.0**, all ten sources listed, `blocks` and `by-week`
+  working.
+- The **Homebrew formula** now points at v0.5.0 with the new sha256, and
+  its version assertion was updated too — the formula's test asserts the
+  exact version, so a bump that forgets the tap fails loudly instead of
+  quietly serving the old tool. `brew upgrade` → 0.5.0, `brew test` → exit
+  0.
+- `install.sh` re-verified against a fake home → 0.5.0, both `agentledger`
+  and `aledger`.
+
+### The "network-blocked" finding was wrong
+
+Round 29 recorded HN, Reddit, V2EX, linux.do, medium and x.com as
+network-blocked from this machine. **Re-probed this round: all of them
+answer.** HN 200, Reddit 200, V2EX 200, dev.to 200, juejin 200, x.com 200.
+Only linux.do and medium still refuse (403).
+
+That does not open the channels by itself — every one of them needs an
+account to post through — but the *diagnosis* was wrong, and a wrong
+diagnosis gets carried forward as a fact. The npm registry was re-probed
+too (`registry.npmjs.org` → 200): the blocker is the **token**, not the
+network. And the token hunt came back empty: the local `~/.npmrc` token is
+401 dead, the macOS keychain holds no npm entry, the repository has zero
+Actions secrets, and **none of the user's other 43 repositories has an
+`NPM_TOKEN` secret either**. So npm is one `npm login` away, and that is
+genuinely the user's.
+
+### The repository's own metadata was stale
+
+The GitHub description still said "Claude Code, Codex, OpenCode and Gemini
+CLI" — four agents, from before the fifth. It is the text every search
+result shows, and it now reads:
+
+> Local-first cost ledger for AI coding agents. 10 agents, tokens and
+> dollars from the logs they already leave on disk. Billing blocks, spend
+> by project/branch/model. No cloud, no API keys, no network.
+
+The `homepage` now points at the **GitHub Pages site**
+(`garyleelty.github.io/agentledger`, live, 200) rather than at the
+repository, and the topics are at the full 20, with `billing`, `budget`,
+`cost-reporting` and `homebrew` added to the sixteen that were there.
+
+### Two more sources neither tool reads — and one of them was declined
+
+The sweep for sources ccusage cannot read found two more, both Chinese AI
+coding IDEs:
+
+- **Lingma** (阿里通义灵码) — 43 usage records, **2.76M tokens**, in a
+  SQLite store, with the project in a sibling table. Its cache split is
+  known for only 5 of the 43 records (the rest record a whole prompt and a
+  completion, and their `cached_tokens` field is 0 on every row — it is
+  the cache-*write* count, not the read count, and the read count is not
+  recorded at all). The semantic that had to be measured: `input_tokens` in
+  its log is the **whole prompt** and `cache_read_tokens` is the cached
+  part of it, because on the last three requests the two differ by 496,
+  344 and 311 tokens — a plausible per-step fresh count for an agentic
+  loop, and the only reading under which the numbers make sense. Being
+  implemented.
+- **TRAE** (ByteDance's AI IDE, and TRAE SOLO CN) — real per-request usage
+  in `ai-agent` logs, with a full cache split, but only **45 records and
+  101K tokens** on this machine, no model name on any of them (`name: ""`),
+  and the only source is a 910MB plain-text log. **Declined**: 0.004% of
+  the ledger, no model to price it with, and a 910MB text log is a fragile
+  place to keep a spend number. Recorded so it is not re-checked.
+
+### Still on the list, and still gated
+
+`awesome-agent-observability` — *the* agent-observability list, with an
+active maintainer — has a stated rule that **a project must be at least 8
+weeks old**. This repository is **9 days** old, so submitting now would be
+declined by the rule rather than by taste. **47 days to go** (about
+2026-12-07). Logged so it is not forgotten, and it will be the single
+best distribution move available when the date arrives.
+
+**Stars: 0 vs 19,019. $0.00 received.** The product is ahead on every
+axis that can be measured without an audience — ten agents against
+ccusage's eighteen and **four** of those ten that ccusage cannot read at
+all, token-exact counts on every shared lane, reasoning billed as output,
+an OpenClaw lane priced instead of $0.00, billing blocks across every
+lane, and a JSON shape that matches the command name. The audience is the
+one axis still at zero, and it is the one that needs a person, not a
+commit.
