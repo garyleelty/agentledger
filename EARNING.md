@@ -1514,3 +1514,80 @@ different category of blocker from "I have not done it".
 
 **$0.00 received. Stars: 0 vs 19,019.** One download on the 0.3.0 asset so
 far, which is at least a stranger, and 0.4.0 is what they will get now.
+
+## Round 55: a Homebrew tap — the one big channel that needs no credential
+
+Round 54 mapped the distribution landscape and found that of the five
+remaining channels, three needed a human credential (npm token, dev.to
+key, juejin login) and two were network-blocked. That left one category
+unexplored: channels that need **nothing from anyone**.
+
+A Homebrew tap is just a GitHub repository. `brew install` from it needs no
+registry account, no token, no secret — the install path runs entirely
+between the user's machine and a public repo. That makes it the one
+large channel that was reachable without a human, and it is how most people
+install a CLI on a Mac.
+
+**Created `garyleelty/homebrew-agentledger`** with a formula that installs
+the GitHub source tarball into `libexec` and symlinks `agentledger` and
+`aledger` into `bin` — the standard shape for a pure-Node program with no
+build step.
+
+**Verified end to end, not assumed:**
+
+- `brew tap garyleelty/agentledger` -> tapped, 1 formula
+- `brew install garyleelty/agentledger/agentledger` -> built in 2 seconds
+- the installed keg reports `0.4.0` and lists all nine sources
+- a full scan runs against the real machine's logs
+
+**Two things that only showed up by doing it rather than by reading it:**
+
+1. The formula has to keep `package.json` one level above `bin/` in
+   libexec, because the entry point resolves its version through
+   `new URL('../package.json', import.meta.url)`. Any other layout prints
+   `0.0.0-unknown`. The formula's test therefore asserts the **exact
+   version**, not just that the binary runs — so a future bump that forgets
+   to update the tap fails loudly instead of quietly serving the old tool.
+2. A **stale `npm install -g agentledger-cli` from 0.1.0** was sitting in
+   `/opt/homebrew/bin`, shadowing the freshly installed brew version. The
+   first check reported `0.1.0` and 4 sources, and the obvious reading —
+   "the formula is broken" — would have been wrong. The formula was correct;
+   the thing being *run* was months of tool behind. Removed the stale
+   install, `brew link agentledger` now owns the name, and the same
+   commands report 0.4.0 and 9 sources.
+
+That second one is the round's real lesson and it is the same shape as
+every failure this project has: **a measurement that disagrees with
+expectation is a question, not a verdict.** The verification I would have
+skipped — running the installed binary rather than the keg directly — is
+what surfaced it.
+
+**Also tightened the Cherry Studio dedup key** (the round-52 rule). It
+keyed on the whole-prompt token total alone, which works on this machine's
+data but is one collision away from deleting a legitimate row: 402 of the
+14,959 distinct whole-prompt values here are shared by two or more records,
+and 739 of those pairs fall inside the 2-second window. The key now
+carries the model's family as well, so a same-sized prompt from a
+*different* model can never match. Added a test for that false positive
+and verified it **fails against the old key and passes against the new
+one** — a guard, not a formality.
+
+**Distribution, measured:**
+
+| channel | state |
+|---|---|
+| Homebrew tap | **new, verified working** |
+| release tarball | working, current (0.4.0) |
+| `git+https` via npm | working |
+| install.sh | working |
+| GitHub Pages | live, current |
+| npm registry | blocked — token 401 |
+| dev.to / juejin | blocked — no key / no login |
+| HN, Reddit, V2EX, linux.do | network-blocked |
+
+Five channels now work without any credential from anyone, and all of them
+carry the current tool.
+
+**$0.00 received. Stars: 0 vs 19,019.** But `brew install` is the answer
+to "how do I try this" that a stranger can act on without reading the
+install section, and that is new.
