@@ -219,7 +219,10 @@ export async function collect(opts = {}) {
         }
         continue;
       }
-      if (!/\.(jsonl|json)$/.test(file)) continue;
+      // `.log` is here for CodeBuddy CN's extension log, which is plain
+      // text with the token buckets embedded in it. The sniffer decides
+      // whether it is that or something else.
+      if (!/\.(jsonl|json|log)$/.test(file)) continue;
       filesScanned++;
       try {
         for await (const rec of sniff(file)) records.push(rec);
@@ -392,6 +395,11 @@ async function* sniffDb(file) {
     yield* ALL_PARSERS['cherry-studio'](file);
     return;
   }
+  // Lingma's store: a `chat_message` table carrying a `token_info` column.
+  if (tables.includes('chat_message')) {
+    yield* ALL_PARSERS.lingma(file);
+    return;
+  }
   // OpenCode and Kilo both have a `message` table; the file name decides.
   if (tables.includes('message')) {
     if (/kilo\.db$/.test(file)) yield* ALL_PARSERS.kilo(file);
@@ -409,6 +417,14 @@ async function* sniff(file) {
   }
   if (head.includes('"usageMetadata"') || head.includes('"promptTokenCount"')) {
     yield* PARSERS['gemini-cli'](file);
+    return;
+  }
+  // CodeBuddy CN's extension log is plain text, not JSON: it carries the
+  // token buckets in a `notifyStepEnd ... usage: {...}` line. Without this,
+  // `--path some-codebuddy.log` read nothing at all — a silent zero, the
+  // failure shape this project keeps meeting.
+  if (head.includes('notifyStepEnd') && head.includes('"cachedMissTokens"')) {
+    yield* ALL_PARSERS.codebuddy(file);
     return;
   }
   yield* PARSERS['claude-code'](file);
