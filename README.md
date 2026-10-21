@@ -16,29 +16,30 @@ $ agentledger
 
   Metric         Tokens   Est. cost
   ─────────────  ───────  ─────────
-  Input tokens   326.17M  $796
-  Cache read     2.42B    $318
-  Cache write    366.4k   $0.0842
-  Output tokens  10.02M    $54.73
-  TOTAL          2.76B    $1169
+  Input tokens   330.45M  $822
+  Cache read       2.55B  $341
+  Cache write     366.4k  $0.0842
+  Output tokens   10.77M  $64.10
+  TOTAL            2.89B  $1227
 
   Agent        Tokens   Est. cost  Records
   ───────────  ───────  ─────────  ───────
-  dsh          1.97B    $954       6994
+  dsh          2.06B    $954       6994
   codex        219.45M  $193       3059
   opencode     304.17M  $25.42     4298
   codebuddy    24.10M   $13.62     362
   lingma       2.76M    $7.77      43
+  workbuddy    40.77M   $27.82     487
   claude-code  205.05M  $2.24      1462
   cherry-studio 765.8k $1.63      29
   openclaw     31.39M   $1.28      959
   kilo         3.32M    $0.3186    103
   pi           47.7k    $0.0000    5
 
-  ! 11 model(s) have no built-in price and used the
-    $3/$15 per-Mtok default ($964 of the total):
-      step-5-preview  (1766 records)
-      hy4-preview  (1554 records)
+  ! 12 model(s) have no built-in price and used the
+    $3/$15 per-Mtok default ($991 of the total):
+      step-5-preview  (1818 records)
+      hy4-preview  (1730 records)
       ...
     Fix in one step: `agentledger prices --template` prints a
     fill-in override file for exactly these models.
@@ -84,7 +85,7 @@ while you are still working:
 more agents than this. The honest count, rather than a flattering one:
 ccusage has **18** agent adapters (19 directories under `rust/adapters`, one
 of which is `common`, a shared helper rather than an agent), and **7 of those
-18 overlap** with the ones below. agentledger has **11** sources; **4** of them
+18 overlap** with the ones below. agentledger has **12** sources; **5** of them
 ccusage has no adapter for at all.
 
 It reports reasoning token **counts** but does not bill them in the OpenCode or Kilo lanes
@@ -103,7 +104,7 @@ ledger would have cost with no prompt caching); and the whole tool is ~3,100
 lines of zero-dependency JavaScript with no build step, no runtime fetch, and
 no network call of any kind.
 
-**Four sources ccusage cannot read at all.** ccusage has 18 adapters
+**Five sources ccusage cannot read at all.** ccusage has 18 adapters
 and **no `dsh` adapter** — `ccusage dsh` returns `Unknown command` — and no
 Cherry Studio adapter either; there is no `cherry` command in it at all.
 `crosscheck` reports the first automatically rather than trusting prose:
@@ -380,7 +381,7 @@ Useful flags:
 
 | Flag | Meaning |
 | --- | --- |
-| `-a, --agent <name>` | only one agent (`claude-code`, `codex`, `opencode`, `kilo`, `dsh`, `gemini-cli`, `pi`, `openclaw`, `cherry-studio`, `codebuddy`, `lingma`) |
+| `-a, --agent <name>` | only one agent (`claude-code`, `codex`, `opencode`, `kilo`, `dsh`, `gemini-cli`, `pi`, `openclaw`, `cherry-studio`, `codebuddy`, `lingma`, `workbuddy`) |
 | `-p, --path <dir>` | also scan a directory or single file |
 | `--since <date>` | only records at/after a date |
 | `--until <date>` | only records before a date, inclusive of that day |
@@ -486,6 +487,7 @@ in, they open windows that contain nothing.
 | Cherry Studio | `~/Library/Application Support/CherryStudio/Data/cherrystudio.sqlite` | ✅ |
 | CodeBuddy CN | `~/Library/Application Support/CodeBuddy CN/logs/**/腾讯云代码助手*.log` | ✅ |
 | Lingma (通义灵码) | `~/Library/Application Support/Lingma/SharedClientCache/cache/db/local.db` | ✅ |
+| WorkBuddy | `~/.workbuddy/projects/**/*.jsonl` | ✅ |
 | Anything else | `--path` + format sniffing | partial |
 
 `agentledger sources` tells you which of those are actually present on your
@@ -506,8 +508,9 @@ $ agentledger sources
   cherry-studio  ~/Library/Application Support/CherryStudio/Data  1 file(s)    https://www.cherry-ai.com/                       
   codebuddy      ~/Library/Application Support/CodeBuddy CN/logs  37 file(s)   https://copilot.tencent.com/                     
   lingma         ~/Library/Application Support/Lingma/SharedClientCache/cache/db  1 file(s)    https://lingma.aliyun.com/                       
+  workbuddy      ~/.workbuddy/projects                                            10 file(s)   https://copilot.tencent.com/                     
 
-  10 of 11 sources have data on this machine.
+  11 of 12 sources have data on this machine.
 ```
 
 `agentledger-cli sources` prints this table with links.

@@ -177,6 +177,7 @@ const UNCOMPARABLE = [
   ['cherry-studio', 'Cherry Studio'],
   ['codebuddy', 'CodeBuddy CN'],
   ['lingma', 'Lingma (通义灵码)'],
+  ['workbuddy', 'WorkBuddy'],
 ];
 
 console.log('');

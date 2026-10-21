@@ -13,12 +13,13 @@ import { PARSERS } from './parsers.js';
 import { PARSERS_CHERRY } from './parsers-cherry.js';
 import { PARSERS_CODEBUDDY, CODEBUDDY_LOG_MATCH } from './parsers-codebuddy.js';
 import { PARSERS_LINGMA, LINGMA_DB_MATCH } from './parsers-lingma.js';
+import { PARSERS_WORKBUDDY, WORKBUDDY_SESSION_MATCH } from './parsers-workbuddy.js';
 import { costOf } from './pricing.js';
 
 // The CherryStudio lane lives in its own module because it is the only
 // parser that needs a documented dedup relationship with another source;
 // merging it here keeps that coupling visible instead of buried.
-const ALL_PARSERS = { ...PARSERS, ...PARSERS_CHERRY, ...PARSERS_CODEBUDDY, ...PARSERS_LINGMA };
+const ALL_PARSERS = { ...PARSERS, ...PARSERS_CHERRY, ...PARSERS_CODEBUDDY, ...PARSERS_LINGMA, ...PARSERS_WORKBUDDY };
 
 /**
  * Where each supported agent keeps its logs.
@@ -137,6 +138,21 @@ export const SOURCES = [
     parser: ALL_PARSERS.lingma,
     docs: 'https://lingma.aliyun.com/',
   },
+  {
+    // WorkBuddy is Tencent's standalone AI agent desktop app. One JSONL
+    // file per session under a cwd slug, each line one model call, with
+    // the model on the record.
+    //
+    // ccusage has no adapter for it. It is the same product family as
+    // CodeBuddy CN — same account, same usage object shape — and the two
+    // windows are disjoint: CodeBuddy CN spans 2026-04-26 to 2026-05-08,
+    // WorkBuddy 2026-09-08 to 2026-10-21, with zero timestamp collisions.
+    agent: 'workbuddy',
+    root: '~/.workbuddy/projects',
+    match: WORKBUDDY_SESSION_MATCH,
+    parser: ALL_PARSERS.workbuddy,
+    docs: 'https://copilot.tencent.com/',
+  },
 ];
 
 export const expandHome = (p) =>
@@ -180,6 +196,13 @@ export async function collect(opts = {}) {
 
   const sources = SOURCES.filter((s) => !wanted || wanted.has(s.agent));
 
+  // Every file the built-in lanes read, by absolute path. A `--path` that
+  // points at a file one of them already read would otherwise be counted
+  // TWICE — the same request, twice, in the same total, with nothing to
+  // say so. Measured: `--path` on a Claude Code file took the lane from
+  // 1,462 records to 1,574.
+  const read = new Set();
+
   for (const source of sources) {
     const root = expandHome(source.root);
     let files = [];
@@ -189,6 +212,7 @@ export async function collect(opts = {}) {
 
     for (const file of files) {
       filesScanned++;
+      read.add(path.resolve(file));
       try {
         for await (const rec of source.parser(file)) {
           records.push(rec);
@@ -223,6 +247,9 @@ export async function collect(opts = {}) {
       // text with the token buckets embedded in it. The sniffer decides
       // whether it is that or something else.
       if (!/\.(jsonl|json|log)$/.test(file)) continue;
+      // Already read by a built-in lane: reading it again would double
+      // count the same requests.
+      if (read.has(path.resolve(file))) continue;
       filesScanned++;
       try {
         for await (const rec of sniff(file)) records.push(rec);
@@ -425,6 +452,17 @@ async function* sniff(file) {
   // failure shape this project keeps meeting.
   if (head.includes('notifyStepEnd') && head.includes('"cachedMissTokens"')) {
     yield* ALL_PARSERS.codebuddy(file);
+    return;
+  }
+  // WorkBuddy's session file has a `message.usage` block that looks
+  // EXACTLY like Claude Code's, so without this it fell through to the
+  // Claude Code parser and produced numbers that were wrong in three ways
+  // at once: the whole prompt priced as fresh input (the cached part
+  // charged twice), and every timestamp null, because WorkBuddy's
+  // `timestamp` is epoch milliseconds rather than an ISO string. A wrong
+  // number is worse than no number.
+  if (head.includes('"providerData"') && head.includes('"rawUsage"')) {
+    yield* ALL_PARSERS.workbuddy(file);
     return;
   }
   yield* PARSERS['claude-code'](file);

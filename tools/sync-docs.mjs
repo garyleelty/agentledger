@@ -41,7 +41,19 @@ const unpricedCost = sample.unpricedCostUSD ?? 0;
 
 const replaceAll = (text, pairs) => {
   let out = text;
-  for (const [re, rep] of pairs) out = out.replace(re, rep);
+  // A pair's replacement may be a string — in which case `$1`/`$2` are
+  // backreferences, as in every String.replace — or a FUNCTION, in which
+  // case it is called with the match and the whole thing is literal.
+  //
+  // The function form is required whenever the replacement carries a
+  // dollar amount: `money()` returns a literal `$`, and in a string
+  // replacement "$1.28" has its "$1" replaced by the captured group. (A
+  // row that used to be mangled into `00` says so below.) The function
+  // form is also required wherever the replacement contains `$1` as
+  // literal text, which is why the landing-page pairs below all use it.
+  for (const [re, rep] of pairs) {
+    out = out.replace(re, typeof rep === 'function' ? rep : rep);
+  }
   return out;
 };
 
@@ -51,14 +63,38 @@ const readmePath = path.join(root, 'README.md');
 let readme = readFileSync(readmePath, 'utf8');
 const before = readme;
 
-// Token rows in the summary block. The test asserts these exact substrings.
-readme = replaceAll(readme, [
-  [/( {2}Input tokens {3})\S+/, `$1${fmtTok(t.input)}`],
-  [/( {2}Cache read {5})\S+/, `$1${fmtTok(t.cacheRead)}`],
-  [/( {2}Cache write {4})\S+/, `$1${fmtTok(t.cacheWrite)}`],
-  [/( {2}Output tokens {2})\S+/, `$1${fmtTok(t.output)}`],
-  [/( {2}TOTAL {10})\S+/, `$1${fmtTok(total)}`],
-]);
+// The metric rows in the summary block: tokens AND cost.
+//
+// The whole row is rebuilt, not just the token column. The old tool
+// replaced only the tokens, so the costs were whatever someone had pasted
+// in by hand — and the README's total read $1169 while the tool said
+// $1227, with the gate green because the gate only checked the tokens.
+// The spacing between the two columns is kept; the values are not.
+const bucketCost = sample.totals.costByBucket ?? {};
+// The whole metric BLOCK is rebuilt, not row by row.
+//
+// Matching row by row needs the padding to be exactly right, and the
+// padding is a function of the values — which change. A row that stopped
+// matching simply kept its old numbers, silently, and the gate only
+// checked the token column, so the README's total read $1169 while the
+// tool said $1227. Building the block from the sample means the columns
+// are always aligned to the values that are actually there.
+const metricBlock = [
+  ['Input tokens', fmtTok(t.input), bucketCost.input ?? 0],
+  ['Cache read', fmtTok(t.cacheRead), bucketCost.cacheRead ?? 0],
+  ['Cache write', fmtTok(t.cacheWrite), bucketCost.cacheWrite ?? 0],
+  ['Output tokens', fmtTok(t.output), bucketCost.output ?? 0],
+  ['TOTAL', fmtTok(total), cost],
+];
+const labelW = Math.max(...metricBlock.map((r) => r[0].length));
+const tokenW = Math.max(...metricBlock.map((r) => r[1].length));
+const metricText = metricBlock
+  .map(([label, tokens, c]) => `  ${label.padEnd(labelW)}  ${tokens.padStart(tokenW)}  ${money(c)}`)
+  .join('\n');
+readme = readme.replace(
+  /( {2}Input tokens[\s\S]*?\n {2}TOTAL[^\n]*\n)/,
+  () => `${metricText}\n`,
+);
 
 // Per-agent rows: name, tokens, cost, records.
 // NOTE: the replacement is a function, not a string. `money()` returns a
@@ -90,14 +126,36 @@ const pagePath = path.join(root, 'docs', 'index.html');
 let page = readFileSync(pagePath, 'utf8');
 const pageBefore = page;
 
+// The metric BLOCK is rebuilt, for the same reason the README's is: the
+// page's cost column was stale in exactly the way the README's was, and
+// the gate did not look at it. The `hi` span is kept on the three rows
+// that had one, so the page's styling does not change under the numbers.
+const pageRows = [
+  ['Input tokens', fmtTok(t.input), bucketCost.input ?? 0, true],
+  ['Cache read', fmtTok(t.cacheRead), bucketCost.cacheRead ?? 0, true],
+  ['Cache write', fmtTok(t.cacheWrite), bucketCost.cacheWrite ?? 0, false],
+  ['Output tokens', fmtTok(t.output), bucketCost.output ?? 0, true],
+];
+const pLabelW = Math.max(...pageRows.map((r) => r[0].length));
+const pTokenW = Math.max(...pageRows.map((r) => r[1].length));
+const pageMetric = pageRows
+  .map(([label, tokens, c, hi]) => {
+    const amount = hi ? `<span class="hi">${money(c)}</span>` : money(c);
+    return `  ${label.padEnd(pLabelW)}  ${tokens.padStart(pTokenW)}  ${amount}`;
+  })
+  .join('\n');
+const pageTotal = `  <span class="ok">TOTAL          ${fmtTok(total).padStart(pTokenW)}    ${money(cost)}</span>`;
+page = page.replace(
+  /( {2}Input tokens[\s\S]*?<\/span>\n)( {2}<span class="ok">TOTAL[^\n]*\n)/,
+  () => `${pageMetric}\n${pageTotal}\n`,
+);
+
+// Every pair is a FUNCTION, so a dollar amount in the replacement is
+// literal rather than a backreference.
 page = replaceAll(page, [
-  [/(Input tokens\s+)\S+/, `$1${fmtTok(t.input)}`],
-  [/(Cache read\s+)\S+/, `$1${fmtTok(t.cacheRead)}`],
-  [/(Output tokens\s+)\S+/, `$1${fmtTok(t.output)}`],
-  [/(<span class="ok">TOTAL\s+)\S+/, `$1${fmtTok(total)}`],
-  [/(cache reads\s+<span class="hi">)\S+(<\/span> of )\S+( total tokens)/, `$1${fmtTok(t.cacheRead)}$2${fmtTok(total)}$3`],
-  [/(pre>paid\s+<span class="hi">)\$[\d.]+(<\/span>)/, `$1${money(cost)}$2`],
-  [/1\.\d+B of my 1\.\d+B tokens are cache reads/, `${fmtTok(t.cacheRead)} of my ${fmtTok(total)} tokens are cache reads`],
+  [/(cache reads\s+<span class="hi">)\S+(<\/span> of )\S+( total tokens)/, (_m, p1, p2, p3) => `${p1}${fmtTok(t.cacheRead)}${p2}${fmtTok(total)}${p3}`],
+  [/(pre>paid\s+<span class="hi">)\$[\d.]+(<\/span>)/, (_m, p1, p2) => `${p1}${money(cost)}${p2}`],
+  [/1\.\d+B of my 1\.\d+B tokens are cache reads/, () => `${fmtTok(t.cacheRead)} of my ${fmtTok(total)} tokens are cache reads`],
 ]);
 
 if (page !== pageBefore) writeFileSync(pagePath, page);

@@ -435,6 +435,18 @@ function reportAggregate(records) {
     totals: {
       tokens: { input: t.input, cacheRead: t.cacheRead, cacheWrite: t.cacheWrite, output: t.output },
       costUSD: round(t.cost),
+      // The cost of each bucket, so a document built from this can print
+      // the per-bucket rows without guessing. The docs pipeline needed
+      // this: the README's summary block has a row per bucket, and the
+      // sync tool could only refresh the token column, so its costs went
+      // stale and the gate did not notice — the README's total was $1169
+      // while the tool said $1227.
+      costByBucket: {
+        input: round(t.costInput),
+        cacheRead: round(t.costCacheRead),
+        cacheWrite: round(t.costCacheWrite),
+        output: round(t.costOutput),
+      },
       records: records.length,
     },
     byAgent: by((r) => r.agent),
@@ -676,6 +688,18 @@ async function renderSharePage(records, flags) {
     totals: {
       tokens: { input: t.input, cacheRead: t.cacheRead, cacheWrite: t.cacheWrite, output: t.output },
       costUSD: round(t.cost),
+      // The cost of each bucket, so a document built from this can print
+      // the per-bucket rows without guessing. The docs pipeline needed
+      // this: the README's summary block has a row per bucket, and the
+      // sync tool could only refresh the token column, so its costs went
+      // stale and the gate did not notice — the README's total was $1169
+      // while the tool said $1227.
+      costByBucket: {
+        input: round(t.costInput),
+        cacheRead: round(t.costCacheRead),
+        cacheWrite: round(t.costCacheWrite),
+        output: round(t.costOutput),
+      },
       records: records.length,
     },
     byAgent: by((r) => r.agent),

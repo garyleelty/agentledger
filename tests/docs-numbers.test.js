@@ -32,10 +32,29 @@ test('README summary block matches the committed digest sample', () => {
   const readme = fs.readFileSync(path.join(root, 'README.md'), 'utf8');
   const t = sample.totals;
   const total = t.tokens.input + t.tokens.cacheRead + t.tokens.cacheWrite + t.tokens.output;
-  // the headline rows, formatted exactly as the CLI prints them
-  assert.ok(readme.includes(`Input tokens   ${fmtTok(t.tokens.input)}`), 'README input row stale');
-  assert.ok(readme.includes(`Cache read     ${fmtTok(t.tokens.cacheRead)}`), 'README cache-read row stale');
-  assert.ok(readme.includes(`TOTAL          ${fmtTok(total)}`), 'README total row stale');
+  // The headline rows, formatted exactly as the CLI prints them.
+  //
+  // BOTH columns are checked. The gate used to check only the tokens, and
+  // the README's cost column went stale while the gate stayed green: the
+  // sync tool refreshed the token counts but not the costs, so the README
+  // said $1169 while the tool said $1227. A gate that checks half a row
+  // does not know what the other half says.
+  const cost = sample.totals.costByBucket ?? {};
+  const money = (n) => (n >= 100 ? `$${n.toFixed(0)}` : n >= 1 ? `$${n.toFixed(2)}` : `$${n.toFixed(4)}`);
+  const rows = [
+    ['Input tokens', fmtTok(t.tokens.input), money(cost.input ?? 0)],
+    ['Cache read', fmtTok(t.tokens.cacheRead), money(cost.cacheRead ?? 0)],
+    ['Cache write', fmtTok(t.tokens.cacheWrite), money(cost.cacheWrite ?? 0)],
+    ['Output tokens', fmtTok(t.tokens.output), money(cost.output ?? 0)],
+    ['TOTAL', fmtTok(total), money(sample.totals.costUSD)],
+  ];
+  const lines = readme.split('\n');
+  for (const [label, tokens, dollars] of rows) {
+    const row = lines.find((l) => l.trimStart().startsWith(`${label} `) || l.trimStart().startsWith(`${label}  `));
+    assert.ok(row, `README is missing the ${label} row`);
+    assert.ok(row.includes(tokens), `README ${label} tokens are stale (expected ${tokens}, got ${JSON.stringify(row.trim())})`);
+    assert.ok(row.includes(dollars), `README ${label} cost is stale (expected ${dollars}, got ${JSON.stringify(row.trim())})`);
+  }
   // every agent in the sample appears in the README block with its cost
   for (const [agent, s] of Object.entries(sample.byAgent)) {
     const row = new RegExp(`${agent}\\s+\\S+\\s+\\$\\d`);
@@ -49,6 +68,21 @@ test('landing page figures match the committed digest sample', () => {
   const total = t.tokens.input + t.tokens.cacheRead + t.tokens.cacheWrite + t.tokens.output;
   assert.ok(page.includes(fmtTok(t.tokens.cacheRead)), 'landing page cache-read figure stale');
   assert.ok(page.includes(fmtTok(total)), 'landing page total figure stale');
+  // The COST column too. The page's metric rows were rebuilt from the
+  // sample for the same reason the README's were: the costs on the page
+  // were $1164 while the tool said $1227, and the gate only looked at
+  // the tokens.
+  const cost = sample.totals.costByBucket ?? {};
+  const money = (n) => (n >= 100 ? `$${n.toFixed(0)}` : n >= 1 ? `$${n.toFixed(2)}` : `$${n.toFixed(4)}`);
+  for (const [label, dollars] of [
+    ['Input tokens', money(cost.input ?? 0)],
+    ['Cache read', money(cost.cacheRead ?? 0)],
+    ['Cache write', money(cost.cacheWrite ?? 0)],
+    ['Output tokens', money(cost.output ?? 0)],
+  ]) {
+    const row = page.split('\n').find((l) => l.includes(label));
+    assert.ok(row && row.includes(dollars), `landing page ${label} cost is stale (expected ${dollars})`);
+  }
 });
 
 test('the digest sample is the aggregate shape and passes the publish gate', () => {
