@@ -1591,3 +1591,146 @@ carry the current tool.
 **$0.00 received. Stars: 0 vs 19,019.** But `brew install` is the answer
 to "how do I try this" that a stranger can act on without reading the
 install section, and that is new.
+
+## Round 56: the parity gaps that were real, and the one that turned out to be an unknown product
+
+A parity audit against the real ccusage binary (v20.0.34) and a hunt for
+the 11 agents ccusage covers and agentledger did not.
+
+### The audit corrected three claims in this project's own README
+
+| claim | was | is |
+|---|---|---|
+| ccusage's adapter count | 19 | **18** (the 19th directory under `rust/adapters` is `common`) |
+| sources ccusage cannot read | one | **two** — dsh AND Cherry Studio |
+| lanes where ccusage prices everything at $0.00 | two | **one** — OpenClaw |
+
+The guard test that was supposed to catch the first one allowed a range of
+18..25, so a wrong number sat in the README for several rounds. It now
+asserts exactly 18, and the "our N sources" test was re-anchored to the
+new phrasing.
+
+Two claims the audit flagged as stale were checked and are **still exact**:
+the OpenCode reasoning pair (1,220,552 vs 1,695,212) and the largest-model
+split (in=2,373,420 / out=511,342 / cacheRead=202,163,520) both reproduce
+to the digit. The audit had read lane totals where the README quotes
+per-model figures. Left them alone.
+
+### Gaps closed this round
+
+- **`--timezone`** — agentledger counted a day two different ways: `by-day`
+  on the UTC date, `budget` and `statusline` on the machine's LOCAL
+  midnight. For a user 8 hours from UTC that is "today" in one report and
+  "yesterday" in another, over the same ledger. One helper now serves all
+  three, and the offset is computed at the candidate instant and then
+  VERIFIED by re-formatting it, because a zone's offset moves with DST.
+- **`--until`** — the missing half of the date range, inclusive of the day
+  it names. `2026-02-30` is an error, not a rollover: `Date.parse` would
+  have turned it into March 2 and reported the wrong range as if it were
+  right.
+- **The JSON of a grouped report** — `by-model --json` used to return all
+  18,017 records and no model breakdown, so a consumer had to group them
+  itself: the same work the command had already done, thrown away on the
+  way out. Six commands had this. They now return the breakdown their name
+  implies.
+- **`blocks`** — the 5-hour billing windows, for every lane rather than
+  Claude Code only, with the active window's burn rate and projection.
+- **`by-week` / `by-month`** — the daily report rolled up. Weeks start on
+  Monday, in the local zone.
+- **The statusline's active block** — the gap this project used to
+  concede outright. Now computed across every lane, with the time left in
+  the window.
+- **The agent's own cost, shown beside agentledger's estimate.** Claude
+  Code writes its own `costUSD` on the JSONL line; ccusage picks one of
+  the two numbers, agentledger prints both and the difference between them.
+  The stored cost never PRICES anything — a test pins that the priced
+  total does not change when a cost field appears.
+
+### The block algorithm was not what I assumed
+
+I specified "local midnight, then 5-hour chunks" — the obvious reading of
+ccusage's output, and the wrong one. ccusage's blocks are **rolling
+windows anchored to the top of the hour**: a block starts with activity
+and runs five hours from there. The example block in ccusage's own output
+(13:00Z → 18:00Z) is not on that grid, which is what gave it away. With
+the synthetic rows excluded, agentledger's blocks now match ccusage's
+exactly: same starts, same entry counts, same token totals, block for
+block.
+
+`<synthetic>` is Claude Code's own placeholder model for zero-token
+turns. Kept in, they open windows that contain nothing — 9 windows where
+ccusage reports 5.
+
+### The 11 uncovered agents: nine of them are closed
+
+A hunt for the 11 agents ccusage covers and agentledger did not, using
+ccusage's own Rust adapter source for the paths (its `--debug` flag does
+not exist in v20.0.34 — it is registered on no subcommand and silently
+ignored) and then checking every path on disk:
+
+**Ten have no data on this machine at all** — the search path does not
+exist: amp, droid, codebuff, hermes, goose, copilot, antigravity, kimi,
+grok, zcode. Two of those are "installed but empty": the GitHub Copilot
+CLI's directory holds no regular files, and the Antigravity IDE's
+conversation store is empty (every one of its 115 state keys queried).
+**Qwen** is the eleventh: the path and the file layout are exactly right,
+but both sessions died on `401 invalid access token`, so there are zero
+`assistant` records and zero `usageMetadata` blocks.
+
+**So the adapter gap is not closable on this machine.** Not a design
+problem: there is nothing to build a parser against, and an unverifiable
+parser is a liability, not a feature.
+
+### …and the hunt turned up a source ccusage does not have
+
+The same sweep found **CodeBuddy CN** (腾讯云代码助手) — Tencent's AI
+coding IDE — installed on this machine with **20.4M cache-read tokens and
+2.96M fresh tokens of real usage**. ccusage's "codebuff" is Manicode, a
+different product; there is no CodeBuddy CN adapter in it at all. That
+makes it a third source only agentledger can read.
+
+Its usage is spread across three stores and no single one is enough: the
+extension logs carry the per-call usage and the cache split, the history
+index carries the request list and the timestamps, the messages carry the
+model, and the sessions database carries the working directory.
+
+Two things were measured rather than assumed, and both would have been
+wrong if guessed:
+
+- `usage.inputTokens` is the **whole prompt**, not the fresh input:
+  `inputTokens === cacheTokens + cachedMissTokens` (80395 === 8192 +
+  72203). Using it as the fresh input would have inflated this lane's
+  cost roughly thirtyfold.
+- The log timestamps are **local**, and the offset has to be recovered from
+  the history index's epoch-ms `startedAt`: read as UTC+8 the median
+  delta is 14.1 seconds (an API call's round trip), read as UTC it is
+  28,814 seconds. That 14s-versus-8h gap is the proof.
+
+`credit` in the usage record is a **quota unit, not money** — it does not
+scale with the token counts or with the USD list price (the ratio between
+credit and cost ranged 4× to 126× for the same model). It is deliberately
+not used as a cost.
+
+### Pricing, under this project's own evidence rule
+
+- `glm-5.1`: seven LiteLLM vendor rows agree exactly on $1.40/$4.40 with a
+  $0.26/Mtok cache read. A real price.
+- `kimi-k2.6`: six rows agree exactly on $0.95/$4.00. A real price.
+- `glm-5v-turbo`: two rows, and they disagree ($0.704 vs $1.20). A short,
+  wide spread is not a price — declined.
+- `hy3-preview-agent`: no LiteLLM row under any spelling. Unpriced, and
+  the report says so.
+
+### Distribution, unchanged and honestly so
+
+A Homebrew tap is now live and verified end to end
+(`brew install garyleelty/agentledger/agentledger` → 0.4.0 → all nine
+sources), which makes five working channels that need no credential from
+anyone. The npm registry is still closed: the local token is 401 dead, the
+keychain has no npm entry, and the repo has **zero** Actions secrets, so
+the publish workflow's `npm publish` step skips. GitHub Packages is closed
+too — the keychain token's scopes are `read:user, repo, user:email,
+workflow`, with no `write:packages`.
+
+**$0.00 received. Stars: 0 vs 19,019.** That half of the goal is still
+open and is not moving on this machine.
