@@ -12,12 +12,13 @@ import fsp from 'node:fs/promises';
 import { PARSERS } from './parsers.js';
 import { PARSERS_CHERRY } from './parsers-cherry.js';
 import { PARSERS_CODEBUDDY, CODEBUDDY_LOG_MATCH } from './parsers-codebuddy.js';
+import { PARSERS_LINGMA, LINGMA_DB_MATCH } from './parsers-lingma.js';
 import { costOf } from './pricing.js';
 
 // The CherryStudio lane lives in its own module because it is the only
 // parser that needs a documented dedup relationship with another source;
 // merging it here keeps that coupling visible instead of buried.
-const ALL_PARSERS = { ...PARSERS, ...PARSERS_CHERRY, ...PARSERS_CODEBUDDY };
+const ALL_PARSERS = { ...PARSERS, ...PARSERS_CHERRY, ...PARSERS_CODEBUDDY, ...PARSERS_LINGMA };
 
 /**
  * Where each supported agent keeps its logs.
@@ -122,6 +123,19 @@ export const SOURCES = [
     match: CODEBUDDY_LOG_MATCH,
     parser: ALL_PARSERS.codebuddy,
     docs: 'https://copilot.tencent.com/',
+  },
+  {
+    // Lingma (阿里通义灵码) is Alibaba's AI coding IDE. Its usage is in a
+    // SQLite store; a companion CLI log carries the cache split for a few
+    // of the calls, and the parser joins them.
+    //
+    // The matcher is the DATABASE only. The log resolves to the same
+    // database, so matching both would read the lane twice.
+    agent: 'lingma',
+    root: '~/Library/Application Support/Lingma/SharedClientCache/cache/db',
+    match: LINGMA_DB_MATCH,
+    parser: ALL_PARSERS.lingma,
+    docs: 'https://lingma.aliyun.com/',
   },
 ];
 

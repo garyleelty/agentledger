@@ -16,18 +16,19 @@ $ agentledger
 
   Metric         Tokens   Est. cost
   ─────────────  ───────  ─────────
-  Input tokens   320.38M  $796
-  Cache read     2.32B    $318
+  Input tokens   326.17M  $796
+  Cache read     2.42B    $318
   Cache write    366.4k   $0.0842
-  Output tokens  9.57M    $54.73
-  TOTAL          2.65B    $1169
+  Output tokens  10.02M    $54.73
+  TOTAL          2.76B    $1169
 
   Agent        Tokens   Est. cost  Records
   ───────────  ───────  ─────────  ───────
-  dsh          1.87B    $954       6994
+  dsh          1.97B    $954       6994
   codex        219.45M  $193       3059
-  opencode     302.53M  $25.42     4298
+  opencode     304.17M  $25.42     4298
   codebuddy    24.10M   $13.62     362
+  lingma       2.76M    $7.77      43
   claude-code  205.05M  $2.24      1462
   cherry-studio 765.8k $1.63      29
   openclaw     31.39M   $1.28      959
@@ -35,7 +36,7 @@ $ agentledger
   pi           47.7k    $0.0000    5
 
   ! 11 model(s) have no built-in price and used the
-    $3/$15 per-Mtok default ($956 of the total):
+    $3/$15 per-Mtok default ($964 of the total):
       step-5-preview  (1766 records)
       hy4-preview  (1554 records)
       ...
@@ -83,7 +84,7 @@ while you are still working:
 more agents than this. The honest count, rather than a flattering one:
 ccusage has **18** agent adapters (19 directories under `rust/adapters`, one
 of which is `common`, a shared helper rather than an agent), and **7 of those
-18 overlap** with the ones below. agentledger has **10** sources; **3** of them
+18 overlap** with the ones below. agentledger has **11** sources; **4** of them
 ccusage has no adapter for at all.
 
 It reports reasoning token **counts** but does not bill them in the OpenCode or Kilo lanes
@@ -102,7 +103,7 @@ ledger would have cost with no prompt caching); and the whole tool is ~3,100
 lines of zero-dependency JavaScript with no build step, no runtime fetch, and
 no network call of any kind.
 
-**Three sources ccusage cannot read at all.** ccusage has 18 adapters
+**Four sources ccusage cannot read at all.** ccusage has 18 adapters
 and **no `dsh` adapter** — `ccusage dsh` returns `Unknown command` — and no
 Cherry Studio adapter either; there is no `cherry` command in it at all.
 `crosscheck` reports the first automatically rather than trusting prose:
@@ -379,7 +380,7 @@ Useful flags:
 
 | Flag | Meaning |
 | --- | --- |
-| `-a, --agent <name>` | only one agent (`claude-code`, `codex`, `opencode`, `kilo`, `dsh`, `gemini-cli`, `pi`, `openclaw`, `cherry-studio`, `codebuddy`) |
+| `-a, --agent <name>` | only one agent (`claude-code`, `codex`, `opencode`, `kilo`, `dsh`, `gemini-cli`, `pi`, `openclaw`, `cherry-studio`, `codebuddy`, `lingma`) |
 | `-p, --path <dir>` | also scan a directory or single file |
 | `--since <date>` | only records at/after a date |
 | `--until <date>` | only records before a date, inclusive of that day |
@@ -484,6 +485,7 @@ in, they open windows that contain nothing.
 | Gemini CLI | `~/.gemini/tmp/**/logs.json` | ✅ |
 | Cherry Studio | `~/Library/Application Support/CherryStudio/Data/cherrystudio.sqlite` | ✅ |
 | CodeBuddy CN | `~/Library/Application Support/CodeBuddy CN/logs/**/腾讯云代码助手*.log` | ✅ |
+| Lingma (通义灵码) | `~/Library/Application Support/Lingma/SharedClientCache/cache/db/local.db` | ✅ |
 | Anything else | `--path` + format sniffing | partial |
 
 `agentledger sources` tells you which of those are actually present on your
@@ -503,8 +505,9 @@ $ agentledger sources
   openclaw       ~/.openclaw/agents                               101 file(s)  https://github.com/clawdbot/clawdbot             
   cherry-studio  ~/Library/Application Support/CherryStudio/Data  1 file(s)    https://www.cherry-ai.com/                       
   codebuddy      ~/Library/Application Support/CodeBuddy CN/logs  37 file(s)   https://copilot.tencent.com/                     
+  lingma         ~/Library/Application Support/Lingma/SharedClientCache/cache/db  1 file(s)    https://lingma.aliyun.com/                       
 
-  9 of 10 sources have data on this machine.
+  10 of 11 sources have data on this machine.
 ```
 
 `agentledger-cli sources` prints this table with links.
@@ -535,6 +538,17 @@ reads zero records.
 - *`credit` is a quota, not money.* It does not scale with the token
   counts or with the list price — the ratio between credit and cost ranged
   4× to 126× for the same model. It is not used as a cost anywhere.
+
+**Lingma's cache split is only partly known, and its lane says so.** Its
+SQLite store records the whole prompt and the completion for every model
+call, but the cached part is written to a companion CLI log for only 5 of
+the 43 calls on this machine; the rest record a `cached_tokens` of 0,
+which is the cache-*write* count, not the read count. So the whole prompt
+is priced as fresh for those 38 calls, and **the lane's dollars are an
+upper bound**: $7.77 as reported, against $1.04 if every unknown call
+were entirely cached. The token counts are exact either way. The model is
+not recorded at all, so the lane is priced at the stated default and named
+in the unpriced list.
 
 OpenCode and Cherry Studio are the two supported agents whose store is a
 SQLite database rather than append-only text. Both are opened read-only — a

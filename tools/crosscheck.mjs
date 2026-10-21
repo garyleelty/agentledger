@@ -176,6 +176,7 @@ const UNCOMPARABLE = [
   ['dsh', 'DSH (DeepSeek Harness)'],
   ['cherry-studio', 'Cherry Studio'],
   ['codebuddy', 'CodeBuddy CN'],
+  ['lingma', 'Lingma (通义灵码)'],
 ];
 
 console.log('');
