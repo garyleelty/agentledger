@@ -116,14 +116,15 @@
 
   <h2>What it does</h2>
   <ul>
-    <li><strong>Reads local logs only</strong> — <code>~/.claude/projects</code>, <code>~/.codex/sessions</code>, <code>~/.local/share/opencode</code>, <code>~/.local/share/kilo</code>, <code>~/.dsh/sessions</code>, <code>~/.openclaw/agents</code>, <code>~/.pi/agent/sessions</code>, <code>~/Library/Application Support/CherryStudio/Data</code>, <code>~/.gemini/tmp</code></li>
+    <li><strong>Reads local logs only</strong> — <code>~/.claude/projects</code>, <code>~/.codex/sessions</code>, <code>~/.local/share/opencode</code>, <code>~/.local/share/kilo</code>, <code>~/.dsh/sessions</code>, <code>~/.openclaw/agents</code>, <code>~/.pi/agent/sessions</code>, <code>~/Library/Application Support/CherryStudio/Data</code>, <code>~/.gemini/tmp</code>, <code>~/Library/Application Support/CodeBuddy CN/logs</code></li>
     <li><strong>Cache buckets priced separately</strong> — 2.00B of my 2.32B tokens are cache reads, billed at 10-25% of input</li>
     <li><strong>Never touches the network</strong> — no account, no key, no telemetry, ~3,100 lines you can audit in one sitting</li>
     <li><strong>Fast</strong> — a full scan of 680M+ tokens takes about a second</li>
     <li><strong>Your rates, not mine</strong> — <code>--prices my-prices.json</code> overrides any model, partial entries merge over the built-in table; <code>prices --template</code> writes the file for you, naming exactly the models your ledger could not price</li>
     <li><strong>Honest about unknowns</strong> — a model with no built-in price is billed at a stated default and the report says so, with its dollar share, instead of quietly folding a placeholder into the total</li>
     <li><strong>Checked against the world, not itself</strong> — <code>tools/crosscheck.mjs</code> diffs token totals against ccusage on the same logs (it found four real bugs), and <code>tools/audit_pricing.py</code> diffs every price against the LiteLLM database weekly in CI</li>
-    <li><strong>Status bar</strong> — <code>agentledger statusline</code> in Claude Code's <code>statusLine</code> hook: live session cost, zero file reads on current payloads</li>
+    <li><strong>Billing blocks</strong> — <code>agentledger blocks</code> groups your usage into the windows a subscription quota resets in, with the active window's burn rate and projection. Every agent, not just Claude Code</li>
+    <li><strong>Status bar</strong> — <code>agentledger statusline</code> in Claude Code's <code>statusLine</code> hook: live session cost, the active billing block, zero file reads on current payloads</li>
   </ul>
 
   <h2>Commands</h2>
@@ -158,6 +159,7 @@
     <tr><td>pi-agent</td><td><code>~/.pi/agent/sessions</code></td><td class="ok">supported</td></tr>
     <tr><td>Cherry Studio</td><td><code>~/Library/Application Support/CherryStudio/Data</code></td><td class="ok">supported</td></tr>
     <tr><td>Gemini CLI</td><td><code>~/.gemini/tmp</code></td><td class="ok">supported</td></tr>
+    <tr><td>CodeBuddy CN</td><td><code>~/Library/Application Support/CodeBuddy CN/logs</code></td><td class="ok">supported</td></tr>
     <tr><td>Cursor, Aider, Amp…</td><td><code>--path</code> + sniffing</td><td class="dim">partial</td></tr>
   </table>
 
