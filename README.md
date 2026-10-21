@@ -174,13 +174,13 @@ brew install garyleelty/agentledger/agentledger
 
 A tap is just a GitHub repository, so this path needs no registry account and
 no token from anyone — not even from the project. Verified end to end: tapped,
-installed, and `agentledger --version` reports 0.4.0 with every source
+installed, and `agentledger --version` reports 0.5.0 with every source
 listed.
 
 From a release tarball (no npm account, no registry, no build step):
 
 ```bash
-npm install -g https://github.com/garyleelty/agentledger/releases/download/v0.4.0/agentledger-cli-0.4.0.tgz
+npm install -g https://github.com/garyleelty/agentledger/releases/download/v0.5.0/agentledger-cli-0.5.0.tgz
 ```
 
 The tarball is attached to each release by the release workflow using the
