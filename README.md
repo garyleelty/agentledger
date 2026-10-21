@@ -16,17 +16,17 @@ $ agentledger
 
   Metric         Tokens   Est. cost
   ─────────────  ───────  ─────────
-  Input tokens   314.52M  $796
-  Cache read     2.15B    $318
+  Input tokens   314.98M  $796
+  Cache read     2.17B    $318
   Cache write    366.4k   $0.0842
-  Output tokens  8.83M    $54.73
-  TOTAL          2.47B    $1169
+  Output tokens  8.87M    $54.73
+  TOTAL          2.50B    $1169
 
   Agent        Tokens   Est. cost  Records
   ───────────  ───────  ─────────  ───────
-  dsh          1.72B    $954       6994
+  dsh          1.74B    $954       6994
   codex        219.45M  $193       3059
-  opencode     295.84M  $25.42     4298
+  opencode     297.18M  $25.42     4298
   claude-code  205.05M  $2.24      1462
   cherry-studio 765.8k $1.63      29
   openclaw     31.39M   $1.28      959
@@ -158,6 +158,17 @@ pricing fetch. The one thing it does ask of the runtime is `node:sqlite`, which
 is part of Node itself.
 
 ## Install
+
+With Homebrew, if you have it:
+
+```bash
+brew install garyleelty/agentledger/agentledger
+```
+
+A tap is just a GitHub repository, so this path needs no registry account and
+no token from anyone — not even from the project. Verified end to end: tapped,
+installed, and `agentledger --version` reports 0.4.0 with all nine sources
+listed.
 
 From a release tarball (no npm account, no registry, no build step):
 

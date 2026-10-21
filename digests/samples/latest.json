@@ -1,24 +1,24 @@
 {
   "tool": "agentledger",
   "version": "0.4.0",
-  "generatedAt": "2026-10-21T15:08:52.646Z",
+  "generatedAt": "2026-10-21T15:14:01.619Z",
   "totals": {
     "tokens": {
-      "input": 314517403,
-      "cacheRead": 2150314253,
+      "input": 314975222,
+      "cacheRead": 2172791965,
       "cacheWrite": 366382,
-      "output": 8833329
+      "output": 8870751
     },
     "costUSD": 1177.98247,
-    "records": 17797
+    "records": 17887
   },
   "byAgent": {
     "dsh": {
-      "input": 238723214,
-      "cacheRead": 1475338576,
+      "input": 238744978,
+      "cacheRead": 1496920416,
       "cacheWrite": 0,
-      "output": 4113009,
-      "records": 7829,
+      "output": 4136929,
+      "records": 7906,
       "costUSD": 954.352963
     },
     "codex": {
@@ -30,11 +30,11 @@
       "costUSD": 192.747441
     },
     "opencode": {
-      "input": 28453622,
-      "cacheRead": 264563400,
+      "input": 28889677,
+      "cacheRead": 265459272,
       "cacheWrite": 85801,
-      "output": 2732496,
-      "records": 4350,
+      "output": 2745998,
+      "records": 4363,
       "costUSD": 25.422329
     },
     "claude-code": {
@@ -352,11 +352,11 @@
       "costUSD": 0
     },
     "opencode/deepseek-v4.1-flash-free": {
-      "input": 1741034,
-      "cacheRead": 13547264,
+      "input": 2177089,
+      "cacheRead": 14443136,
       "cacheWrite": 0,
-      "output": 249790,
-      "records": 183,
+      "output": 263292,
+      "records": 196,
       "costUSD": 0
     },
     "kilo/bytedance-seed/dola-seed-2.0-pro:free": {
@@ -368,11 +368,11 @@
       "costUSD": 0
     },
     "minimax/minimax-m3.1-flash:free": {
-      "input": 1113446,
-      "cacheRead": 105162816,
+      "input": 1135210,
+      "cacheRead": 126744656,
       "cacheWrite": 0,
-      "output": 488780,
-      "records": 683,
+      "output": 512700,
+      "records": 760,
       "costUSD": 0
     },
     "stepfun/step-5-preview-free": {
