@@ -96,6 +96,16 @@ readme = readme.replace(
   () => `${metricText}\n`,
 );
 
+// "231 session files scanned" — the number of files the tool opened. It
+// was hand-pasted, and it went stale silently, so it is carried in the
+// sample and refreshed from there.
+if (sample.totals.filesScanned) {
+  readme = readme.replace(
+    /(agentledger — )\d+( session files scanned)/,
+    (_m, p1, p2) => `${p1}${sample.totals.filesScanned}${p2}`,
+  );
+}
+
 // Per-agent rows: name, tokens, cost, records.
 // NOTE: the replacement is a function, not a string. `money()` returns a
 // literal `$`, and in a string replacement `$1`/`$2` are backreferences —

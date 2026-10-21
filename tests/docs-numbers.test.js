@@ -3,6 +3,7 @@ import assert from 'node:assert/strict';
 import { execFileSync } from 'node:child_process';
 import path from 'node:path';
 import fs from 'node:fs';
+import { SOURCES } from '../src/ledger.js';
 import { fileURLToPath } from 'node:url';
 
 /**
@@ -82,6 +83,42 @@ test('landing page figures match the committed digest sample', () => {
   ]) {
     const row = page.split('\n').find((l) => l.includes(label));
     assert.ok(row && row.includes(dollars), `landing page ${label} cost is stale (expected ${dollars})`);
+  }
+});
+
+test('the README opening names every agent, and the file count is the real one', () => {
+  const readme = fs.readFileSync(path.join(root, 'README.md'), 'utf8');
+  // The opening paragraph is the first thing a visitor reads. It named
+  // nine agents when there were twelve, and nothing caught it.
+  // The prose before the first fenced block. `indexOf('```')` would stop
+  // at the inline backtick in `agentledger-cli`, so look for the fence.
+  // The prose before the first fenced block, with the line wrapping
+  // flattened — the paragraph wraps "Claude Code" across two lines.
+  const intro = readme.slice(0, readme.indexOf('\n```\n')).replace(/\s+/g, ' ');
+  for (const agent of SOURCES.map((s) => s.agent)) {
+    const label = {
+      'claude-code': 'Claude Code',
+      'codex': 'Codex',
+      'opencode': 'OpenCode',
+      'gemini-cli': 'Gemini CLI',
+      kilo: 'Kilo Code',
+      dsh: 'DSH',
+      pi: 'pi-agent',
+      openclaw: 'OpenClaw',
+      'cherry-studio': 'Cherry Studio',
+      codebuddy: 'CodeBuddy CN',
+      lingma: 'Lingma',
+      workbuddy: 'WorkBuddy',
+    }[agent];
+    assert.ok(intro.includes(label), `README opening does not mention ${label}`);
+  }
+  // The file count was hand-pasted and went stale silently; it is carried
+  // in the sample now.
+  if (sample.totals.filesScanned) {
+    assert.ok(
+      readme.includes(`agentledger — ${sample.totals.filesScanned} session files scanned`),
+      'README file count is stale',
+    );
   }
 });
 

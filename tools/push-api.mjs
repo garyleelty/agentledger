@@ -15,17 +15,24 @@
  *   - "I pushed it" is a claim until the remote tree is diffed against the
  *     local one. The final step does exactly that and prints the result.
  *
- * Usage: node tools/push-api.mjs [--dry-run]
+ * Usage: node tools/push-api.mjs [--dry-run] [--repo owner/name] [--dir path]
  */
 
 import { execFileSync } from 'node:child_process';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
-const root = path.dirname(path.dirname(fileURLToPath(import.meta.url)));
+const argOf = (name, fallback) => {
+  const i = process.argv.indexOf(name);
+  return i !== -1 && process.argv[i + 1] ? process.argv[i + 1] : fallback;
+};
+// The default is this repository, but the tool is not tied to it: the
+// Homebrew tap is a second repository that has to be pushed the same way,
+// and `git push` over HTTPS hangs from this machine.
+const root = path.resolve(argOf('--dir', path.dirname(path.dirname(fileURLToPath(import.meta.url)))));
 const dryRun = process.argv.includes('--dry-run');
-const REPO = 'garyleelty/agentledger';
-const BRANCH = 'main';
+const REPO = argOf('--repo', 'garyleelty/agentledger');
+const BRANCH = argOf('--branch', 'main');
 
 const TOKEN = execFileSync('security', ['find-internet-password', '-s', 'github.com', '-w'], {
   encoding: 'utf8',

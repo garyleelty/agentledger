@@ -5,26 +5,27 @@
 **What did that agent actually cost you?**
 
 `agentledger-cli` is a local-first ledger for AI coding agents. It reads the
-session logs that Claude Code, Codex, OpenCode, Kilo, DSH, OpenClaw, pi-agent,
-Cherry Studio, and Gemini CLI already write to your machine and turns them
-into tokens and dollars.
+session logs that **twelve** agents already write to your machine — Claude
+Code, Codex, OpenCode, Gemini CLI, Kilo Code, DSH, pi-agent, OpenClaw,
+Cherry Studio, CodeBuddy CN, Lingma and WorkBuddy — and turns them into
+tokens and dollars. Five of those twelve no other tool has an adapter for.
 
 ```
 $ agentledger
 
-  agentledger — 231 session files scanned
+  agentledger — 298 session files scanned
 
   Metric         Tokens   Est. cost
   ─────────────  ───────  ─────────
-  Input tokens   330.45M  $822
-  Cache read       2.55B  $341
+  Input tokens   330.94M  $822
+  Cache read       2.58B  $341
   Cache write     366.4k  $0.0842
-  Output tokens   10.77M  $64.10
-  TOTAL            2.89B  $1227
+  Output tokens   10.83M  $64.10
+  TOTAL            2.92B  $1227
 
   Agent        Tokens   Est. cost  Records
   ───────────  ───────  ─────────  ───────
-  dsh          2.06B    $954       6994
+  dsh          2.09B    $954       6994
   codex        219.45M  $193       3059
   opencode     304.17M  $25.42     4298
   codebuddy    24.10M   $13.62     362

@@ -292,7 +292,7 @@ async function main() {
   switch (command) {
     case 'waste': return reportWaste(filtered, flags);
     case 'savings': return reportSavings(filtered, flags);
-    case 'share': return renderSharePage(filtered, flags);
+    case 'share': return renderSharePage(filtered, flags, { filesScanned });
     case 'by-project': return reportByProject(filtered, flags);
     case 'by-branch': return reportByBranch(filtered, flags);
     case 'by-model': return reportByModel(filtered, flags);
@@ -308,7 +308,7 @@ async function main() {
       return reportBudget(filtered, flags);
     case 'sources': return reportSources(flags);
     case 'prices': return reportPrices(flags, filtered);
-    case 'aggregate': return reportAggregate(filtered);
+    case 'aggregate': return reportAggregate(filtered, { filesScanned });
     case 'json': return reportJson(filtered);
     case 'statusline': return statusline(flags);
     case 'watch': return watch(flags);
@@ -404,7 +404,7 @@ function reportBudget(records, flags) {
  * digest, a README badge or a CI step should read — it answers "what did the
  * spend look like" without publishing whose spend it was.
  */
-function reportAggregate(records) {
+function reportAggregate(records, meta = {}) {
   const t = totals(records);
   const by = (keyFn) => Object.fromEntries(
     [...groupBy(records, keyFn).entries()]
@@ -448,6 +448,11 @@ function reportAggregate(records) {
         output: round(t.costOutput),
       },
       records: records.length,
+      // How many files were opened. It is a meaningful fact — "it read
+      // 298 of your session files" — and it was hand-pasted into the
+      // README, where it went stale silently. Carried here so the docs
+      // pipeline can keep it true.
+      filesScanned: meta.filesScanned ?? null,
     },
     byAgent: by((r) => r.agent),
     byModel: by((r) => r.model),
@@ -668,7 +673,7 @@ export function savingsOf(records) {
  * `agentledger share -o out.html` is a single step from fresh logs. Privacy
  * rules are the digests': aggregates only, never a session id, never a path.
  */
-async function renderSharePage(records, flags) {
+async function renderSharePage(records, flags, meta = {}) {
   const t = totals(records);
   const by = (keyFn) => Object.fromEntries(
     [...groupBy(records, keyFn).entries()]
@@ -701,6 +706,11 @@ async function renderSharePage(records, flags) {
         output: round(t.costOutput),
       },
       records: records.length,
+      // How many files were opened. It is a meaningful fact — "it read
+      // 298 of your session files" — and it was hand-pasted into the
+      // README, where it went stale silently. Carried here so the docs
+      // pipeline can keep it true.
+      filesScanned: meta.filesScanned ?? null,
     },
     byAgent: by((r) => r.agent),
     byModel: by((r) => r.model),

@@ -1,13 +1,13 @@
 {
   "tool": "agentledger",
-  "version": "0.5.0",
-  "generatedAt": "2026-10-21T19:24:20.897Z",
+  "version": "0.6.0",
+  "generatedAt": "2026-10-21T19:37:15.409Z",
   "totals": {
     "tokens": {
-      "input": 330447513,
-      "cacheRead": 2546091464,
+      "input": 330936614,
+      "cacheRead": 2576053022,
       "cacheWrite": 366382,
-      "output": 10771521
+      "output": 10830210
     },
     "costUSD": 1227.194623,
     "costByBucket": {
@@ -16,15 +16,16 @@
       "cacheWrite": 0.084174,
       "output": 64.102264
     },
-    "records": 20413
+    "records": 20536,
+    "filesScanned": 298
   },
   "byAgent": {
     "dsh": {
-      "input": 244201620,
-      "cacheRead": 1806412251,
+      "input": 244690721,
+      "cacheRead": 1836373809,
       "cacheWrite": 0,
-      "output": 5237950,
-      "records": 9493,
+      "output": 5296639,
+      "records": 9616,
       "costUSD": 954.352963
     },
     "codex": {
@@ -446,11 +447,11 @@
       "costUSD": 0
     },
     "minimax/minimax-m3.1-flash:free": {
-      "input": 6591852,
-      "cacheRead": 436236491,
+      "input": 7080953,
+      "cacheRead": 466198049,
       "cacheWrite": 0,
-      "output": 1613721,
-      "records": 2347,
+      "output": 1672410,
+      "records": 2470,
       "costUSD": 0
     },
     "stepfun/step-5-preview-free": {
