@@ -1928,3 +1928,100 @@ an OpenClaw lane priced instead of $0.00, billing blocks across every
 lane, and a JSON shape that matches the command name. The audience is the
 one axis still at zero, and it is the one that needs a person, not a
 commit.
+
+## Round 59: two more sources, a Node that silently emptied five lanes, and a re-probe that overturned a "fact"
+
+### Five sources now that ccusage cannot read
+
+| source | tokens | what makes it hard |
+|---|---|---|
+| dsh | 1.98B | a custom zstd session format |
+| cherry-studio | 784k | a SQLite store, and it **duplicates** the pi lane's requests |
+| codebuddy | 24.10M | usage split across **four** stores, and the log's clock is local |
+| lingma | 2.76M | a SQLite store whose cache split is known for 5 of 43 calls |
+| workbuddy | 40.77M | `inputTokens` is the whole prompt, and the field that looks like the cache read is always 0 |
+
+**WorkBuddy** is the biggest of the new ones: 487 records, 40.77M tokens, a
+model on every record, and a proper cache split. Two independent sweeps
+found it and both verified it is **disjoint from CodeBuddy CN** — the two
+are the same product family (same account id, same usage object shape), so
+a double count was the obvious risk. The windows do not overlap: CodeBuddy
+CN spans 2026-04-26 → 2026-05-08, WorkBuddy spans 2026-09-08 →
+2026-10-21, four months apart, zero timestamp collisions. Verified twice,
+once by each sweep, and once by me.
+
+Three things in it that a diff cannot show, each measured rather than
+assumed:
+
+- `inputTokens` is the **whole prompt**: `prompt_cache_hit_tokens +
+  prompt_cache_miss_tokens === inputTokens` exactly (4,028,544 + 467,419 =
+  4,495,963). Treating it as the fresh input would have inflated the
+  lane's cost by an order of magnitude.
+- The field that **looks** like the cache read — `cache_read_input_tokens`
+  — is **0 on every record**, and so is `rawUsage.cached_tokens`. The real
+  count is in `prompt_cache_hit_tokens`. There is a third usage object on
+  the record (`message.usage`) whose `cache_read_input_tokens` is also 0;
+  parsing it would have lost all 36.8M cache-read tokens silently.
+- **Reasoning is a subset of output**, not additive: measured ratios of
+  0.07 to 0.80 (output 750 with reasoning 520; output 2362 with
+  reasoning 1798). The same trap as Cherry Studio, where adding it
+  double-counts.
+
+And one more that a reader would get wrong from the data alone: the
+**display** model name is sometimes the Chinese string `快速`, so the
+parser must use the machine id.
+
+**Declined, with the reason recorded:** TRAE (45 records, 101K tokens, no
+model name on any of them, and its only source is a 910MB text log) and
+**CC Switch** (3,978 rows of per-request usage, but 82% of them are
+re-imported `~/.codex/sessions` rollouts that agentledger already reads,
+and the rest is Claude Code traffic already counted — a double count with
+a tiny unique yield).
+
+### The Node that silently emptied five lanes
+
+The Node 22.5 CI leg started failing, and the cause was worth more than
+the failure.
+
+`node:sqlite` landed in Node 22.5 **behind a flag**, was unflagged in
+23.8, and was backported into the 22.x line partway through. Where it is
+still flagged, importing it **throws** — and every parser that opens a
+database catches that and returns zero records. So on Node 22.5.0 exactly,
+**five of the eleven lanes** — OpenCode, Kilo, Cherry Studio, CodeBuddy,
+Lingma — read nothing, and the report said so with a total that looked
+complete. The `engines` field promises `>=22.5`, and on 22.5.0 that
+promise was false for half the tool.
+
+The tool now **restarts itself** with `--experimental-sqlite` when the
+module is unavailable, guarded so it can happen at most once. Pinned by a
+test that blocks `node:sqlite` with a loader hook and counts the
+processes: exactly two when the module is missing, exactly one when it is
+there. The second half matters as much as the first — a needless second
+process on every invocation would be a real cost.
+
+### A "fact" that was wrong
+
+Round 29 recorded HN, Reddit, V2EX, linux.do, medium and x.com as
+network-blocked. Re-probed this round: **all of them answer**. The npm
+registry answers too. The blocker was never the network — it is the
+token, and the token hunt came back empty everywhere: the local
+`~/.npmrc` token is 401 dead, the keychain holds no npm entry, this
+repository has zero Actions secrets, and **none of the user's other 43
+repositories has an `NPM_TOKEN` secret either**. A wrong diagnosis gets
+carried forward as a fact; this one had.
+
+### The repository's own front door
+
+The GitHub description still named four agents, and it is the text every
+search result shows. It now names ten and says what the tool does. The
+`homepage` points at the live Pages site rather than at the repository,
+and the topics are at the full 20 with `billing`, `budget`,
+`cost-reporting` and `homebrew` added.
+
+### Still on the list, still gated
+
+`awesome-agent-observability` — the agent-observability list, with an
+active maintainer — requires a project to be **at least 8 weeks old**. This
+repository is 9 days old. **47 days to go**, around 2026-12-07. It is the
+single best distribution move available when the date arrives, and it is
+the one thing on the list that only needs time.
