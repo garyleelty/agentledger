@@ -19,7 +19,7 @@
  * mean.
  */
 
-import { readFileSync, writeFileSync } from 'node:fs';
+import { readFileSync, writeFileSync, readdirSync } from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
@@ -96,6 +96,29 @@ readme = readme.replace(
   () => `${metricText}\n`,
 );
 
+// The line count. It is a claim about the size of the tool, and it was
+// hand-written in four places — the README twice and the landing page
+// twice — so it went stale without anyone noticing: the project grew from
+// ~3,100 lines to ~5,600 and the number did not move. It is computed from
+// the source here, so it cannot drift.
+const lineCount = (() => {
+  const dir = path.join(root, 'src');
+  const files = readdirSync(dir)
+    .filter((f) => f.endsWith('.js'))
+    .map((f) => path.join(dir, f))
+    .concat([
+      path.join(root, 'bin', 'agentledger.js'),
+      path.join(root, 'bin', 'digest.js'),
+    ]);
+  let n = 0;
+  for (const f of files) {
+    try { n += readFileSync(f, 'utf8').split('\n').length; } catch { /* missing */ }
+  }
+  return n;
+})();
+const lineText = `~${Math.round(lineCount / 100) * 100} lines`;
+readme = readme.replace(/~[\d,]+ lines/g, lineText);
+
 // "231 session files scanned" — the number of files the tool opened. It
 // was hand-pasted, and it went stale silently, so it is carried in the
 // sample and refreshed from there.
@@ -162,6 +185,9 @@ page = page.replace(
 
 // Every pair is a FUNCTION, so a dollar amount in the replacement is
 // literal rather than a backreference.
+// The same line count on the landing page, which states it twice.
+page = page.replace(/~[\d,]+ lines/g, lineText);
+
 page = replaceAll(page, [
   [/(cache reads\s+<span class="hi">)\S+(<\/span> of )\S+( total tokens)/, (_m, p1, p2, p3) => `${p1}${fmtTok(t.cacheRead)}${p2}${fmtTok(total)}${p3}`],
   [/(pre>paid\s+<span class="hi">)\$[\d.]+(<\/span>)/, (_m, p1, p2) => `${p1}${money(cost)}${p2}`],

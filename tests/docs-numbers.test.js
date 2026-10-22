@@ -109,6 +109,7 @@ test('the README opening names every agent, and the file count is the real one',
       codebuddy: 'CodeBuddy CN',
       lingma: 'Lingma',
       workbuddy: 'WorkBuddy',
+      qwen: 'Qwen Code',
     }[agent];
     assert.ok(intro.includes(label), `README opening does not mention ${label}`);
   }
@@ -153,8 +154,14 @@ test('the README line-count claim matches the source', async () => {
   assert.ok(claimed, 'README must state a line count');
   const claimedN = Number(claimed[1].replace(/,/g, ''));
 
-  const out = execFileSync('wc', ['-l', 'src/ledger.js', 'src/parsers.js', 'src/pricing.js',
-    'bin/agentledger.js', 'bin/digest.js'], { encoding: 'utf8', cwd: root });
+  // EVERY source file, not a hand-picked five. The count was a list of
+  // five paths written down once, and when the project grew to thirteen
+  // sources the number it reported was the number of an older project.
+  const files = fs.readdirSync(path.join(root, 'src'))
+    .filter((f) => f.endsWith('.js'))
+    .map((f) => path.join('src', f))
+    .concat(['bin/agentledger.js', 'bin/digest.js']);
+  const out = execFileSync('wc', ['-l', ...files], { encoding: 'utf8', cwd: root });
   const actual = Number(out.trim().split('\n').pop().trim().split(/\s+/)[0]);
 
   // ~ prefix allows a rounded claim, but not a 40% error

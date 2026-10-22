@@ -14,12 +14,13 @@ import { PARSERS_CHERRY } from './parsers-cherry.js';
 import { PARSERS_CODEBUDDY, CODEBUDDY_LOG_MATCH } from './parsers-codebuddy.js';
 import { PARSERS_LINGMA, LINGMA_DB_MATCH } from './parsers-lingma.js';
 import { PARSERS_WORKBUDDY, WORKBUDDY_SESSION_MATCH } from './parsers-workbuddy.js';
+import { PARSERS_QWEN, QWEN_SESSION_MATCH } from './parsers-qwen.js';
 import { costOf } from './pricing.js';
 
 // The CherryStudio lane lives in its own module because it is the only
 // parser that needs a documented dedup relationship with another source;
 // merging it here keeps that coupling visible instead of buried.
-const ALL_PARSERS = { ...PARSERS, ...PARSERS_CHERRY, ...PARSERS_CODEBUDDY, ...PARSERS_LINGMA, ...PARSERS_WORKBUDDY };
+const ALL_PARSERS = { ...PARSERS, ...PARSERS_CHERRY, ...PARSERS_CODEBUDDY, ...PARSERS_LINGMA, ...PARSERS_WORKBUDDY, ...PARSERS_QWEN };
 
 /**
  * Where each supported agent keeps its logs.
@@ -152,6 +153,20 @@ export const SOURCES = [
     match: WORKBUDDY_SESSION_MATCH,
     parser: ALL_PARSERS.workbuddy,
     docs: 'https://copilot.tencent.com/',
+  },
+  {
+    // Qwen Code is Alibaba's Gemini CLI fork. ccusage has had a `qwen`
+    // adapter since v20; this closes that gap.
+    //
+    // The matcher requires a `chats/` segment, because Qwen also writes
+    // `~/.qwen/tmp/<sha>/logs.json` — the same filename and shape as the
+    // Gemini CLI's, which the gemini-cli lane already reads. A source that
+    // globbed for it would count the same requests twice.
+    agent: 'qwen',
+    root: '~/.qwen/projects',
+    match: QWEN_SESSION_MATCH,
+    parser: ALL_PARSERS.qwen,
+    docs: 'https://github.com/QwenLM/qwen-code',
   },
 ];
 

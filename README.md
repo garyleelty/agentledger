@@ -5,42 +5,43 @@
 **What did that agent actually cost you?**
 
 `agentledger-cli` is a local-first ledger for AI coding agents. It reads the
-session logs that **twelve** agents already write to your machine — Claude
-Code, Codex, OpenCode, Gemini CLI, Kilo Code, DSH, pi-agent, OpenClaw,
-Cherry Studio, CodeBuddy CN, Lingma and WorkBuddy — and turns them into
-tokens and dollars. Five of those twelve no other tool has an adapter for.
+session logs that **thirteen** agents already write to your machine — Claude
+Code, Codex, OpenCode, Gemini CLI, Qwen Code, Kilo Code, DSH, pi-agent,
+OpenClaw, Cherry Studio, CodeBuddy CN, Lingma and WorkBuddy — and turns them
+into tokens and dollars. Five of those thirteen no other tool has an adapter
+for.
 
 ```
 $ agentledger
 
-  agentledger — 298 session files scanned
+  agentledger — 302 session files scanned
 
   Metric         Tokens   Est. cost
   ─────────────  ───────  ─────────
-  Input tokens   330.94M  $822
-  Cache read       2.58B  $341
+  Input tokens   335.96M  $826
+  Cache read       2.73B  $344
   Cache write     366.4k  $0.0842
-  Output tokens   10.83M  $64.10
-  TOTAL            2.92B  $1227
+  Output tokens   11.31M  $64.66
+  TOTAL            3.08B  $1235
 
   Agent        Tokens   Est. cost  Records
   ───────────  ───────  ─────────  ───────
-  dsh          2.09B    $954       6994
+  dsh          2.25B    $961       6994
   codex        219.45M  $193       3059
   opencode     304.17M  $25.42     4298
   codebuddy    24.10M   $13.62     362
   lingma       2.76M    $7.77      43
-  workbuddy    40.77M   $27.82     487
+  workbuddy    41.94M   $28.81     487
   claude-code  205.05M  $2.24      1462
   cherry-studio 765.8k $1.63      29
   openclaw     31.39M   $1.28      959
   kilo         3.32M    $0.3186    103
   pi           47.7k    $0.0000    5
 
-  ! 12 model(s) have no built-in price and used the
-    $3/$15 per-Mtok default ($991 of the total):
+  ! 15 model(s) have no built-in price and used the
+    $3/$15 per-Mtok default ($999 of the total):
       step-5-preview  (1818 records)
-      hy4-preview  (1730 records)
+      hy4-preview  (1741 records)
       ...
     Fix in one step: `agentledger prices --template` prints a
     fill-in override file for exactly these models.
@@ -101,7 +102,7 @@ So agentledger covers **fewer** agents than ccusage or CodeBurn, and has
   documentation says *"Prices are fetched from LiteLLM and cached locally
   for 24 hours."* agentledger's numbers cannot change under you, and it
   works on a plane.
-- **Zero dependencies, no build step, ~3,100 lines** of JavaScript. CodeBurn
+- **Zero dependencies, no build step, ~5600 lines** of JavaScript. CodeBurn
   is a TypeScript project; ccusage is a Rust binary.
 - **Five agents no other tool reads** — DSH, Cherry Studio, CodeBuddy CN,
   Lingma and WorkBuddy.
@@ -118,7 +119,7 @@ a name people already search for. If you want those, use the other one.
 more agents than this. The honest count, rather than a flattering one:
 ccusage has **18** agent adapters (19 directories under `rust/adapters`, one
 of which is `common`, a shared helper rather than an agent), and **7 of those
-18 overlap** with the ones below. agentledger has **12** sources; **5** of them
+18 overlap** with the ones below. agentledger has **13** sources; **5** of them
 ccusage has no adapter for at all.
 
 It reports reasoning token **counts** but does not bill them in the OpenCode or Kilo lanes
@@ -414,7 +415,7 @@ Useful flags:
 
 | Flag | Meaning |
 | --- | --- |
-| `-a, --agent <name>` | only one agent (`claude-code`, `codex`, `opencode`, `kilo`, `dsh`, `gemini-cli`, `pi`, `openclaw`, `cherry-studio`, `codebuddy`, `lingma`, `workbuddy`) |
+| `-a, --agent <name>` | only one agent (`claude-code`, `codex`, `opencode`, `kilo`, `dsh`, `gemini-cli`, `pi`, `openclaw`, `cherry-studio`, `codebuddy`, `lingma`, `workbuddy`, `qwen`) |
 | `-p, --path <dir>` | also scan a directory or single file |
 | `--since <date>` | only records at/after a date |
 | `--until <date>` | only records before a date, inclusive of that day |
@@ -521,6 +522,7 @@ in, they open windows that contain nothing.
 | CodeBuddy CN | `~/Library/Application Support/CodeBuddy CN/logs/**/腾讯云代码助手*.log` | ✅ |
 | Lingma (通义灵码) | `~/Library/Application Support/Lingma/SharedClientCache/cache/db/local.db` | ✅ |
 | WorkBuddy | `~/.workbuddy/projects/**/*.jsonl` | ✅ |
+| Qwen Code | `~/.qwen/projects/*/chats/*.jsonl` | ✅ |
 | Anything else | `--path` + format sniffing | partial |
 
 `agentledger sources` tells you which of those are actually present on your
@@ -542,8 +544,9 @@ $ agentledger sources
   codebuddy      ~/Library/Application Support/CodeBuddy CN/logs  37 file(s)   https://copilot.tencent.com/                     
   lingma         ~/Library/Application Support/Lingma/SharedClientCache/cache/db  1 file(s)    https://lingma.aliyun.com/                       
   workbuddy      ~/.workbuddy/projects                                            10 file(s)   https://copilot.tencent.com/                     
+  qwen           ~/.qwen/projects                                                 empty        https://github.com/QwenLM/qwen-code              
 
-  11 of 12 sources have data on this machine.
+  11 of 13 sources have data on this machine.
 ```
 
 `agentledger-cli sources` prints this table with links.
@@ -693,7 +696,7 @@ implementation is what actually finds bugs.
 
 `agentledger-cli` opens your log files in read mode and writes nothing. There is
 no telemetry, no update check, and no code path that can reach the network. You
-can verify this in a few minutes — the whole tool is ~3,100 lines with zero
+can verify this in a few minutes — the whole tool is ~5600 lines with zero
 dependencies.
 
 ## Contributing
