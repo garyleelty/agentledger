@@ -2,6 +2,8 @@
 
 ![agentledger — what your coding agents actually cost](docs/social-preview.png)
 
+[![License: MIT](https://img.shields.io/badge/license-MIT-blue)](LICENSE) [![Latest release](https://img.shields.io/github/v/release/garyleelty/agentledger)](https://github.com/garyleelty/agentledger/releases) [![Homebrew](https://img.shields.io/badge/brew-garyleelty%2Fagentledger-orange)](https://github.com/garyleelty/homebrew-agentledger#readme) [![No network calls](https://img.shields.io/badge/network-none·local--first-brightgreen)](README.md#privacy)
+
 **What did that agent actually cost you?**
 
 `agentledger-cli` is a local-first ledger for AI coding agents. It reads the
